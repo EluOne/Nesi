@@ -74,7 +74,7 @@ class Item(object):
 
 def serverStatus():
     status = []
-    #Download the Account Industry Data
+    #Download the Account Industry Data from API server
     apiURL = 'https://api.eveonline.com/server/ServerStatus.xml.aspx/'
 
     target = urllib2.urlopen(apiURL) #download the file
@@ -100,27 +100,18 @@ def serverStatus():
 
     
 def iid2name(ids): # Takes a list of typeIDs to query the api server.
-    #https://api.eveonline.com/eve/TypeName.xml.aspx?ids=xxxxx
-
-    #Download the Account Industry Data
+    items = []
+    #Download the TypeName Data from API server
     apiURL = 'https://api.eveonline.com/eve/TypeName.xml.aspx?ids=%s' % (ids)
     return apiURL
 '''
-    #download the file:
-    target = urllib2.urlopen(apiURL)
-
-    #convert to string
-    downloadedData = target.read()
-
-    #close file because we don't need it anymore:
-    target.close()
+    target = urllib2.urlopen(apiURL) #download the file
+    downloadedData = target.read() #convert to string
+    target.close() #close file because we don't need it anymore
 
     XMLData = parseString(downloadedData)
-#    headerNode = XMLData.getElementsByTagName("rowset")[0]
-#    columnHeaders = headerNode.attributes['columns'].value.split(',')
     dataNodes = XMLData.getElementsByTagName("row")
 
-    items = []
     for row in dataNodes:
         items.append(Item(row.getAttribute(u'typeID'),
                         row.getAttribute(u'typeName')))
@@ -140,7 +131,7 @@ class MainWindow(wx.Frame):
 
         # Setting up the menu.
         filemenu= wx.Menu()
-        menuRefresh= filemenu.Append(wx.ID_ABOUT, "&Refresh"," Refresh The List")
+        menuRefresh= filemenu.Append(wx.ID_ABOUT, "&Refresh"," Refresh The List") # FIXME
         menuAbout= filemenu.Append(wx.ID_ABOUT, "&About"," Information about this program")
         menuExit = filemenu.Append(wx.ID_EXIT,"E&xit"," Terminate the program")
 
@@ -152,7 +143,7 @@ class MainWindow(wx.Frame):
         # Menu events.
         self.Bind(wx.EVT_MENU, self.OnExit, menuExit)
         self.Bind(wx.EVT_MENU, self.OnAbout, menuAbout)
-        self.Bind(wx.EVT_MENU, self.GetData, menuRefresh)
+        self.Bind(wx.EVT_MENU, self.GetData, menuRefresh) # FIXME
         
         self.myOlv = ObjectListView(self, -1, style=wx.LC_REPORT|wx.SUNKEN_BORDER)
 
@@ -178,10 +169,6 @@ class MainWindow(wx.Frame):
         server = serverStatus()
         self.statusbar.SetStatusText('Welcome to Nesi - ' + server[0] + ' - ' + server[1] + ' Players Online')
 
-        #https://api.eveonline.com/eve/CharacterName.xml.aspx?ids=xxxxx,xxxxx
-        #
-        #https://api.eveonline.com/eve/TypeName.xml.aspx?ids=xxxxx
- 
         #Download the Account Industry Data
         apiURL = 'http://api.eveonline.com/corp/IndustryJobs.xml.aspx?keyID=%s&vCode=%s&characterID=%s' % (keyID, vCode, characterID)
         print apiURL
@@ -189,15 +176,12 @@ class MainWindow(wx.Frame):
         #target = urllib2.urlopen(apiURL) #download the file
         target = open('IndustryJobs.xml','r') #open a local xml file for reading: (testing)
 
-        #convert to string:
-        downloadedData = target.read()
+        downloadedData = target.read() #convert to string
 
         #close file because we don't need it anymore:
         target.close()
 
         XMLData = parseString(downloadedData)
-#        headerNode = XMLData.getElementsByTagName("rowset")[0]
-#        columnHeaders = headerNode.attributes['columns'].value.split(',')
         dataNodes = XMLData.getElementsByTagName("row")
 
         rows = []
