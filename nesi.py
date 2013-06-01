@@ -41,6 +41,11 @@ if (os.path.isfile("nesi.settings")):
     characterID = pickle.load(settingsfile)
     settingsfile.close()
 
+if (os.path.isfile("items.cache")):
+    itemsfile = open("items.cache",'r')
+    items = pickle.load(itemsfile)
+    itemsfile.close()
+
 
 class Job(object):
     def __init__(self, jobID, completedStatus, activityID, installedItemTypeID, installerID, installTime, beginProductionTime, endProductionTime):
@@ -52,6 +57,7 @@ class Job(object):
         self.installTime = datetime.datetime(*(time.strptime(installTime, "%Y-%m-%d %H:%M:%S")[0:6]))
         self.beginProductionTime = datetime.datetime(*(time.strptime(beginProductionTime, "%Y-%m-%d %H:%M:%S")[0:6]))
         self.endProductionTime = datetime.datetime(*(time.strptime(endProductionTime, "%Y-%m-%d %H:%M:%S")[0:6]))
+        self.timeRemaining = self.endProductionTime - self.beginProductionTime
         
 # S&I window shows: state, activity, type, location, jumps, installer, owner, install date, end date
 
@@ -61,6 +67,65 @@ class Job(object):
 #installedItemTypeID,outputTypeID,containerTypeID,installedItemCopy,completed,completedSuccessfully,installedItemFlag,
 #outputFlag,activityID,completedStatus,installTime,beginProductionTime,endProductionTime,pauseProductionTime"
 
+class Item(object):
+    def __init__(self, typeID, typeName):
+        self.typeID = typeID
+        self.typeName = typeName
+
+def serverStatus():
+    status = []
+    #Download the Account Industry Data
+    apiURL = 'https://api.eveonline.com/server/ServerStatus.xml.aspx/'
+
+    target = urllib2.urlopen(apiURL) #download the file
+    downloadedData = target.read() #convert to string
+    target.close() #close file because we don't need it anymore
+
+    XMLData = parseString(downloadedData)
+
+    result = XMLData.getElementsByTagName('result')
+    serveropen = result[0].getElementsByTagName("serverOpen")
+    onlineplayers = result[0].getElementsByTagName("onlinePlayers")
+    cacheuntil = XMLData.getElementsByTagName('cachedUntil')
+
+    if (serveropen[0].firstChild.nodeValue):
+        status.append("Tranquility Online")
+    else:
+        status.append("Server down.")
+    
+    status.append(onlineplayers[0].firstChild.nodeValue)
+    status.append(cacheuntil)
+
+    return status
+
+    
+def iid2name(ids): # Takes a list of typeIDs to query the api server.
+    #https://api.eveonline.com/eve/TypeName.xml.aspx?ids=xxxxx
+
+    #Download the Account Industry Data
+    apiURL = 'https://api.eveonline.com/eve/TypeName.xml.aspx?ids=%s' % (ids)
+    return apiURL
+'''
+    #download the file:
+    target = urllib2.urlopen(apiURL)
+
+    #convert to string
+    downloadedData = target.read()
+
+    #close file because we don't need it anymore:
+    target.close()
+
+    XMLData = parseString(downloadedData)
+#    headerNode = XMLData.getElementsByTagName("rowset")[0]
+#    columnHeaders = headerNode.attributes['columns'].value.split(',')
+    dataNodes = XMLData.getElementsByTagName("row")
+
+    items = []
+    for row in dataNodes:
+        items.append(Item(row.getAttribute(u'typeID'),
+                        row.getAttribute(u'typeName')))
+    return items
+'''    
 
 class MainWindow(wx.Frame):
     def __init__(self, parent, title):
@@ -75,6 +140,7 @@ class MainWindow(wx.Frame):
 
         # Setting up the menu.
         filemenu= wx.Menu()
+        menuRefresh= filemenu.Append(wx.ID_ABOUT, "&Refresh"," Refresh The List")
         menuAbout= filemenu.Append(wx.ID_ABOUT, "&About"," Information about this program")
         menuExit = filemenu.Append(wx.ID_EXIT,"E&xit"," Terminate the program")
 
@@ -86,7 +152,32 @@ class MainWindow(wx.Frame):
         # Menu events.
         self.Bind(wx.EVT_MENU, self.OnExit, menuExit)
         self.Bind(wx.EVT_MENU, self.OnAbout, menuAbout)
+        self.Bind(wx.EVT_MENU, self.GetData, menuRefresh)
+        
+        self.myOlv = ObjectListView(self, -1, style=wx.LC_REPORT|wx.SUNKEN_BORDER)
+
+        self.myOlv.SetColumns([
+            ColumnDefn("jobID", "left", 100, "jobID"),
+            ColumnDefn("completedStatus", "left", 100, "completedStatus"),
+            ColumnDefn("activityID", "left", 100, "activityID"),
+            ColumnDefn("installedItemTypeID", "center", 200, "installedItemTypeID"),
+            ColumnDefn("installerID", "center", 150, "installerID"),
+            ColumnDefn("Install Time", "left", 145, "installTime", stringConverter="%Y-%m-%d %H:%M"),
+            ColumnDefn("Start Time", "left", 145, "beginProductionTime", stringConverter="%Y-%m-%d %H:%M"),
+            ColumnDefn("End Time", "left", 145, "endProductionTime", stringConverter="%Y-%m-%d %H:%M"),
+            ColumnDefn("Time Remaining", "left", 145, "timeRemaining")
+        ])
+        
  
+        sizer = wx.BoxSizer(wx.VERTICAL)
+        sizer.Add(self.myOlv, 1, wx.ALL|wx.EXPAND, 4)
+        self.SetSizer(sizer)
+
+        
+    def GetData(self, e):
+        server = serverStatus()
+        self.statusbar.SetStatusText('Welcome to Nesi - ' + server[0] + ' - ' + server[1] + ' Players Online')
+
         #https://api.eveonline.com/eve/CharacterName.xml.aspx?ids=xxxxx,xxxxx
         #
         #https://api.eveonline.com/eve/TypeName.xml.aspx?ids=xxxxx
@@ -95,11 +186,8 @@ class MainWindow(wx.Frame):
         apiURL = 'http://api.eveonline.com/corp/IndustryJobs.xml.aspx?keyID=%s&vCode=%s&characterID=%s' % (keyID, vCode, characterID)
         print apiURL
 
-        #download the file:
-        #target = urllib2.urlopen(apiURL)
-        
-        #open a local xml file for reading: (testing)
-        target = open('IndustryJobs.xml','r')
+        #target = urllib2.urlopen(apiURL) #download the file
+        target = open('IndustryJobs.xml','r') #open a local xml file for reading: (testing)
 
         #convert to string:
         downloadedData = target.read()
@@ -113,8 +201,11 @@ class MainWindow(wx.Frame):
         dataNodes = XMLData.getElementsByTagName("row")
 
         rows = []
+        itemIDs = []
         for row in dataNodes:
             if row.getAttribute(u'completed') == '0': # Ignore Delivered Jobs
+                if row.getAttribute(u'installedItemTypeID') not in itemIDs:
+                    itemIDs.append(row.getAttribute(u'installedItemTypeID'))
                 rows.append(Job(row.getAttribute(u'jobID'),
                                 row.getAttribute(u'completedStatus'),
                                 row.getAttribute(u'activityID'),
@@ -124,30 +215,26 @@ class MainWindow(wx.Frame):
                                 row.getAttribute(u'beginProductionTime'),
                                 row.getAttribute(u'endProductionTime')))
 
+        #print iid2name(itemIDs)
+        ids = ''
+        for item in itemIDs:
+            if ids == '':
+                ids = item
+            else:
+                ids = ('%s,%s' % (ids, item))
+        #print items
+        print iid2name(ids)
+        #print itemIDs
         
-        self.myOlv = ObjectListView(self, -1, style=wx.LC_REPORT|wx.SUNKEN_BORDER)
-
-        self.myOlv.SetColumns([
-            ColumnDefn("jobID", "left", 100, "jobID"),
-            ColumnDefn("completedStatus", "left", 100, "completedStatus"),
-            ColumnDefn("activityID", "left", 100, "activityID"),
-            ColumnDefn("installedItemTypeID", "center", 200, "installedItemTypeID"),
-            ColumnDefn("installerID", "center", 150, "installerID"),
-            ColumnDefn("Install Time", "left", 120, "installTime", stringConverter="%Y-%m-%d %H:%M"),
-            ColumnDefn("Start Time", "left", 120, "beginProductionTime", stringConverter="%Y-%m-%d %H:%M"),
-            ColumnDefn("End Time", "left", 120, "endProductionTime", stringConverter="%Y-%m-%d %H:%M")
-        ])
         self.myOlv.SetObjects(rows)
- 
-        sizer = wx.BoxSizer(wx.VERTICAL)
-        sizer.Add(self.myOlv, 1, wx.ALL|wx.EXPAND, 4)
-        self.SetSizer(sizer)
+
 
     def OnAbout(self, e):
         # A message dialog box with an OK button. wx.OK is a standard ID in wxWidgets.
         dlg = wx.MessageDialog(self, 'Nova Echo S&I', 'About Nesi', wx.OK | wx.ICON_INFORMATION)
         dlg.ShowModal() # Show it
         dlg.Destroy() # finally destroy it when finished.
+
 
     def OnExit(self, e):
         dlg = wx.MessageDialog(self, 'Are you sure to quit Nesi?', 'Please Confirm', wx.YES_NO | wx.NO_DEFAULT | wx.ICON_QUESTION)
