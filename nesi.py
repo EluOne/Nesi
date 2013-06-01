@@ -199,7 +199,6 @@ class MainWindow(wx.Frame):
                                 row.getAttribute(u'beginProductionTime'),
                                 row.getAttribute(u'endProductionTime')))
 
-        #print iid2name(itemIDs)
         ids = ''
         for item in itemIDs:
             if ids == '':
@@ -208,7 +207,6 @@ class MainWindow(wx.Frame):
                 ids = ('%s,%s' % (ids, item))
         #print items
         print iid2name(ids)
-        #print itemIDs
         
         self.myOlv.SetObjects(rows)
 
