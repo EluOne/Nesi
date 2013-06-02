@@ -22,6 +22,7 @@ from xml.dom.minidom import parse, parseString
 from ObjectListView import ObjectListView, ColumnDefn
 
 import urllib2
+import httplib
 import os.path
 import pickle
 import wx
@@ -77,25 +78,43 @@ def serverStatus():
     #Download the Account Industry Data from API server
     apiURL = 'https://api.eveonline.com/server/ServerStatus.xml.aspx/'
 
-    target = urllib2.urlopen(apiURL) #download the file
-    downloadedData = target.read() #convert to string
-    target.close() #close file because we don't need it anymore
-
-    XMLData = parseString(downloadedData)
-
-    result = XMLData.getElementsByTagName('result')
-    serveropen = result[0].getElementsByTagName("serverOpen")
-    onlineplayers = result[0].getElementsByTagName("onlinePlayers")
-    cacheuntil = XMLData.getElementsByTagName('cachedUntil')
-
-    if (serveropen[0].firstChild.nodeValue):
-        status.append("Tranquility Online")
-    else:
-        status.append("Server down.")
+    try:
+        target = urllib2.urlopen(apiURL) #download the file
+        downloadedData = target.read() #convert to string
+        target.close() #close file because we don't need it anymore
     
-    status.append(onlineplayers[0].firstChild.nodeValue)
-    status.append(cacheuntil)
-
+        XMLData = parseString(downloadedData)
+    
+        result = XMLData.getElementsByTagName('result')
+        serveropen = result[0].getElementsByTagName("serverOpen")
+        onlineplayers = result[0].getElementsByTagName("onlinePlayers")
+        cacheuntil = XMLData.getElementsByTagName('cachedUntil')
+    
+        if (serveropen[0].firstChild.nodeValue):
+            status.append("Tranquility Online")
+        else:
+            status.append("Server down.")
+        
+        status.append(onlineplayers[0].firstChild.nodeValue)
+        status.append(cacheuntil)
+    except urllib2.HTTPError, e:
+        status.append('HTTP Error: ' + str(e.code))
+        status.append('0') # Players Online 0 as no data
+        status.append('0') # Cache Until data 0 as no data
+    except urllib2.URLError, e:
+        status.append('Error Connecting to Tranquility: ' + str(e.reason))
+        status.append('0') # Players Online 0 as no data
+        status.append('0') # Cache Until data 0 as no data
+    except httplib.HTTPException, e:
+        status.append('HTTP Exception')
+        status.append('0') # Players Online 0 as no data
+        status.append('0') # Cache Until data 0 as no data
+    except Exception:
+        import traceback
+        status.append('Generic Exception: ' + traceback.format_exc())
+        status.append('0') # Players Online 0 as no data
+        status.append('0') # Cache Until data 0 as no data
+    
     return status
 
     
@@ -166,6 +185,7 @@ class MainWindow(wx.Frame):
 
         
     def GetData(self, e):
+        
         server = serverStatus()
         self.statusbar.SetStatusText('Welcome to Nesi - ' + server[0] + ' - ' + server[1] + ' Players Online')
 
