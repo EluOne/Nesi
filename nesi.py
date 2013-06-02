@@ -29,10 +29,11 @@ import wx
 import datetime
 import time
 
-#Enter your UserID, API Key, and CharacterID here
+# Initialise some variables.
 keyID = ''
 vCode = ''
 characterID = ''
+e = ''
 
 # Load the settings file if we have one.
 if (os.path.isfile("nesi.settings")):
@@ -49,16 +50,15 @@ if (os.path.isfile("items.cache")):
 
 
 class Job(object):
-    def __init__(self, jobID, completedStatus, activityID, installedItemTypeID, installerID, installTime, beginProductionTime, endProductionTime):
+    def __init__(self, jobID, completedStatus, activityID, installedItemTypeID, installerID, installTime, endProductionTime):
         self.jobID = jobID
         self.completedStatus = completedStatus
         self.activityID = activityID
         self.installedItemTypeID = installedItemTypeID
         self.installerID = installerID
         self.installTime = datetime.datetime(*(time.strptime(installTime, "%Y-%m-%d %H:%M:%S")[0:6]))
-        self.beginProductionTime = datetime.datetime(*(time.strptime(beginProductionTime, "%Y-%m-%d %H:%M:%S")[0:6]))
         self.endProductionTime = datetime.datetime(*(time.strptime(endProductionTime, "%Y-%m-%d %H:%M:%S")[0:6]))
-        self.timeRemaining = self.endProductionTime - self.beginProductionTime
+        self.timeRemaining = self.endProductionTime - self.installTime
         
 # S&I window shows: state, activity, type, location, jumps, installer, owner, install date, end date
 
@@ -78,23 +78,23 @@ def serverStatus():
     #Download the Account Industry Data from API server
     apiURL = 'https://api.eveonline.com/server/ServerStatus.xml.aspx/'
 
-    try:
+    try: # Try to connect to the API server
         target = urllib2.urlopen(apiURL) #download the file
         downloadedData = target.read() #convert to string
         target.close() #close file because we don't need it anymore
-    
+
         XMLData = parseString(downloadedData)
-    
+
         result = XMLData.getElementsByTagName('result')
         serveropen = result[0].getElementsByTagName("serverOpen")
         onlineplayers = result[0].getElementsByTagName("onlinePlayers")
         cacheuntil = XMLData.getElementsByTagName('cachedUntil')
-    
+
         if (serveropen[0].firstChild.nodeValue):
             status.append("Tranquility Online")
         else:
             status.append("Server down.")
-        
+
         status.append(onlineplayers[0].firstChild.nodeValue)
         status.append(cacheuntil)
     except urllib2.HTTPError, e:
@@ -114,10 +114,10 @@ def serverStatus():
         status.append('Generic Exception: ' + traceback.format_exc())
         status.append('0') # Players Online 0 as no data
         status.append('0') # Cache Until data 0 as no data
-    
+
     return status
 
-    
+
 def iid2name(ids): # Takes a list of typeIDs to query the api server.
     items = []
     #Download the TypeName Data from API server
@@ -150,20 +150,22 @@ class MainWindow(wx.Frame):
 
         # Setting up the menu.
         filemenu= wx.Menu()
-        menuRefresh= filemenu.Append(wx.ID_ABOUT, "&Refresh"," Refresh The List") # FIXME
-        menuAbout= filemenu.Append(wx.ID_ABOUT, "&About"," Information about this program")
-        menuExit = filemenu.Append(wx.ID_EXIT,"E&xit"," Terminate the program")
+        menuRefresh= filemenu.Append(wx.ID_ANY, "&Refresh", " Refresh the list") # FIXME
+        menuConfig= filemenu.Append(wx.ID_ANY, "&Configure", " Configure Nesi") # TODO
+        menuAbout= filemenu.Append(wx.ID_ABOUT, "&About", " Information about this program")
+        menuExit = filemenu.Append(wx.ID_EXIT, "E&xit", " Terminate the program")
 
-        # Creating the menubar.
+        # Creating the menu bar.
         menuBar = wx.MenuBar()
-        menuBar.Append(filemenu,"&File") # Adding the "filemenu" to the MenuBar.
+        menuBar.Append(filemenu,"&File") # Adding the "file menu" to the MenuBar.
         self.SetMenuBar(menuBar)  # Adding the MenuBar to the Frame content.
 
         # Menu events.
         self.Bind(wx.EVT_MENU, self.OnExit, menuExit)
         self.Bind(wx.EVT_MENU, self.OnAbout, menuAbout)
-        self.Bind(wx.EVT_MENU, self.GetData, menuRefresh) # FIXME
-        
+        self.Bind(wx.EVT_MENU, self.OnGetData, menuRefresh) # FIXME
+        self.Bind(wx.EVT_MENU, self.OnConfig, menuConfig) # TODO
+
         self.myOlv = ObjectListView(self, -1, style=wx.LC_REPORT|wx.SUNKEN_BORDER)
 
         self.myOlv.SetColumns([
@@ -173,19 +175,18 @@ class MainWindow(wx.Frame):
             ColumnDefn("installedItemTypeID", "center", 200, "installedItemTypeID"),
             ColumnDefn("installerID", "center", 150, "installerID"),
             ColumnDefn("Install Time", "left", 145, "installTime", stringConverter="%Y-%m-%d %H:%M"),
-            ColumnDefn("Start Time", "left", 145, "beginProductionTime", stringConverter="%Y-%m-%d %H:%M"),
             ColumnDefn("End Time", "left", 145, "endProductionTime", stringConverter="%Y-%m-%d %H:%M"),
             ColumnDefn("Time Remaining", "left", 145, "timeRemaining")
         ])
-        
+
  
         sizer = wx.BoxSizer(wx.VERTICAL)
         sizer.Add(self.myOlv, 1, wx.ALL|wx.EXPAND, 4)
         self.SetSizer(sizer)
 
-        
-    def GetData(self, e):
-        
+
+    def OnGetData(self, e):
+        self.statusbar.SetStatusText('Welcome to Nesi - ' + 'Connecting to Tranquility...')
         server = serverStatus()
         self.statusbar.SetStatusText('Welcome to Nesi - ' + server[0] + ' - ' + server[1] + ' Players Online')
 
@@ -216,7 +217,6 @@ class MainWindow(wx.Frame):
                                 row.getAttribute(u'installedItemTypeID'),
                                 row.getAttribute(u'installerID'),
                                 row.getAttribute(u'installTime'),
-                                row.getAttribute(u'beginProductionTime'),
                                 row.getAttribute(u'endProductionTime')))
 
         ids = ''
@@ -227,13 +227,21 @@ class MainWindow(wx.Frame):
                 ids = ('%s,%s' % (ids, item))
         #print items
         print iid2name(ids)
-        
+
         self.myOlv.SetObjects(rows)
+
+
+    def OnConfig(self, e):
+        # A message dialog box with an OK button. wx.OK is a standard ID in wxWidgets.
+        dlg = wx.MessageDialog(self, 'Configure Nesi #TODO', 'Configure Nesi', wx.OK | wx.ICON_INFORMATION)
+        dlg.ShowModal() # Show it
+        dlg.Destroy() # finally destroy it when finished.
 
 
     def OnAbout(self, e):
         # A message dialog box with an OK button. wx.OK is a standard ID in wxWidgets.
-        dlg = wx.MessageDialog(self, 'Nova Echo S&I', 'About Nesi', wx.OK | wx.ICON_INFORMATION)
+        about_text = 'Nova Echo Science & Industry\n\nA tool to see your queues while out of game.\n\nCreated By: Tim Cumming aka Elusive One\nCopyright (C) 2013'
+        dlg = wx.MessageDialog(self, about_text, 'About Nesi', wx.OK | wx.ICON_INFORMATION)
         dlg.ShowModal() # Show it
         dlg.Destroy() # finally destroy it when finished.
 
