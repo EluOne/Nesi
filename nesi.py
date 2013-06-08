@@ -35,18 +35,13 @@ vCode = ''
 characterID = ''
 e = ''
 
-# Load the settings file if we have one.
+# Load the settings files if we have them.
 if (os.path.isfile("nesi.settings")):
     settingsfile = open("nesi.settings",'r')
     keyID = pickle.load(settingsfile)
     vCode = pickle.load(settingsfile)
     characterID = pickle.load(settingsfile)
     settingsfile.close()
-
-if (os.path.isfile("items.cache")):
-    itemsfile = open("items.cache",'r')
-    items = pickle.load(itemsfile)
-    itemsfile.close()
 
 
 class Job(object):
@@ -59,7 +54,7 @@ class Job(object):
         self.installTime = datetime.datetime(*(time.strptime(installTime, "%Y-%m-%d %H:%M:%S")[0:6]))
         self.endProductionTime = datetime.datetime(*(time.strptime(endProductionTime, "%Y-%m-%d %H:%M:%S")[0:6]))
         self.timeRemaining = self.endProductionTime - self.installTime
-        
+
 # S&I window shows: state, activity, type, location, jumps, installer, owner, install date, end date
 
 #columns="jobID,assemblyLineID,containerID,installedItemID,installedItemLocationID,installedItemQuantity,installedItemProductivityLevel,
@@ -68,10 +63,6 @@ class Job(object):
 #installedItemTypeID,outputTypeID,containerTypeID,installedItemCopy,completed,completedSuccessfully,installedItemFlag,
 #outputFlag,activityID,completedStatus,installTime,beginProductionTime,endProductionTime,pauseProductionTime"
 
-class Item(object):
-    def __init__(self, typeID, typeName):
-        self.typeID = typeID
-        self.typeName = typeName
 
 def serverStatus():
     status = []
@@ -88,6 +79,7 @@ def serverStatus():
         result = XMLData.getElementsByTagName('result')
         serveropen = result[0].getElementsByTagName("serverOpen")
         onlineplayers = result[0].getElementsByTagName("onlinePlayers")
+        servertime = XMLData.getElementsByTagName('currentTime')
         cacheuntil = XMLData.getElementsByTagName('cachedUntil')
 
         if (serveropen[0].firstChild.nodeValue):
@@ -96,74 +88,134 @@ def serverStatus():
             status.append("Server down.")
 
         status.append(onlineplayers[0].firstChild.nodeValue)
+        status.append(servertime)
         status.append(cacheuntil)
     except urllib2.HTTPError, e:
         status.append('HTTP Error: ' + str(e.code))
         status.append('0') # Players Online 0 as no data
+        status.append('0') # Server Time data 0 as no data
         status.append('0') # Cache Until data 0 as no data
     except urllib2.URLError, e:
         status.append('Error Connecting to Tranquility: ' + str(e.reason))
         status.append('0') # Players Online 0 as no data
+        status.append('0') # Server Time data 0 as no data
         status.append('0') # Cache Until data 0 as no data
     except httplib.HTTPException, e:
         status.append('HTTP Exception')
         status.append('0') # Players Online 0 as no data
+        status.append('0') # Server Time data 0 as no data
         status.append('0') # Cache Until data 0 as no data
     except Exception:
         import traceback
         status.append('Generic Exception: ' + traceback.format_exc())
         status.append('0') # Players Online 0 as no data
+        status.append('0') # Server Time data 0 as no data
         status.append('0') # Cache Until data 0 as no data
 
     return status
 
 
 def iid2name(ids): # Takes a list of typeIDs to query the api server.
-    items = []
+    itemNames = {}
 
-    idList = ','.join(map(str, ids))
+    if (os.path.isfile("items.cache")):
+        itemsfile = open("items.cache",'r')
+        itemNames = pickle.load(itemsfile)
+        itemsfile.close()
 
-    #Download the TypeName Data from API server
-    apiURL = 'https://api.eveonline.com/eve/TypeName.xml.aspx?ids=%s' % (idList)
-    return apiURL
-'''
-    target = urllib2.urlopen(apiURL) #download the file
-    downloadedData = target.read() #convert to string
-    target.close() #close file because we don't need it anymore
+    numItems = range(len(ids))
+    print ids
 
-    XMLData = parseString(downloadedData)
-    dataNodes = XMLData.getElementsByTagName("row")
+    for x in numItems:
+        if ids[x] in itemNames:
+            ids[x] = 'deleted'
 
-    for row in dataNodes:
-        items.append(Item(row.getAttribute(u'typeID'),
-                        row.getAttribute(u'typeName')))
+    for y in ids[:]:
+        if y == 'deleted':
+            ids.remove(y)
 
-    return items
-'''
+    print ids
+
+    if ids != []: # We still have some character ids we don't know
+        idList = ','.join(map(str, ids))
+
+        #Download the TypeName Data from API server
+        apiURL = 'https://api.eveonline.com/eve/TypeName.xml.aspx?ids=%s' % (idList)
+        print apiURL
+
+        target = urllib2.urlopen(apiURL) #download the file
+        downloadedData = target.read() #convert to string
+        target.close() #close file because we don't need it anymore
+
+        XMLData = parseString(downloadedData)
+        dataNodes = XMLData.getElementsByTagName("row")
+
+        for row in dataNodes:
+            itemNames.update({int(row.getAttribute('typeID')) : str(row.getAttribute('typeName'))})
+
+        # Save the data we have so we don't have to fetch it
+        settingsfile = open("items.cache",'w')
+        pickle.dump(itemNames,settingsfile)
+        settingsfile.close()
+
+# Fail returns id as item
+#    numItems = range(len(ids))
+#    for y in numItems:
+#        itemNames.update({ids[y] : ids[y]})
+
+    return itemNames
 
 
 def cid2name(ids): # Takes a list of characterIDs to query the api server.
-    characters = []
-    
-    idList = ','.join(map(str, ids))
+    pilotNames = {}
 
-    #Download the Character Data from API server
-    apiURL = 'https://api.eveonline.com/eve/CharacterName.xml.aspx?ids=%s' % (idList)
-    return apiURL
-'''
-    target = urllib2.urlopen(apiURL) #download the file
-    downloadedData = target.read() #convert to string
-    target.close() #close file because we don't need it anymore
+    if (os.path.isfile("character.cache")):
+        charactersfile = open("character.cache",'r')
+        pilotNames = pickle.load(charactersfile)
+        charactersfile.close()
 
-    XMLData = parseString(downloadedData)
-    dataNodes = XMLData.getElementsByTagName("row")
+    numItems = range(len(ids))
+    print ids
 
-    for row in dataNodes:
-        items.append(Item(row.getAttribute(u'typeID'),
-                        row.getAttribute(u'typeName')))
+    for x in numItems:
+        if ids[x] in pilotNames:
+            ids[x] = 'deleted'
 
-    return characters
-'''    
+    for y in ids[:]:
+        if y == 'deleted':
+            ids.remove(y)
+
+    print ids
+
+    if ids != []: # We still have some character ids we don't know
+        idList = ','.join(map(str, ids))
+
+        #Download the Character Names from API server
+        apiURL = 'https://api.eveonline.com/eve/CharacterName.xml.aspx?ids=%s' % (idList)
+        print apiURL
+
+        target = urllib2.urlopen(apiURL) #download the file
+        downloadedData = target.read() #convert to string
+        target.close() #close file because we don't need it anymore
+
+        XMLData = parseString(downloadedData)
+        dataNodes = XMLData.getElementsByTagName("row")
+
+        for row in dataNodes:
+            pilotNames.update({int(row.getAttribute('characterID')) : str(row.getAttribute('name'))})
+
+        # Save the data we have so we don't have to fetch it
+        settingsfile = open("character.cache",'w')
+        pickle.dump(pilotNames,settingsfile)
+        settingsfile.close()
+
+# Fail returns id as name
+#    numItems = range(len(ids))
+#    for y in numItems:
+#        pilotNames.update({ids[y] : ids[y]})
+
+    return pilotNames
+
 
 
 class MainWindow(wx.Frame):
@@ -235,8 +287,9 @@ class MainWindow(wx.Frame):
 
     def OnGetData(self, e):
         self.statusbar.SetStatusText('Welcome to Nesi - ' + 'Connecting to Tranquility...')
-        server = serverStatus()
-        self.statusbar.SetStatusText('Welcome to Nesi - ' + server[0] + ' - ' + server[1] + ' Players Online')
+#        server = serverStatus()
+#        self.statusbar.SetStatusText('Welcome to Nesi - ' + server[0] + ' - ' + server[1] + ' Players Online')
+
 
         #Download the Account Industry Data
         apiURL = 'http://api.eveonline.com/corp/IndustryJobs.xml.aspx?keyID=%s&vCode=%s&characterID=%s' % (keyID, vCode, characterID)
@@ -257,24 +310,24 @@ class MainWindow(wx.Frame):
         itemIDs = []
         installerIDs = []
         for row in dataNodes:
-            if row.getAttribute(u'completed') == '0': # Ignore Delivered Jobs
-                if row.getAttribute(u'installedItemTypeID') not in itemIDs:
-                    itemIDs.append(row.getAttribute(u'installedItemTypeID'))
-                if row.getAttribute(u'installerID') not in installerIDs:
-                    installerIDs.append(row.getAttribute(u'installerID'))
-                rows.append(Job(row.getAttribute(u'jobID'),
-                                row.getAttribute(u'completedStatus'),
-                                row.getAttribute(u'activityID'),
-                                row.getAttribute(u'installedItemTypeID'),
-                                row.getAttribute(u'installerID'),
-                                row.getAttribute(u'installTime'),
-                                row.getAttribute(u'endProductionTime')))
+            if row.getAttribute('completed') == '0': # Ignore Delivered Jobs
+                if int(row.getAttribute('installedItemTypeID')) not in itemIDs:
+                    itemIDs.append(int(row.getAttribute('installedItemTypeID')))
+                if int(row.getAttribute('installerID')) not in installerIDs:
+                    installerIDs.append(int(row.getAttribute('installerID')))
 
+        itemNames = iid2name(itemIDs)
+        pilotNames = cid2name(installerIDs)
 
-
-        print iid2name(itemIDs)
-        print cid2name(installerIDs)
-
+        for row in dataNodes:
+            if row.getAttribute('completed') == '0': # Ignore Delivered Jobs
+                rows.append(Job(row.getAttribute('jobID'),
+                                row.getAttribute('completedStatus'),
+                                row.getAttribute('activityID'),
+                                itemNames[int(row.getAttribute('installedItemTypeID'))],
+                                pilotNames[int(row.getAttribute('installerID'))],
+                                row.getAttribute('installTime'),
+                                row.getAttribute('endProductionTime')))
 
         self.myOlv.SetObjects(rows)
 
