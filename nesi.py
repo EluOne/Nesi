@@ -120,8 +120,11 @@ def serverStatus():
 
 def iid2name(ids): # Takes a list of typeIDs to query the api server.
     items = []
+
+    idList = ','.join(map(str, ids))
+
     #Download the TypeName Data from API server
-    apiURL = 'https://api.eveonline.com/eve/TypeName.xml.aspx?ids=%s' % (ids)
+    apiURL = 'https://api.eveonline.com/eve/TypeName.xml.aspx?ids=%s' % (idList)
     return apiURL
 '''
     target = urllib2.urlopen(apiURL) #download the file
@@ -134,8 +137,34 @@ def iid2name(ids): # Takes a list of typeIDs to query the api server.
     for row in dataNodes:
         items.append(Item(row.getAttribute(u'typeID'),
                         row.getAttribute(u'typeName')))
+
     return items
+'''
+
+
+def cid2name(ids): # Takes a list of characterIDs to query the api server.
+    characters = []
+    
+    idList = ','.join(map(str, ids))
+
+    #Download the Character Data from API server
+    apiURL = 'https://api.eveonline.com/eve/CharacterName.xml.aspx?ids=%s' % (idList)
+    return apiURL
+'''
+    target = urllib2.urlopen(apiURL) #download the file
+    downloadedData = target.read() #convert to string
+    target.close() #close file because we don't need it anymore
+
+    XMLData = parseString(downloadedData)
+    dataNodes = XMLData.getElementsByTagName("row")
+
+    for row in dataNodes:
+        items.append(Item(row.getAttribute(u'typeID'),
+                        row.getAttribute(u'typeName')))
+
+    return characters
 '''    
+
 
 class MainWindow(wx.Frame):
     def __init__(self, parent, title):
@@ -148,9 +177,16 @@ class MainWindow(wx.Frame):
         self.statusbar = self.CreateStatusBar() # A Statusbar in the bottom of the window
         self.statusbar.SetStatusText('Welcome to Nesi')
 
+        # Job Details box TODO
+#        self.detailBox = wx.TextCtrl(panel, style=wx.TE_MULTILINE, size=(256,-1))
+#        self.detailBox.SetFont(wx.Font(9, wx.FONTFAMILY_DEFAULT,
+#                                                   wx.FONTSTYLE_NORMAL,
+#                                                   wx.FONTWEIGHT_NORMAL,
+#                                                   False))
+
         # Setting up the menu.
         filemenu= wx.Menu()
-        menuRefresh= filemenu.Append(wx.ID_ANY, "&Refresh", " Refresh the list") # FIXME
+#        menuRefresh= filemenu.Append(wx.ID_ANY, "&Refresh", " Refresh the list")
         menuConfig= filemenu.Append(wx.ID_ANY, "&Configure", " Configure Nesi") # TODO
         menuAbout= filemenu.Append(wx.ID_ABOUT, "&About", " Information about this program")
         menuExit = filemenu.Append(wx.ID_EXIT, "E&xit", " Terminate the program")
@@ -160,10 +196,21 @@ class MainWindow(wx.Frame):
         menuBar.Append(filemenu,"&File") # Adding the "file menu" to the MenuBar.
         self.SetMenuBar(menuBar)  # Adding the MenuBar to the Frame content.
 
+        toolbar = wx.ToolBar(self, -1)
+#        self.tc = wx.TextCtrl(toolbar, -1, size=(100, -1))
+        btn = wx.Button(toolbar, 1, 'Refresh', size=(64, 28))
+
+#        toolbar.AddControl(self.tc)
+#        toolbar.AddSeparator()
+        toolbar.AddControl(btn)
+        toolbar.Realize()
+        self.SetToolBar(toolbar)
+
+
         # Menu events.
         self.Bind(wx.EVT_MENU, self.OnExit, menuExit)
         self.Bind(wx.EVT_MENU, self.OnAbout, menuAbout)
-        self.Bind(wx.EVT_MENU, self.OnGetData, menuRefresh) # FIXME
+        self.Bind(wx.EVT_BUTTON, self.OnGetData, id=1)
         self.Bind(wx.EVT_MENU, self.OnConfig, menuConfig) # TODO
 
         self.myOlv = ObjectListView(self, -1, style=wx.LC_REPORT|wx.SUNKEN_BORDER)
@@ -182,6 +229,7 @@ class MainWindow(wx.Frame):
  
         sizer = wx.BoxSizer(wx.VERTICAL)
         sizer.Add(self.myOlv, 1, wx.ALL|wx.EXPAND, 4)
+#        sizer.Add(self.detailBox, 1, wx.EXPAND | wx.ALL, 1) #TODO
         self.SetSizer(sizer)
 
 
@@ -207,10 +255,13 @@ class MainWindow(wx.Frame):
 
         rows = []
         itemIDs = []
+        installerIDs = []
         for row in dataNodes:
             if row.getAttribute(u'completed') == '0': # Ignore Delivered Jobs
                 if row.getAttribute(u'installedItemTypeID') not in itemIDs:
                     itemIDs.append(row.getAttribute(u'installedItemTypeID'))
+                if row.getAttribute(u'installerID') not in installerIDs:
+                    installerIDs.append(row.getAttribute(u'installerID'))
                 rows.append(Job(row.getAttribute(u'jobID'),
                                 row.getAttribute(u'completedStatus'),
                                 row.getAttribute(u'activityID'),
@@ -219,14 +270,11 @@ class MainWindow(wx.Frame):
                                 row.getAttribute(u'installTime'),
                                 row.getAttribute(u'endProductionTime')))
 
-        ids = ''
-        for item in itemIDs:
-            if ids == '':
-                ids = item
-            else:
-                ids = ('%s,%s' % (ids, item))
-        #print items
-        print iid2name(ids)
+
+
+        print iid2name(itemIDs)
+        print cid2name(installerIDs)
+
 
         self.myOlv.SetObjects(rows)
 
