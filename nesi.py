@@ -36,6 +36,9 @@ characterID = ''
 e = ''
 activities = {1 : 'Manufacturing', 2 : '2', 3 : 'Time Efficiency Research', 4 : 'Material Research', 5 : '5', 6 : '6'} # POS activities list.
 
+# Establish some current time data for calculations later.
+serverTime = datetime.datetime.utcnow()
+localTime = datetime.datetime.now()
 
 # Load the settings files if we have them.
 if (os.path.isfile("nesi.settings")):
@@ -55,7 +58,10 @@ class Job(object):
         self.installerID = installerID
         self.installTime = datetime.datetime(*(time.strptime(installTime, "%Y-%m-%d %H:%M:%S")[0:6]))
         self.endProductionTime = datetime.datetime(*(time.strptime(endProductionTime, "%Y-%m-%d %H:%M:%S")[0:6]))
-        self.timeRemaining = self.endProductionTime - self.installTime
+        if self.endProductionTime > serverTime:
+            self.timeRemaining = self.endProductionTime - serverTime
+        else:
+            self.timeRemaining = 'Ready'
 
 # S&I window shows: state, activity, type, location, jumps, installer, owner, install date, end date
 
@@ -126,7 +132,7 @@ def iid2name(ids): # Takes a list of typeIDs to query the api server.
         itemsfile.close()
 
     numItems = range(len(ids))
-    print ids
+    print ids # Console debug
 
     for x in numItems:
         if ids[x] in itemNames:
@@ -136,14 +142,14 @@ def iid2name(ids): # Takes a list of typeIDs to query the api server.
         if y == 'deleted':
             ids.remove(y)
 
-    print ids
+    print ids # Console debug
 
     if ids != []: # We still have some character ids we don't know
         idList = ','.join(map(str, ids))
 
         #Download the TypeName Data from API server
         apiURL = 'https://api.eveonline.com/eve/TypeName.xml.aspx?ids=%s' % (idList)
-        print apiURL
+        print apiURL # Console debug
 
         target = urllib2.urlopen(apiURL) #download the file
         downloadedData = target.read() #convert to string
@@ -177,7 +183,7 @@ def cid2name(ids): # Takes a list of characterIDs to query the api server.
         charactersfile.close()
 
     numItems = range(len(ids))
-    print ids
+    print ids # Console debug
 
     for x in numItems:
         if ids[x] in pilotNames:
@@ -187,14 +193,14 @@ def cid2name(ids): # Takes a list of characterIDs to query the api server.
         if y == 'deleted':
             ids.remove(y)
 
-    print ids
+    print ids # Console debug
 
     if ids != []: # We still have some character ids we don't know
         idList = ','.join(map(str, ids))
 
         #Download the Character Names from API server
         apiURL = 'https://api.eveonline.com/eve/CharacterName.xml.aspx?ids=%s' % (idList)
-        print apiURL
+        print apiURL # Console debug
 
         target = urllib2.urlopen(apiURL) #download the file
         downloadedData = target.read() #convert to string
@@ -270,13 +276,12 @@ class MainWindow(wx.Frame):
         self.myOlv = ObjectListView(self, -1, style=wx.LC_REPORT|wx.SUNKEN_BORDER)
 
         self.myOlv.SetColumns([
-            ColumnDefn("completedStatus", "left", 100, "completedStatus"),
+            ColumnDefn("TTC", "left", 145, "timeRemaining"),
             ColumnDefn("Activity", "left", 180, "activityID"),
-            ColumnDefn("installedItemTypeID", "center", 250, "installedItemTypeID"),
+            ColumnDefn("installedItemTypeID", "center", 300, "installedItemTypeID"),
             ColumnDefn("Installer", "center", 120, "installerID"),
-            ColumnDefn("Install Date", "left", 145, "installTime", stringConverter="%Y-%m-%d %H:%M"),
-            ColumnDefn("End Date", "left", 145, "endProductionTime", stringConverter="%Y-%m-%d %H:%M"),
-            ColumnDefn("TTC", "left", 145, "timeRemaining")
+            ColumnDefn("Install Date", "left", 145, "installTime"),
+            ColumnDefn("End Date", "left", 145, "endProductionTime")
         ])
 
  
@@ -288,21 +293,19 @@ class MainWindow(wx.Frame):
 
     def OnGetData(self, e):
         self.statusbar.SetStatusText('Welcome to Nesi - ' + 'Connecting to Tranquility...')
+
+# Disabled while testing
 #        server = serverStatus()
 #        self.statusbar.SetStatusText('Welcome to Nesi - ' + server[0] + ' - ' + server[1] + ' Players Online')
 
-
         #Download the Account Industry Data
         apiURL = 'http://api.eveonline.com/corp/IndustryJobs.xml.aspx?keyID=%s&vCode=%s&characterID=%s' % (keyID, vCode, characterID)
-        print apiURL
+        print apiURL # Console debug
 
         #target = urllib2.urlopen(apiURL) #download the file
         target = open('IndustryJobs.xml','r') #open a local xml file for reading: (testing)
-
         downloadedData = target.read() #convert to string
-
-        #close file because we don't need it anymore:
-        target.close()
+        target.close() #close file because we don't need it anymore:
 
         XMLData = parseString(downloadedData)
         dataNodes = XMLData.getElementsByTagName("row")
