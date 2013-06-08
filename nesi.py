@@ -18,7 +18,7 @@
 # Author: Tim Cumming aka Elusive One
 # Created: 21/04/13
 
-from xml.dom.minidom import parse, parseString
+from xml.dom.minidom import parseString
 from ObjectListView import ObjectListView, ColumnDefn
 
 import urllib2
@@ -34,6 +34,8 @@ keyID = ''
 vCode = ''
 characterID = ''
 e = ''
+activities = {1 : 'Manufacturing', 2 : '2', 3 : 'Time Efficiency Research', 4 : 'Material Research', 5 : '5', 6 : '6'} # POS activities list.
+
 
 # Load the settings files if we have them.
 if (os.path.isfile("nesi.settings")):
@@ -268,14 +270,13 @@ class MainWindow(wx.Frame):
         self.myOlv = ObjectListView(self, -1, style=wx.LC_REPORT|wx.SUNKEN_BORDER)
 
         self.myOlv.SetColumns([
-            ColumnDefn("jobID", "left", 100, "jobID"),
             ColumnDefn("completedStatus", "left", 100, "completedStatus"),
-            ColumnDefn("activityID", "left", 100, "activityID"),
-            ColumnDefn("installedItemTypeID", "center", 200, "installedItemTypeID"),
-            ColumnDefn("installerID", "center", 150, "installerID"),
-            ColumnDefn("Install Time", "left", 145, "installTime", stringConverter="%Y-%m-%d %H:%M"),
-            ColumnDefn("End Time", "left", 145, "endProductionTime", stringConverter="%Y-%m-%d %H:%M"),
-            ColumnDefn("Time Remaining", "left", 145, "timeRemaining")
+            ColumnDefn("Activity", "left", 180, "activityID"),
+            ColumnDefn("installedItemTypeID", "center", 250, "installedItemTypeID"),
+            ColumnDefn("Installer", "center", 120, "installerID"),
+            ColumnDefn("Install Date", "left", 145, "installTime", stringConverter="%Y-%m-%d %H:%M"),
+            ColumnDefn("End Date", "left", 145, "endProductionTime", stringConverter="%Y-%m-%d %H:%M"),
+            ColumnDefn("TTC", "left", 145, "timeRemaining")
         ])
 
  
@@ -323,7 +324,7 @@ class MainWindow(wx.Frame):
             if row.getAttribute('completed') == '0': # Ignore Delivered Jobs
                 rows.append(Job(row.getAttribute('jobID'),
                                 row.getAttribute('completedStatus'),
-                                row.getAttribute('activityID'),
+                                activities[int(row.getAttribute('activityID'))],
                                 itemNames[int(row.getAttribute('installedItemTypeID'))],
                                 pilotNames[int(row.getAttribute('installerID'))],
                                 row.getAttribute('installTime'),
