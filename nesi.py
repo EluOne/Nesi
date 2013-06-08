@@ -37,8 +37,9 @@ e = ''
 activities = {1 : 'Manufacturing', 2 : '2', 3 : 'Time Efficiency Research', 4 : 'Material Research', 5 : '5', 6 : '6'} # POS activities list.
 
 # Establish some current time data for calculations later.
-serverTime = datetime.datetime.utcnow()
-localTime = datetime.datetime.now()
+serverTime = datetime.datetime.utcnow().replace(microsecond=0)
+localTime = datetime.datetime.now().replace(microsecond=0)
+
 
 # Load the settings files if we have them.
 if (os.path.isfile("nesi.settings")):
@@ -60,8 +61,10 @@ class Job(object):
         self.endProductionTime = datetime.datetime(*(time.strptime(endProductionTime, "%Y-%m-%d %H:%M:%S")[0:6]))
         if self.endProductionTime > serverTime:
             self.timeRemaining = self.endProductionTime - serverTime
+            self.state = 'In Progress'
         else:
-            self.timeRemaining = 'Ready'
+            self.timeRemaining = self.endProductionTime - serverTime
+            self.state = 'Ready'
 
 # S&I window shows: state, activity, type, location, jumps, installer, owner, install date, end date
 
@@ -276,12 +279,13 @@ class MainWindow(wx.Frame):
         self.myOlv = ObjectListView(self, -1, style=wx.LC_REPORT|wx.SUNKEN_BORDER)
 
         self.myOlv.SetColumns([
-            ColumnDefn("TTC", "left", 145, "timeRemaining"),
+            ColumnDefn("State", "left", 100, "state"),
             ColumnDefn("Activity", "left", 180, "activityID"),
             ColumnDefn("installedItemTypeID", "center", 300, "installedItemTypeID"),
             ColumnDefn("Installer", "center", 120, "installerID"),
             ColumnDefn("Install Date", "left", 145, "installTime"),
-            ColumnDefn("End Date", "left", 145, "endProductionTime")
+            ColumnDefn("End Date", "left", 145, "endProductionTime"),
+            ColumnDefn("TTC", "left", 145, "timeRemaining")
         ])
 
  
@@ -296,7 +300,7 @@ class MainWindow(wx.Frame):
 
 # Disabled while testing
 #        server = serverStatus()
-#        self.statusbar.SetStatusText('Welcome to Nesi - ' + server[0] + ' - ' + server[1] + ' Players Online')
+#        self.statusbar.SetStatusText('Welcome to Nesi - ' + server[0] + ' - ' + server[1] + ' Players Online - EvE Time: ' + serverTime)
 
         #Download the Account Industry Data
         apiURL = 'http://api.eveonline.com/corp/IndustryJobs.xml.aspx?keyID=%s&vCode=%s&characterID=%s' % (keyID, vCode, characterID)
