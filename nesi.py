@@ -37,9 +37,9 @@ e = ''
 activities = {1 : 'Manufacturing', 2 : '2', 3 : 'Time Efficiency Research', 4 : 'Material Research', 5 : '5', 6 : '6'} # POS activities list.
 
 # Establish some current time data for calculations later.
-serverTime = datetime.datetime.utcnow().replace(microsecond=0)
-localTime = datetime.datetime.now().replace(microsecond=0)
-
+serverTime = datetime.datetime.utcnow().replace(microsecond=0) # Server Time is UTC so we will use that for now generated locally.
+localTime = datetime.datetime.now().replace(microsecond=0) # Client Time reported locally.
+serverStatus = ['0', '0', serverTime] # A global variable to store the returned status.
 
 # Load the settings files if we have them.
 if (os.path.isfile("nesi.settings")):
@@ -75,56 +75,60 @@ class Job(object):
 #outputFlag,activityID,completedStatus,installTime,beginProductionTime,endProductionTime,pauseProductionTime"
 
 
-def serverStatus():
-    status = []
-    #Download the Account Industry Data from API server
-    apiURL = 'https://api.eveonline.com/server/ServerStatus.xml.aspx/'
+def GetServerStatus(args):
+    if serverTime >= args[2]:
+        status = []
+        #Download the Account Industry Data from API server
+        apiURL = 'https://api.eveonline.com/server/ServerStatus.xml.aspx/'
 
-    try: # Try to connect to the API server
-        target = urllib2.urlopen(apiURL) #download the file
-        downloadedData = target.read() #convert to string
-        target.close() #close file because we don't need it anymore
+        try: # Try to connect to the API server
+            target = urllib2.urlopen(apiURL) #download the file
+            downloadedData = target.read() #convert to string
+            target.close() #close file because we don't need it anymore
 
-        XMLData = parseString(downloadedData)
+            XMLData = parseString(downloadedData)
 
-        result = XMLData.getElementsByTagName('result')
-        serveropen = result[0].getElementsByTagName("serverOpen")
-        onlineplayers = result[0].getElementsByTagName("onlinePlayers")
-        servertime = XMLData.getElementsByTagName('currentTime')
-        cacheuntil = XMLData.getElementsByTagName('cachedUntil')
+            result = XMLData.getElementsByTagName('result')
+            serveropen = result[0].getElementsByTagName("serverOpen")
+            onlineplayers = result[0].getElementsByTagName("onlinePlayers")
+            cacheuntil = XMLData.getElementsByTagName('cachedUntil')
 
-        if (serveropen[0].firstChild.nodeValue):
-            status.append("Tranquility Online")
-        else:
-            status.append("Server down.")
+            if (serveropen[0].firstChild.nodeValue):
+                status.append("Tranquility Online")
+            else:
+                status.append("Server down.")
 
-        status.append(onlineplayers[0].firstChild.nodeValue)
-        status.append(servertime)
-        status.append(cacheuntil)
-    except urllib2.HTTPError, e:
-        status.append('HTTP Error: ' + str(e.code))
-        status.append('0') # Players Online 0 as no data
-        status.append('0') # Server Time data 0 as no data
-        status.append('0') # Cache Until data 0 as no data
-    except urllib2.URLError, e:
-        status.append('Error Connecting to Tranquility: ' + str(e.reason))
-        status.append('0') # Players Online 0 as no data
-        status.append('0') # Server Time data 0 as no data
-        status.append('0') # Cache Until data 0 as no data
-    except httplib.HTTPException, e:
-        status.append('HTTP Exception')
-        status.append('0') # Players Online 0 as no data
-        status.append('0') # Server Time data 0 as no data
-        status.append('0') # Cache Until data 0 as no data
-    except Exception:
-        import traceback
-        status.append('Generic Exception: ' + traceback.format_exc())
-        status.append('0') # Players Online 0 as no data
-        status.append('0') # Server Time data 0 as no data
-        status.append('0') # Cache Until data 0 as no data
+            status.append(onlineplayers[0].firstChild.nodeValue)
+            cacheExpire = datetime.datetime(*(time.strptime((cacheuntil[0].firstChild.nodeValue), "%Y-%m-%d %H:%M:%S")[0:6]))
+            status.append(cacheExpire)
+        except urllib2.HTTPError, e:
+            status.append('HTTP Error: ' + str(e.code))
+            status.append('0') # Players Online 0 as no data
+            status.append('0') # Server Time data 0 as no data
+            status.append('0') # Cache Until data 0 as no data
+        except urllib2.URLError, e:
+            status.append('Error Connecting to Tranquility: ' + str(e.reason))
+            status.append('0') # Players Online 0 as no data
+            status.append('0') # Server Time data 0 as no data
+            status.append('0') # Cache Until data 0 as no data
+        except httplib.HTTPException, e:
+            status.append('HTTP Exception')
+            status.append('0') # Players Online 0 as no data
+            status.append('0') # Server Time data 0 as no data
+            status.append('0') # Cache Until data 0 as no data
+        except Exception:
+            import traceback
+            status.append('Generic Exception: ' + traceback.format_exc())
+            status.append('0') # Players Online 0 as no data
+            status.append('0') # Server Time data 0 as no data
+            status.append('0') # Cache Until data 0 as no data
 
-    return status
-
+        return status
+    else:
+        print 'Not Contacting Server'
+        print args[2]
+        print serverTime
+        return args
 
 def iid2name(ids): # Takes a list of typeIDs to query the api server.
     itemNames = {}
@@ -296,11 +300,13 @@ class MainWindow(wx.Frame):
 
 
     def OnGetData(self, e):
+        global serverStatus
+
         self.statusbar.SetStatusText('Welcome to Nesi - ' + 'Connecting to Tranquility...')
 
-# Disabled while testing
-#        server = serverStatus()
-#        self.statusbar.SetStatusText('Welcome to Nesi - ' + server[0] + ' - ' + server[1] + ' Players Online - EvE Time: ' + serverTime)
+        serverStatus = GetServerStatus(serverStatus)
+
+        self.statusbar.SetStatusText('Welcome to Nesi - ' + serverStatus[0] + ' - ' + serverStatus[1] + ' Players Online - EvE Time: ' + str(serverTime))
 
         #Download the Account Industry Data
         apiURL = 'http://api.eveonline.com/corp/IndustryJobs.xml.aspx?keyID=%s&vCode=%s&characterID=%s' % (keyID, vCode, characterID)
