@@ -39,7 +39,7 @@ activities = {1 : 'Manufacturing', 2 : '2', 3 : 'Time Efficiency Research', 4 : 
 # Establish some current time data for calculations later.
 serverTime = datetime.datetime.utcnow().replace(microsecond=0) # Server Time is UTC so we will use that for now generated locally.
 localTime = datetime.datetime.now().replace(microsecond=0) # Client Time reported locally.
-serverStatus = ['0', '0', serverTime] # A global variable to store the returned status.
+serverStatus = ['', '0', serverTime] # A global variable to store the returned status.
 
 # Load the settings files if we have them.
 if (os.path.isfile("nesi.settings")):
@@ -102,26 +102,22 @@ def GetServerStatus(args):
             cacheExpire = datetime.datetime(*(time.strptime((cacheuntil[0].firstChild.nodeValue), "%Y-%m-%d %H:%M:%S")[0:6]))
             status.append(cacheExpire)
         except urllib2.HTTPError, e:
-            status.append('HTTP Error: ' + str(e.code))
-            status.append('0') # Players Online 0 as no data
-            status.append('0') # Server Time data 0 as no data
-            status.append('0') # Cache Until data 0 as no data
+            status.append('HTTP Error: ' + str(e.code)) # Server Status String
+            status.append('0') # Players Online data 0 as no data
+            status.append(serverTime) # Cache Until now as no data
         except urllib2.URLError, e:
-            status.append('Error Connecting to Tranquility: ' + str(e.reason))
-            status.append('0') # Players Online 0 as no data
-            status.append('0') # Server Time data 0 as no data
-            status.append('0') # Cache Until data 0 as no data
+            status.append('Error Connecting to Tranquility: ' + str(e.reason)) # Server Status String
+            status.append('0') # Players Online data 0 as no data
+            status.append(serverTime) # Cache Until now as no data
         except httplib.HTTPException, e:
-            status.append('HTTP Exception')
-            status.append('0') # Players Online 0 as no data
-            status.append('0') # Server Time data 0 as no data
-            status.append('0') # Cache Until data 0 as no data
+            status.append('HTTP Exception') # Server Status String
+            status.append('0') # Players Online data 0 as no data
+            status.append(serverTime) # Cache Until now as no data
         except Exception:
             import traceback
-            status.append('Generic Exception: ' + traceback.format_exc())
-            status.append('0') # Players Online 0 as no data
-            status.append('0') # Server Time data 0 as no data
-            status.append('0') # Cache Until data 0 as no data
+            status.append('Generic Exception: ' + traceback.format_exc()) # Server Status String
+            status.append('0') # Players Online data 0 as no data
+            status.append(serverTime) # Cache Until now as no data
 
         return status
     else:
