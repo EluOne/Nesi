@@ -299,9 +299,7 @@ class MainWindow(wx.Frame):
         global serverStatus
 
         self.statusbar.SetStatusText('Welcome to Nesi - ' + 'Connecting to Tranquility...')
-
-        serverStatus = GetServerStatus(serverStatus)
-
+        serverStatus = GetServerStatus(serverStatus) # Try the API server for current server status.
         self.statusbar.SetStatusText('Welcome to Nesi - ' + serverStatus[0] + ' - ' + serverStatus[1] + ' Players Online - EvE Time: ' + str(serverTime))
 
         #Download the Account Industry Data
