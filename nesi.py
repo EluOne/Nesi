@@ -29,25 +29,13 @@ import wx
 import datetime
 import time
 
-# Initialise some variables.
-keyID = ''
-vCode = ''
-characterID = ''
-e = ''
+
 activities = {1 : 'Manufacturing', 2 : '2', 3 : 'Time Efficiency Research', 4 : 'Material Research', 5 : '5', 6 : '6'} # POS activities list.
 
 # Establish some current time data for calculations later.
 serverTime = datetime.datetime.utcnow().replace(microsecond=0) # Server Time is UTC so we will use that for now generated locally.
 localTime = datetime.datetime.now().replace(microsecond=0) # Client Time reported locally.
 serverStatus = ['', '0', serverTime] # A global variable to store the returned status.
-
-# Load the settings files if we have them.
-if (os.path.isfile("nesi.settings")):
-    settingsfile = open("nesi.settings",'r')
-    keyID = pickle.load(settingsfile)
-    vCode = pickle.load(settingsfile)
-    characterID = pickle.load(settingsfile)
-    settingsfile.close()
 
 
 class Job(object):
@@ -235,9 +223,9 @@ class PreferencesDialog(wx.Dialog):
 
         self.cfg = wx.Config('nesi')
         if self.cfg.Exists('keyID'):
-            k, v, c = self.cfg.Read('keyID'), self.cfg.Read('vCode'), self.cfg.Read('characterID')
+            keyID, vCode, characterID = self.cfg.Read('keyID'), self.cfg.Read('vCode'), self.cfg.Read('characterID')
         else:
-            (k, v, c) = ('', '', '')
+            (keyID, vCode, characterID) = ('', '', '')
 
         prefsSizer = wx.GridBagSizer(5, 5)
         btnSizer = wx.StdDialogButtonSizer()
@@ -247,9 +235,9 @@ class PreferencesDialog(wx.Dialog):
         prefsSizer.Add(wx.StaticText(self, -1, 'vCode: '), (1, 0), wx.DefaultSpan, wx.EXPAND)
         prefsSizer.Add(wx.StaticText(self, -1, 'characterID: '), (2, 0), wx.DefaultSpan, wx.EXPAND)
 
-        self.tc1 = wx.TextCtrl(self, -1, value=k, size=(200, -1))
-        self.tc2 = wx.TextCtrl(self, -1, value=v, size=(200, -1))
-        self.tc3 = wx.TextCtrl(self, -1, value=c, size=(200, -1))
+        self.tc1 = wx.TextCtrl(self, -1, value=keyID, size=(250, -1))
+        self.tc2 = wx.TextCtrl(self, -1, value=vCode, size=(250, -1))
+        self.tc3 = wx.TextCtrl(self, -1, value=characterID, size=(250, -1))
 
         prefsSizer.Add(self.tc1, (0, 1), wx.DefaultSpan, wx.EXPAND)
         prefsSizer.Add(self.tc2, (1, 1), wx.DefaultSpan, wx.EXPAND)
@@ -346,6 +334,13 @@ class MainWindow(wx.Frame):
         self.statusbar.SetStatusText('Welcome to Nesi - ' + 'Connecting to Tranquility...')
         serverStatus = GetServerStatus(serverStatus) # Try the API server for current server status.
         self.statusbar.SetStatusText('Welcome to Nesi - ' + serverStatus[0] + ' - ' + serverStatus[1] + ' Players Online - EvE Time: ' + str(serverTime))
+
+        # Get user settings.
+        cfg = wx.Config('nesi')
+        if cfg.Exists('keyID'):
+            keyID, vCode, characterID = cfg.Read('keyID'), cfg.Read('vCode'), cfg.Read('characterID')
+        else:
+            (keyID, vCode, characterID) = ('', '', '')
 
         #Download the Account Industry Data
         apiURL = 'http://api.eveonline.com/corp/IndustryJobs.xml.aspx?keyID=%s&vCode=%s&characterID=%s' % (keyID, vCode, characterID)
