@@ -229,6 +229,51 @@ def cid2name(ids): # Takes a list of characterIDs to query the api server.
 
 
 
+class PreferencesDialog(wx.Dialog):
+    def __init__(self):
+        wx.Dialog.__init__(self, None, wx.ID_ANY, 'Preferences', size=(350,150))
+
+        self.cfg = wx.Config('nesi')
+        if self.cfg.Exists('keyID'):
+            k, v, c = self.cfg.Read('keyID'), self.cfg.Read('vCode'), self.cfg.Read('characterID')
+        else:
+            (k, v, c) = ('', '', '')
+
+        prefsSizer = wx.GridBagSizer(5, 5)
+        btnSizer = wx.StdDialogButtonSizer()
+        mainSizer = wx.BoxSizer(wx.VERTICAL)
+
+        prefsSizer.Add(wx.StaticText(self, -1, 'keyID: '), (0, 0), wx.DefaultSpan, wx.EXPAND)
+        prefsSizer.Add(wx.StaticText(self, -1, 'vCode: '), (1, 0), wx.DefaultSpan, wx.EXPAND)
+        prefsSizer.Add(wx.StaticText(self, -1, 'characterID: '), (2, 0), wx.DefaultSpan, wx.EXPAND)
+
+        self.tc1 = wx.TextCtrl(self, -1, value=k, size=(200, -1))
+        self.tc2 = wx.TextCtrl(self, -1, value=v, size=(200, -1))
+        self.tc3 = wx.TextCtrl(self, -1, value=c, size=(200, -1))
+
+        prefsSizer.Add(self.tc1, (0, 1), wx.DefaultSpan, wx.EXPAND)
+        prefsSizer.Add(self.tc2, (1, 1), wx.DefaultSpan, wx.EXPAND)
+        prefsSizer.Add(self.tc3, (2, 1), wx.DefaultSpan, wx.EXPAND)
+
+        saveBtn = wx.Button(self, wx.ID_OK, label="Save")
+        saveBtn.Bind(wx.EVT_BUTTON, self.OnSave)
+        btnSizer.AddButton(saveBtn)
+
+        cancelBtn = wx.Button(self, wx.ID_CANCEL)
+        btnSizer.AddButton(cancelBtn)
+        btnSizer.Realize()
+
+        mainSizer.Add(prefsSizer, 0, wx.ALL | wx.ALIGN_CENTER)
+        mainSizer.Add(btnSizer, 0, wx.ALL | wx.ALIGN_CENTER)
+        self.SetSizer(mainSizer)
+
+    def OnSave(self, event):
+        self.cfg.Write("keyID", self.tc1.GetValue())
+        self.cfg.Write("vCode", self.tc2.GetValue())
+        self.cfg.Write("characterID", self.tc3.GetValue())
+        self.EndModal(0)
+
+
 class MainWindow(wx.Frame):
     def __init__(self, parent, title):
         """Constructor"""
@@ -341,8 +386,8 @@ class MainWindow(wx.Frame):
 
 
     def OnConfig(self, e):
-        # A message dialog box with an OK button. wx.OK is a standard ID in wxWidgets.
-        dlg = wx.MessageDialog(self, 'Configure Nesi #TODO', 'Configure Nesi', wx.OK | wx.ICON_INFORMATION)
+        # Open the config frame for user.
+        dlg = PreferencesDialog()
         dlg.ShowModal() # Show it
         dlg.Destroy() # finally destroy it when finished.
 
@@ -379,10 +424,12 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>."""
 
         wx.AboutBox(info)
 
+
     def OnExit(self, e):
         dlg = wx.MessageDialog(self, 'Are you sure to quit Nesi?', 'Please Confirm', wx.YES_NO | wx.NO_DEFAULT | wx.ICON_QUESTION)
         if dlg.ShowModal() == wx.ID_YES:
             self.Close(True)
+
 
 
 if __name__ == '__main__':
