@@ -348,12 +348,36 @@ class MainWindow(wx.Frame):
 
 
     def OnAbout(self, e):
-        # A message dialog box with an OK button. wx.OK is a standard ID in wxWidgets.
-        about_text = 'Nova Echo Science & Industry\n\nA tool to see your queues while out of game.\n\nCreated By: Tim Cumming aka Elusive One\nCopyright (C) 2013'
-        dlg = wx.MessageDialog(self, about_text, 'About Nesi', wx.OK | wx.ICON_INFORMATION)
-        dlg.ShowModal() # Show it
-        dlg.Destroy() # finally destroy it when finished.
+        description = """A tool to let you see your EvE Online science and industry job queues while out of game."""
 
+        licence = """This program is free software: you can redistribute it and/or modify
+it under the terms of the GNU General Public License as published by
+the Free Software Foundation, either version 3 of the License, or
+(at your option) any later version.
+
+This program is distributed in the hope that it will be useful,
+but WITHOUT ANY WARRANTY; without even the implied warranty of
+MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+GNU General Public License for more details.
+
+You should have received a copy of the GNU General Public License
+along with this program.  If not, see <http://www.gnu.org/licenses/>."""
+
+        info = wx.AboutDialogInfo()
+
+        #info.SetIcon(wx.Icon('hunter.png', wx.BITMAP_TYPE_PNG))
+        info.SetName('Nova Echo Science & Industry')
+        info.SetVersion('0.1')
+        info.SetDescription(description)
+        info.SetCopyright('(C) 2013 Tim Cumming')
+        info.SetWebSite('https://github.com/EluOne/Nesi')
+        info.SetLicence(licence)
+        #info.AddDeveloper('Tim Cumming')
+        #info.AddDocWriter('Tim Cumming')
+        #info.AddArtist('Tim Cumming')
+        #info.AddTranslator('Tim Cumming')
+
+        wx.AboutBox(info)
 
     def OnExit(self, e):
         dlg = wx.MessageDialog(self, 'Are you sure to quit Nesi?', 'Please Confirm', wx.YES_NO | wx.NO_DEFAULT | wx.ICON_QUESTION)
