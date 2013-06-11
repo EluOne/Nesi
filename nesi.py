@@ -21,6 +21,7 @@
 from xml.dom.minidom import parseString
 from ObjectListView import ObjectListView, ColumnDefn
 
+import urllib
 import urllib2
 import httplib
 import os.path
@@ -219,7 +220,7 @@ def cid2name(ids): # Takes a list of characterIDs to query the api server.
 
 class PreferencesDialog(wx.Dialog):
     def __init__(self):
-        wx.Dialog.__init__(self, None, wx.ID_ANY, 'Preferences', size=(350,150))
+        wx.Dialog.__init__(self, None, wx.ID_ANY, 'Preferences', size=(400,150))
 
         self.cfg = wx.Config('nesi')
         if self.cfg.Exists('keyID'):
@@ -235,9 +236,9 @@ class PreferencesDialog(wx.Dialog):
         prefsSizer.Add(wx.StaticText(self, -1, 'vCode: '), (1, 0), wx.DefaultSpan, wx.EXPAND)
         prefsSizer.Add(wx.StaticText(self, -1, 'characterID: '), (2, 0), wx.DefaultSpan, wx.EXPAND)
 
-        self.tc1 = wx.TextCtrl(self, -1, value=keyID, size=(250, -1))
-        self.tc2 = wx.TextCtrl(self, -1, value=vCode, size=(250, -1))
-        self.tc3 = wx.TextCtrl(self, -1, value=characterID, size=(250, -1))
+        self.tc1 = wx.TextCtrl(self, -1, value=keyID, size=(300, -1))
+        self.tc2 = wx.TextCtrl(self, -1, value=vCode, size=(300, -1))
+        self.tc3 = wx.TextCtrl(self, -1, value=characterID, size=(300, -1))
 
         prefsSizer.Add(self.tc1, (0, 1), wx.DefaultSpan, wx.EXPAND)
         prefsSizer.Add(self.tc2, (1, 1), wx.DefaultSpan, wx.EXPAND)
@@ -343,7 +344,7 @@ class MainWindow(wx.Frame):
             (keyID, vCode, characterID) = ('', '', '')
 
         #Download the Account Industry Data
-        apiURL = 'http://api.eveonline.com/corp/IndustryJobs.xml.aspx?keyID=%s&vCode=%s&characterID=%s' % (keyID, vCode, characterID)
+        apiURL = 'http://api.eveonline.com/corp/IndustryJobs.xml.aspx?keyID=%s&vCode=%s&characterID=%s' % (keyID, vCode, urllib.quote(characterID))
         print apiURL # Console debug
 
         #target = urllib2.urlopen(apiURL) #download the file
