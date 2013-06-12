@@ -37,6 +37,7 @@ activities = {1 : 'Manufacturing', 2 : '2', 3 : 'Time Efficiency Research', 4 : 
 serverTime = datetime.datetime.utcnow().replace(microsecond=0) # Server Time is UTC so we will use that for now generated locally.
 localTime = datetime.datetime.now().replace(microsecond=0) # Client Time reported locally.
 serverStatus = ['', '0', serverTime] # A global variable to store the returned status.
+jobsCachedUntil = serverTime # A global variable to store the cacheUtil time.
 
 
 class Job(object):
@@ -111,8 +112,6 @@ def GetServerStatus(args):
         return status
     else:
         print 'Not Contacting Server'
-        print args[2]
-        print serverTime
         return args
 
 def iid2name(ids): # Takes a list of typeIDs to query the api server.
@@ -331,54 +330,61 @@ class MainWindow(wx.Frame):
 
     def OnGetData(self, e):
         global serverStatus
+        global jobsCachedUntil
 
         self.statusbar.SetStatusText('Welcome to Nesi - ' + 'Connecting to Tranquility...')
         serverStatus = GetServerStatus(serverStatus) # Try the API server for current server status.
         self.statusbar.SetStatusText('Welcome to Nesi - ' + serverStatus[0] + ' - ' + serverStatus[1] + ' Players Online - EvE Time: ' + str(serverTime))
 
-        # Get user settings.
-        cfg = wx.Config('nesi')
-        if cfg.Exists('keyID'):
-            keyID, vCode, characterID = cfg.Read('keyID'), cfg.Read('vCode'), cfg.Read('characterID')
+        if serverTime >= jobsCachedUntil:
+            # Get user settings.
+            cfg = wx.Config('nesi')
+            if cfg.Exists('keyID'):
+                keyID, vCode, characterID = cfg.Read('keyID'), cfg.Read('vCode'), cfg.Read('characterID')
+            else:
+                (keyID, vCode, characterID) = ('', '', '')
+
+            #Download the Account Industry Data
+            apiURL = 'http://api.eveonline.com/corp/IndustryJobs.xml.aspx?keyID=%s&vCode=%s&characterID=%s' % (keyID, vCode, urllib.quote(characterID))
+            print apiURL # Console debug
+
+            target = urllib2.urlopen(apiURL) #download the file
+            downloadedData = target.read() #convert to string
+            target.close() #close file because we don't need it anymore:
+
+            XMLData = parseString(downloadedData)
+            dataNodes = XMLData.getElementsByTagName("row")
+
+            cacheuntil = XMLData.getElementsByTagName('cachedUntil')
+            cacheExpire = datetime.datetime(*(time.strptime((cacheuntil[0].firstChild.nodeValue), "%Y-%m-%d %H:%M:%S")[0:6]))
+            jobsCachedUntil = cacheExpire
+
+            rows = []
+            itemIDs = []
+            installerIDs = []
+            for row in dataNodes:
+                if row.getAttribute('completed') == '0': # Ignore Delivered Jobs
+                    if int(row.getAttribute('installedItemTypeID')) not in itemIDs:
+                        itemIDs.append(int(row.getAttribute('installedItemTypeID')))
+                    if int(row.getAttribute('installerID')) not in installerIDs:
+                        installerIDs.append(int(row.getAttribute('installerID')))
+
+            itemNames = iid2name(itemIDs)
+            pilotNames = cid2name(installerIDs)
+
+            for row in dataNodes:
+                if row.getAttribute('completed') == '0': # Ignore Delivered Jobs
+                    rows.append(Job(row.getAttribute('jobID'),
+                                    row.getAttribute('completedStatus'),
+                                    activities[int(row.getAttribute('activityID'))],
+                                    itemNames[int(row.getAttribute('installedItemTypeID'))],
+                                    pilotNames[int(row.getAttribute('installerID'))],
+                                    row.getAttribute('installTime'),
+                                    row.getAttribute('endProductionTime')))
+
+            self.myOlv.SetObjects(rows)
         else:
-            (keyID, vCode, characterID) = ('', '', '')
-
-        #Download the Account Industry Data
-        apiURL = 'http://api.eveonline.com/corp/IndustryJobs.xml.aspx?keyID=%s&vCode=%s&characterID=%s' % (keyID, vCode, urllib.quote(characterID))
-        print apiURL # Console debug
-
-        #target = urllib2.urlopen(apiURL) #download the file
-        target = open('IndustryJobs.xml','r') #open a local xml file for reading: (testing)
-        downloadedData = target.read() #convert to string
-        target.close() #close file because we don't need it anymore:
-
-        XMLData = parseString(downloadedData)
-        dataNodes = XMLData.getElementsByTagName("row")
-
-        rows = []
-        itemIDs = []
-        installerIDs = []
-        for row in dataNodes:
-            if row.getAttribute('completed') == '0': # Ignore Delivered Jobs
-                if int(row.getAttribute('installedItemTypeID')) not in itemIDs:
-                    itemIDs.append(int(row.getAttribute('installedItemTypeID')))
-                if int(row.getAttribute('installerID')) not in installerIDs:
-                    installerIDs.append(int(row.getAttribute('installerID')))
-
-        itemNames = iid2name(itemIDs)
-        pilotNames = cid2name(installerIDs)
-
-        for row in dataNodes:
-            if row.getAttribute('completed') == '0': # Ignore Delivered Jobs
-                rows.append(Job(row.getAttribute('jobID'),
-                                row.getAttribute('completedStatus'),
-                                activities[int(row.getAttribute('activityID'))],
-                                itemNames[int(row.getAttribute('installedItemTypeID'))],
-                                pilotNames[int(row.getAttribute('installerID'))],
-                                row.getAttribute('installTime'),
-                                row.getAttribute('endProductionTime')))
-
-        self.myOlv.SetObjects(rows)
+            print 'Not Contacting Server'
 
 
     def OnConfig(self, e):
