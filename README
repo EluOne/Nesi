@@ -4,4 +4,4 @@ A work in progress single window application to display the status of science an
 At present it is starting to take data from the CCP API server for reference data, and is downloadeding an xml file from the industry jobs API.
 The application generates a set of local cache files within its directory to reduce network data, and saves the user details in ~/.nesi file.
 
-This project to uses wxPython and ObjectListView modules.
+This project uses wxPython and ObjectListView modules.
