@@ -255,7 +255,7 @@ class PreferencesDialog(wx.Dialog):
         mainSizer.Add(btnSizer, 0, wx.ALL | wx.ALIGN_CENTER)
         self.SetSizer(mainSizer)
 
-    def OnSave(self, event):
+    def OnSave(self, e):
         self.cfg.Write("keyID", self.tc1.GetValue())
         self.cfg.Write("vCode", self.tc2.GetValue())
         self.cfg.Write("characterID", self.tc3.GetValue())
@@ -425,6 +425,12 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>."""
         #info.AddTranslator('Tim Cumming')
 
         wx.AboutBox(info)
+
+
+    def OnError(self, error):
+        dlg = wx.MessageDialog(self, 'An error has occured:' + error, '', wx.OK | wx.ICON_ERROR)
+        dlg.ShowModal() # Show it
+        dlg.Destroy() # finally destroy it when finished.
 
 
     def OnExit(self, e):
