@@ -38,6 +38,7 @@ serverTime = datetime.datetime.utcnow().replace(microsecond=0) # Server Time is 
 localTime = datetime.datetime.now().replace(microsecond=0) # Client Time reported locally.
 serverStatus = ['', '0', serverTime] # A global variable to store the returned status.
 jobsCachedUntil = serverTime # A global variable to store the cacheUtil time.
+rows = []
 
 
 class Job(object):
@@ -216,6 +217,11 @@ def cid2name(ids): # Takes a list of characterIDs to query the api server.
     return pilotNames
 
 
+def rowFormatter(listItem, row):
+    if row.timeRemaining < 0:
+        listItem.SetTextColour(wx.GREEN)
+
+
 
 class PreferencesDialog(wx.Dialog):
     def __init__(self):
@@ -255,7 +261,7 @@ class PreferencesDialog(wx.Dialog):
         mainSizer.Add(btnSizer, 0, wx.ALL | wx.ALIGN_CENTER)
         self.SetSizer(mainSizer)
 
-    def OnSave(self, e):
+    def OnSave(self, event):
         self.cfg.Write("keyID", self.tc1.GetValue())
         self.cfg.Write("vCode", self.tc2.GetValue())
         self.cfg.Write("characterID", self.tc3.GetValue())
@@ -308,8 +314,8 @@ class MainWindow(wx.Frame):
         self.Bind(wx.EVT_MENU, self.OnAbout, menuAbout)
         self.Bind(wx.EVT_BUTTON, self.OnGetData, id=1)
         self.Bind(wx.EVT_MENU, self.OnConfig, menuConfig) # TODO
-
         self.myOlv = ObjectListView(self, -1, style=wx.LC_REPORT|wx.SUNKEN_BORDER)
+        self.myOlv.Bind(wx.EVT_LIST_ITEM_SELECTED, self.onItemSelected)
 
         self.myOlv.SetColumns([
             ColumnDefn("State", "left", 100, "state"),
@@ -328,9 +334,13 @@ class MainWindow(wx.Frame):
         self.SetSizer(sizer)
 
 
-    def OnGetData(self, e):
+    def OnGetData(self, event):
+        global rows
         global serverStatus
         global jobsCachedUntil
+        global serverTime
+
+        serverTime = datetime.datetime.utcnow().replace(microsecond=0) # Update Server Time.
 
         self.statusbar.SetStatusText('Welcome to Nesi - ' + 'Connecting to Tranquility...')
         serverStatus = GetServerStatus(serverStatus) # Try the API server for current server status.
@@ -359,7 +369,6 @@ class MainWindow(wx.Frame):
             cacheExpire = datetime.datetime(*(time.strptime((cacheuntil[0].firstChild.nodeValue), "%Y-%m-%d %H:%M:%S")[0:6]))
             jobsCachedUntil = cacheExpire
 
-            rows = []
             itemIDs = []
             installerIDs = []
             for row in dataNodes:
@@ -384,17 +393,32 @@ class MainWindow(wx.Frame):
 
             self.myOlv.SetObjects(rows)
         else:
+            numItems = range(len(rows))
+            for r in numItems:
+                if rows[r].endProductionTime > serverTime:
+                    rows[r].timeRemaining = rows[r].endProductionTime - serverTime
+                    rows[r].state = 'In Progress'
+                else:
+                    rows[r].timeRemaining = rows[r].endProductionTime - serverTime
+                    rows[r].state = 'Ready'
+            self.myOlv.RefreshObjects(rows)
             print 'Not Contacting Server'
 
 
-    def OnConfig(self, e):
+    def onItemSelected(self, event):
+        """"""
+        currentItem = event.m_itemIndex
+        print rows[currentItem]
+
+
+    def OnConfig(self, event):
         # Open the config frame for user.
         dlg = PreferencesDialog()
         dlg.ShowModal() # Show it
         dlg.Destroy() # finally destroy it when finished.
 
 
-    def OnAbout(self, e):
+    def OnAbout(self, event):
         description = """A tool to let you see your EvE Online science and industry job queues while out of game."""
 
         licence = """This program is free software: you can redistribute it and/or modify
@@ -433,7 +457,7 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>."""
         dlg.Destroy() # finally destroy it when finished.
 
 
-    def OnExit(self, e):
+    def OnExit(self, event):
         dlg = wx.MessageDialog(self, 'Are you sure to quit Nesi?', 'Please Confirm', wx.YES_NO | wx.NO_DEFAULT | wx.ICON_QUESTION)
         if dlg.ShowModal() == wx.ID_YES:
             self.Close(True)
