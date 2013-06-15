@@ -66,7 +66,13 @@ class Job(object):
 #outputFlag,activityID,completedStatus,installTime,beginProductionTime,endProductionTime,pauseProductionTime"
 
 
-def GetServerStatus(args):
+def onError(error):
+    dlg = wx.MessageDialog(self, 'An error has occured: ' + error, '', wx.OK | wx.ICON_ERROR)
+    dlg.ShowModal() # Show it
+    dlg.Destroy() # finally destroy it when finished.
+
+
+def getServerStatus(args):
     if serverTime >= args[2]:
         status = []
         #Download the Account Industry Data from API server
@@ -92,23 +98,27 @@ def GetServerStatus(args):
             status.append(onlineplayers[0].firstChild.nodeValue)
             cacheExpire = datetime.datetime(*(time.strptime((cacheuntil[0].firstChild.nodeValue), "%Y-%m-%d %H:%M:%S")[0:6]))
             status.append(cacheExpire)
-        except urllib2.HTTPError, e:
-            status.append('HTTP Error: ' + str(e.code)) # Server Status String
+        except urllib2.HTTPError, err:
+            status.append('HTTP Error: ' + str(err.code)) # Server Status String
             status.append('0') # Players Online data 0 as no data
             status.append(serverTime) # Cache Until now as no data
-        except urllib2.URLError, e:
-            status.append('Error Connecting to Tranquility: ' + str(e.reason)) # Server Status String
+            onError(status[0])
+        except urllib2.URLError, err:
+            status.append('Error Connecting to Tranquility: ' + str(err.reason)) # Server Status String
             status.append('0') # Players Online data 0 as no data
             status.append(serverTime) # Cache Until now as no data
-        except httplib.HTTPException, e:
+            onError(status[0])
+        except httplib.HTTPException, err:
             status.append('HTTP Exception') # Server Status String
             status.append('0') # Players Online data 0 as no data
             status.append(serverTime) # Cache Until now as no data
+            onError(status[0])
         except Exception:
             import traceback
             status.append('Generic Exception: ' + traceback.format_exc()) # Server Status String
             status.append('0') # Players Online data 0 as no data
             status.append(serverTime) # Cache Until now as no data
+            onError(status[0])
 
         return status
     else:
@@ -218,7 +228,7 @@ def cid2name(ids): # Takes a list of characterIDs to query the api server.
 
 
 def rowFormatter(listItem, row):
-    if row.timeRemaining < 0:
+    if row.timeRemaining < datetime.timedelta(0):
         listItem.SetTextColour(wx.GREEN)
 
 
@@ -250,7 +260,7 @@ class PreferencesDialog(wx.Dialog):
         prefsSizer.Add(self.tc3, (2, 1), wx.DefaultSpan, wx.EXPAND)
 
         saveBtn = wx.Button(self, wx.ID_OK, label="Save")
-        saveBtn.Bind(wx.EVT_BUTTON, self.OnSave)
+        saveBtn.Bind(wx.EVT_BUTTON, self.onSave)
         btnSizer.AddButton(saveBtn)
 
         cancelBtn = wx.Button(self, wx.ID_CANCEL)
@@ -261,7 +271,7 @@ class PreferencesDialog(wx.Dialog):
         mainSizer.Add(btnSizer, 0, wx.ALL | wx.ALIGN_CENTER)
         self.SetSizer(mainSizer)
 
-    def OnSave(self, event):
+    def onSave(self, event):
         self.cfg.Write("keyID", self.tc1.GetValue())
         self.cfg.Write("vCode", self.tc2.GetValue())
         self.cfg.Write("characterID", self.tc3.GetValue())
@@ -308,13 +318,14 @@ class MainWindow(wx.Frame):
         toolbar.Realize()
         self.SetToolBar(toolbar)
 
+        self.myOlv = ObjectListView(self, -1, style=wx.LC_REPORT|wx.SUNKEN_BORDER)
+        self.myOlv.rowFormatter = rowFormatter
 
         # Menu events.
         self.Bind(wx.EVT_MENU, self.OnExit, menuExit)
-        self.Bind(wx.EVT_MENU, self.OnAbout, menuAbout)
-        self.Bind(wx.EVT_BUTTON, self.OnGetData, id=1)
-        self.Bind(wx.EVT_MENU, self.OnConfig, menuConfig) # TODO
-        self.myOlv = ObjectListView(self, -1, style=wx.LC_REPORT|wx.SUNKEN_BORDER)
+        self.Bind(wx.EVT_MENU, self.onAbout, menuAbout)
+        self.Bind(wx.EVT_BUTTON, self.onGetData, id=1)
+        self.Bind(wx.EVT_MENU, self.onConfig, menuConfig) # TODO
         self.myOlv.Bind(wx.EVT_LIST_ITEM_SELECTED, self.onItemSelected)
 
         self.myOlv.SetColumns([
@@ -334,7 +345,7 @@ class MainWindow(wx.Frame):
         self.SetSizer(sizer)
 
 
-    def OnGetData(self, event):
+    def onGetData(self, event):
         global rows
         global serverStatus
         global jobsCachedUntil
@@ -343,7 +354,7 @@ class MainWindow(wx.Frame):
         serverTime = datetime.datetime.utcnow().replace(microsecond=0) # Update Server Time.
 
         self.statusbar.SetStatusText('Welcome to Nesi - ' + 'Connecting to Tranquility...')
-        serverStatus = GetServerStatus(serverStatus) # Try the API server for current server status.
+        serverStatus = getServerStatus(serverStatus) # Try the API server for current server status.
         self.statusbar.SetStatusText('Welcome to Nesi - ' + serverStatus[0] + ' - ' + serverStatus[1] + ' Players Online - EvE Time: ' + str(serverTime))
 
         if serverTime >= jobsCachedUntil:
@@ -411,14 +422,14 @@ class MainWindow(wx.Frame):
         print rows[currentItem]
 
 
-    def OnConfig(self, event):
+    def onConfig(self, event):
         # Open the config frame for user.
         dlg = PreferencesDialog()
         dlg.ShowModal() # Show it
         dlg.Destroy() # finally destroy it when finished.
 
 
-    def OnAbout(self, event):
+    def onAbout(self, event):
         description = """A tool to let you see your EvE Online science and industry job queues while out of game."""
 
         licence = """This program is free software: you can redistribute it and/or modify
@@ -449,12 +460,6 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>."""
         #info.AddTranslator('Tim Cumming')
 
         wx.AboutBox(info)
-
-
-    def OnError(self, error):
-        dlg = wx.MessageDialog(self, 'An error has occured:' + error, '', wx.OK | wx.ICON_ERROR)
-        dlg.ShowModal() # Show it
-        dlg.Destroy() # finally destroy it when finished.
 
 
     def OnExit(self, event):
