@@ -280,7 +280,7 @@ class MainWindow(wx.Frame):
         self.statusbar.SetStatusText('Welcome to Nesi')
 
         # Job Details box TODO
-#        self.detailBox = wx.TextCtrl(panel, style=wx.TE_MULTILINE, size=(256,-1))
+        self.detailBox = wx.TextCtrl(panel, style=wx.TE_MULTILINE, size=(-1,-1))
 #        self.detailBox.SetFont(wx.Font(9, wx.FONTFAMILY_DEFAULT,
 #                                                   wx.FONTSTYLE_NORMAL,
 #                                                   wx.FONTWEIGHT_NORMAL,
@@ -329,8 +329,8 @@ class MainWindow(wx.Frame):
 
  
         sizer = wx.BoxSizer(wx.VERTICAL)
-        sizer.Add(self.myOlv, 1, wx.ALL|wx.EXPAND, 4)
-#        sizer.Add(self.detailBox, 1, wx.EXPAND | wx.ALL, 1) #TODO
+        sizer.Add(self.myOlv, 2, wx.ALL|wx.EXPAND, 4)
+        sizer.Add(self.detailBox, 1, wx.EXPAND | wx.ALL, 1) #TODO
         self.SetSizer(sizer)
 
 
