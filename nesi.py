@@ -126,7 +126,7 @@ def getServerStatus(args):
 
         return status
     else:
-        print 'Not Contacting Server'
+        print 'Not Contacting Server For Status'
         return args
 
 def iid2name(ids): # Takes a list of typeIDs to query the api server.
@@ -365,7 +365,6 @@ class MainWindow(wx.Frame):
 
         self.statusbar.SetStatusText('Welcome to Nesi - ' + 'Connecting to Tranquility...')
         serverStatus = getServerStatus(serverStatus) # Try the API server for current server status.
-        self.statusbar.SetStatusText('Welcome to Nesi - ' + serverStatus[0] + ' - ' + serverStatus[1] + ' Players Online - EvE Time: ' + str(serverTime))
 
         if serverTime >= jobsCachedUntil:
             # Get user settings.
@@ -424,6 +423,7 @@ class MainWindow(wx.Frame):
 #outputFlag,,completedStatus,,beginProductionTime,,pauseProductionTime"
 
             self.myOlv.SetObjects(rows)
+
         else:
             numItems = range(len(rows))
             for r in numItems:
@@ -434,7 +434,11 @@ class MainWindow(wx.Frame):
                     rows[r].timeRemaining = rows[r].endProductionTime - serverTime
                     rows[r].state = 'Ready'
             self.myOlv.RefreshObjects(rows)
-            print 'Not Contacting Server Cache Not Expired'
+            print 'Not Contacting Server, Cache Not Expired'
+
+        self.statusbar.SetStatusText(serverStatus[0] + ' - ' + serverStatus[1]
+                                     + ' Players Online - EvE Time: ' + str(serverTime)
+                                     + ' - API Cached Until: ' + str(jobsCachedUntil))
 
 
     def onItemSelected(self, event):
@@ -453,9 +457,9 @@ class MainWindow(wx.Frame):
         elif currentItem.activityID == 2:
             details = ('TTC: %s\n %s x %s\n' % (details, currentItem.runs, currentItem.outputTypeID))
         elif currentItem.activityID == 3: # Time Efficiency Research
-            details = ('TTC: %s\nInstall PL: %s\nOutput PL %s\n1 unit of %s\n' % (details, currentItem.installedItemProductivityLevel, (currentItem.installedItemProductivityLevel + currentItem.runs), currentItem.outputTypeID))
+            details = ('TTC: %s\nInstall PE: %s\nOutput PE %s\n1 unit of %s\n' % (details, currentItem.installedItemProductivityLevel, (currentItem.installedItemProductivityLevel + currentItem.runs), currentItem.outputTypeID))
         elif currentItem.activityID == 4: # Material Research
-            details = ('TTC: %s\nInstall ML: %s\nOutput PL %s\n1 unit of %s\n' % (details, currentItem.installedItemMaterialLevel, (currentItem.installedItemMaterialLevel + currentItem.runs), currentItem.outputTypeID))
+            details = ('TTC: %s\nInstall ME: %s\nOutput ME %s\n1 unit of %s\n' % (details, currentItem.installedItemMaterialLevel, (currentItem.installedItemMaterialLevel + currentItem.runs), currentItem.outputTypeID))
 
         self.detailBox.SetValue(details)
 
