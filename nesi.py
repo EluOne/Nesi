@@ -1,5 +1,5 @@
 #!/usr/bin/python
-'Nova Echo Science & Industry'
+"""Nova Echo Science & Industry"""
 # Copyright (C) 2013  Tim Cumming
 #
 # This program is free software: you can redistribute it and/or modify
@@ -31,8 +31,6 @@ import datetime
 import time
 
 
-activities = {1 : 'Manufacturing', 2 : '2', 3 : 'Time Efficiency Research', 4 : 'Material Research', 5 : '5', 6 : '6'} # POS activities list.
-
 # Establish some current time data for calculations later.
 serverTime = datetime.datetime.utcnow().replace(microsecond=0) # Server Time is UTC so we will use that for now generated locally.
 localTime = datetime.datetime.now().replace(microsecond=0) # Client Time reported locally.
@@ -42,12 +40,18 @@ rows = []
 
 
 class Job(object):
-    def __init__(self, jobID, completedStatus, activityID, installedItemTypeID, installerID, installTime, endProductionTime):
+    def __init__(self, jobID, completedStatus, activityID, installedItemTypeID,
+                 installedItemProductivityLevel, installedItemMaterialLevel, installerID,
+                 runs, outputTypeID, installTime, endProductionTime):
         self.jobID = jobID
         self.completedStatus = completedStatus
         self.activityID = activityID
         self.installedItemTypeID = installedItemTypeID
+        self.installedItemProductivityLevel = installedItemProductivityLevel
+        self.installedItemMaterialLevel = installedItemMaterialLevel
         self.installerID = installerID
+        self.runs = runs
+        self.outputTypeID = outputTypeID
         self.installTime = datetime.datetime(*(time.strptime(installTime, "%Y-%m-%d %H:%M:%S")[0:6]))
         self.endProductionTime = datetime.datetime(*(time.strptime(endProductionTime, "%Y-%m-%d %H:%M:%S")[0:6]))
         if self.endProductionTime > serverTime:
@@ -231,10 +235,15 @@ def rowFormatter(listItem, row):
     if row.timeRemaining < datetime.timedelta(0):
         listItem.SetTextColour(wx.GREEN)
 
+def activityConv(act):
+    activities = {1 : 'Manufacturing', 2 : '2', 3 : 'Time Efficiency Research', 4 : 'Material Research', 5 : '5', 6 : '6'} # POS activities list.
+    if act in activities:
+        return activities[act]
 
 
 class PreferencesDialog(wx.Dialog):
     def __init__(self):
+        """A simple user preferences window"""
         wx.Dialog.__init__(self, None, wx.ID_ANY, 'Preferences', size=(400,150))
 
         self.cfg = wx.Config('nesi')
@@ -280,7 +289,7 @@ class PreferencesDialog(wx.Dialog):
 
 class MainWindow(wx.Frame):
     def __init__(self, parent, title):
-        """Constructor"""
+        """Our MainWindow layout"""
         wx.Frame.__init__(self, parent, title=title, size=(1024, 600))
 
         panel = wx.Panel(self, -1)
@@ -322,7 +331,7 @@ class MainWindow(wx.Frame):
         self.myOlv.rowFormatter = rowFormatter
 
         # Menu events.
-        self.Bind(wx.EVT_MENU, self.OnExit, menuExit)
+        self.Bind(wx.EVT_MENU, self.onExit, menuExit)
         self.Bind(wx.EVT_MENU, self.onAbout, menuAbout)
         self.Bind(wx.EVT_BUTTON, self.onGetData, id=1)
         self.Bind(wx.EVT_MENU, self.onConfig, menuConfig) # TODO
@@ -330,12 +339,12 @@ class MainWindow(wx.Frame):
 
         self.myOlv.SetColumns([
             ColumnDefn("State", "left", 100, "state"),
-            ColumnDefn("Activity", "left", 180, "activityID"),
-            ColumnDefn("installedItemTypeID", "center", 300, "installedItemTypeID"),
+            ColumnDefn("Activity", "left", 180, "activityID", stringConverter=activityConv),
+            ColumnDefn("Type", "center", 300, "installedItemTypeID"),
             ColumnDefn("Installer", "center", 120, "installerID"),
             ColumnDefn("Install Date", "left", 145, "installTime"),
-            ColumnDefn("End Date", "left", 145, "endProductionTime"),
-            ColumnDefn("TTC", "left", 145, "timeRemaining")
+            ColumnDefn("End Date", "left", 145, "endProductionTime")
+#            ColumnDefn("TTC", "left", 145, "timeRemaining")
         ])
 
  
@@ -346,6 +355,7 @@ class MainWindow(wx.Frame):
 
 
     def onGetData(self, event):
+        """Event handler to fetch data from server"""
         global rows
         global serverStatus
         global jobsCachedUntil
@@ -380,6 +390,7 @@ class MainWindow(wx.Frame):
             cacheExpire = datetime.datetime(*(time.strptime((cacheuntil[0].firstChild.nodeValue), "%Y-%m-%d %H:%M:%S")[0:6]))
             jobsCachedUntil = cacheExpire
 
+            rows = []
             itemIDs = []
             installerIDs = []
             for row in dataNodes:
@@ -396,11 +407,21 @@ class MainWindow(wx.Frame):
                 if row.getAttribute('completed') == '0': # Ignore Delivered Jobs
                     rows.append(Job(row.getAttribute('jobID'),
                                     row.getAttribute('completedStatus'),
-                                    activities[int(row.getAttribute('activityID'))],
+                                    int(row.getAttribute('activityID')), #Leave as int for ease in later clauses
                                     itemNames[int(row.getAttribute('installedItemTypeID'))],
+                                    int(row.getAttribute('installedItemProductivityLevel')),
+                                    int(row.getAttribute('installedItemMaterialLevel')),
                                     pilotNames[int(row.getAttribute('installerID'))],
+                                    int(row.getAttribute('runs')),
+                                    itemNames[int(row.getAttribute('outputTypeID'))],
                                     row.getAttribute('installTime'),
                                     row.getAttribute('endProductionTime')))
+
+#columns=",assemblyLineID,containerID,,installedItemLocationID,installedItemQuantity,,
+#,installedItemLicensedProductionRunsRemaining,outputLocationID,,,licensedProductionRuns,
+#installedInSolarSystemID,containerLocationID,materialMultiplier,charMaterialMultiplier,timeMultiplier,charTimeMultiplier,
+#,,containerTypeID,installedItemCopy,completed,completedSuccessfully,installedItemFlag,
+#outputFlag,,completedStatus,,beginProductionTime,,pauseProductionTime"
 
             self.myOlv.SetObjects(rows)
         else:
@@ -413,13 +434,30 @@ class MainWindow(wx.Frame):
                     rows[r].timeRemaining = rows[r].endProductionTime - serverTime
                     rows[r].state = 'Ready'
             self.myOlv.RefreshObjects(rows)
-            print 'Not Contacting Server'
+            print 'Not Contacting Server Cache Not Expired'
 
 
     def onItemSelected(self, event):
-        """"""
-        currentItem = event.m_itemIndex
-        print rows[currentItem]
+        """Handle showing details for item select from list"""
+        currentItem = self.myOlv[event.GetIndex()]
+
+        details = ''
+        if currentItem.timeRemaining < datetime.timedelta(0):
+            details = 'Ready'
+        else:
+            details = str(currentItem.timeRemaining)
+
+#        activities = {1 : 'Manufacturing', 2 : '2', 3 : 'Time Efficiency Research', 4 : 'Material Research', 5 : '5', 6 : '6'} # POS activities list.
+        if currentItem.activityID == 1: # Manufacturing
+            details = ('TTC: %s\n %s x %s\n' % (details, currentItem.runs, currentItem.outputTypeID))
+        elif currentItem.activityID == 2:
+            details = ('TTC: %s\n %s x %s\n' % (details, currentItem.runs, currentItem.outputTypeID))
+        elif currentItem.activityID == 3: # Time Efficiency Research
+            details = ('TTC: %s\nInstall PL: %s\nOutput PL %s\n1 unit of %s\n' % (details, currentItem.installedItemProductivityLevel, (currentItem.installedItemProductivityLevel + currentItem.runs), currentItem.outputTypeID))
+        elif currentItem.activityID == 4: # Material Research
+            details = ('TTC: %s\nInstall ML: %s\nOutput PL %s\n1 unit of %s\n' % (details, currentItem.installedItemMaterialLevel, (currentItem.installedItemMaterialLevel + currentItem.runs), currentItem.outputTypeID))
+
+        self.detailBox.SetValue(details)
 
 
     def onConfig(self, event):
@@ -462,7 +500,7 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>."""
         wx.AboutBox(info)
 
 
-    def OnExit(self, event):
+    def onExit(self, event):
         dlg = wx.MessageDialog(self, 'Are you sure to quit Nesi?', 'Please Confirm', wx.YES_NO | wx.NO_DEFAULT | wx.ICON_QUESTION)
         if dlg.ShowModal() == wx.ID_YES:
             self.Close(True)
