@@ -62,7 +62,7 @@ class Job(object):
             self.state = 'Ready'
 
 # S&I window shows: state, activity, type, location, jumps, installer, owner, install date, end date
-
+# This is what the API returns:
 #columns="jobID,assemblyLineID,containerID,installedItemID,installedItemLocationID,installedItemQuantity,installedItemProductivityLevel,
 #installedItemMaterialLevel,installedItemLicensedProductionRunsRemaining,outputLocationID,installerID,runs,licensedProductionRuns,
 #installedInSolarSystemID,containerLocationID,materialMultiplier,charMaterialMultiplier,timeMultiplier,charTimeMultiplier,
@@ -418,11 +418,13 @@ class MainWindow(wx.Frame):
                                     row.getAttribute('installTime'),
                                     row.getAttribute('endProductionTime')))
 
-#columns=",assemblyLineID,containerID,,installedItemLocationID,installedItemQuantity,,
-#,installedItemLicensedProductionRunsRemaining,outputLocationID,,,licensedProductionRuns,
+# This is what is left from the API:
+#columns="assemblyLineID,containerID,installedItemLocationID,installedItemQuantity,
+#installedItemLicensedProductionRunsRemaining,outputLocationID,licensedProductionRuns,
 #installedInSolarSystemID,containerLocationID,materialMultiplier,charMaterialMultiplier,timeMultiplier,charTimeMultiplier,
-#,,containerTypeID,installedItemCopy,completed,completedSuccessfully,installedItemFlag,
-#outputFlag,,completedStatus,,beginProductionTime,,pauseProductionTime"
+#containerTypeID,installedItemCopy,completed,completedSuccessfully,installedItemFlag,
+#outputFlag,completedStatus,beginProductionTime,pauseProductionTime"
+
             self.myOlv.SetObjects(rows)
         else:
             numItems = range(len(rows))
@@ -451,22 +453,25 @@ class MainWindow(wx.Frame):
         else:
             details = str(currentItem.timeRemaining)
 
-#    activities = {1 : 'Manufacturing', 2 : '2', 3 : 'Time Efficiency Research', 4 : 'Material Research', 5 : 'Copy', 6 : '6', 7 : '7', 8 : 'Invention'} # POS activities list.
+#       activities = {1 : 'Manufacturing', 2 : '2', 3 : 'Time Efficiency Research', 4 : 'Material Research',
+#                     5 : 'Copy', 6 : '6', 7 : '7', 8 : 'Invention'} # POS activities list.
         if currentItem.activityID == 1: # Manufacturing
             details = ('TTC: %s\n%s x %s\n' % (details, currentItem.runs, currentItem.outputTypeID))
-        elif currentItem.activityID == 2:
+        elif currentItem.activityID == 2: # FIXME
             details = ('TTC: %s\n%s x %s\n' % (details, currentItem.runs, currentItem.outputTypeID))
         elif currentItem.activityID == 3: # Time Efficiency Research
             details = ('TTC: %s\nInstall PE: %s\nOutput PE %s\n1 unit of %s\n' % (details, currentItem.installedItemProductivityLevel, (currentItem.installedItemProductivityLevel + currentItem.runs), currentItem.outputTypeID))
         elif currentItem.activityID == 4: # Material Research
             details = ('TTC: %s\nInstall ME: %s\nOutput ME %s\n1 unit of %s\n' % (details, currentItem.installedItemMaterialLevel, (currentItem.installedItemMaterialLevel + currentItem.runs), currentItem.outputTypeID))
-        if currentItem.activityID == 5: # Manufacturing
+        elif currentItem.activityID == 5: # Copy
             details = ('TTC: %s\n%s x %s\n' % (details, currentItem.runs, currentItem.outputTypeID))
-        if currentItem.activityID == 6: # Manufacturing
+        elif currentItem.activityID == 6: # FIXME
             details = ('TTC: %s\n%s x %s\n' % (details, currentItem.runs, currentItem.outputTypeID))
-        if currentItem.activityID == 7: # Manufacturing
+        elif currentItem.activityID == 7: # FIXME
             details = ('TTC: %s\n%s x %s\n' % (details, currentItem.runs, currentItem.outputTypeID))
-        if currentItem.activityID == 8: # Manufacturing
+        elif currentItem.activityID == 8: # Invention
+            details = ('TTC: %s\n%s x %s\n' % (details, currentItem.runs, currentItem.outputTypeID))
+        else: # Fall back unknown activity
             details = ('TTC: %s\n%s x %s\n' % (details, currentItem.runs, currentItem.outputTypeID))
 
         self.detailBox.SetValue(details)
