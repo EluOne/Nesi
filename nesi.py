@@ -236,7 +236,7 @@ def rowFormatter(listItem, row):
         listItem.SetTextColour(wx.GREEN)
 
 def activityConv(act):
-    activities = {1 : 'Manufacturing', 2 : '2', 3 : 'Time Efficiency Research', 4 : 'Material Research', 5 : '5', 6 : '6'} # POS activities list.
+    activities = {1 : 'Manufacturing', 2 : '2', 3 : 'Time Efficiency Research', 4 : 'Material Research', 5 : 'Copy', 6 : '6', 7 : '7', 8 : 'Invention'} # POS activities list.
     if act in activities:
         return activities[act]
 
@@ -396,6 +396,8 @@ class MainWindow(wx.Frame):
                 if row.getAttribute('completed') == '0': # Ignore Delivered Jobs
                     if int(row.getAttribute('installedItemTypeID')) not in itemIDs:
                         itemIDs.append(int(row.getAttribute('installedItemTypeID')))
+                    if int(row.getAttribute('outputTypeID')) not in itemIDs:
+                        itemIDs.append(int(row.getAttribute('outputTypeID')))
                     if int(row.getAttribute('installerID')) not in installerIDs:
                         installerIDs.append(int(row.getAttribute('installerID')))
 
@@ -421,9 +423,7 @@ class MainWindow(wx.Frame):
 #installedInSolarSystemID,containerLocationID,materialMultiplier,charMaterialMultiplier,timeMultiplier,charTimeMultiplier,
 #,,containerTypeID,installedItemCopy,completed,completedSuccessfully,installedItemFlag,
 #outputFlag,,completedStatus,,beginProductionTime,,pauseProductionTime"
-
             self.myOlv.SetObjects(rows)
-
         else:
             numItems = range(len(rows))
             for r in numItems:
@@ -451,15 +451,23 @@ class MainWindow(wx.Frame):
         else:
             details = str(currentItem.timeRemaining)
 
-#        activities = {1 : 'Manufacturing', 2 : '2', 3 : 'Time Efficiency Research', 4 : 'Material Research', 5 : '5', 6 : '6'} # POS activities list.
+#    activities = {1 : 'Manufacturing', 2 : '2', 3 : 'Time Efficiency Research', 4 : 'Material Research', 5 : 'Copy', 6 : '6', 7 : '7', 8 : 'Invention'} # POS activities list.
         if currentItem.activityID == 1: # Manufacturing
-            details = ('TTC: %s\n %s x %s\n' % (details, currentItem.runs, currentItem.outputTypeID))
+            details = ('TTC: %s\n%s x %s\n' % (details, currentItem.runs, currentItem.outputTypeID))
         elif currentItem.activityID == 2:
-            details = ('TTC: %s\n %s x %s\n' % (details, currentItem.runs, currentItem.outputTypeID))
+            details = ('TTC: %s\n%s x %s\n' % (details, currentItem.runs, currentItem.outputTypeID))
         elif currentItem.activityID == 3: # Time Efficiency Research
             details = ('TTC: %s\nInstall PE: %s\nOutput PE %s\n1 unit of %s\n' % (details, currentItem.installedItemProductivityLevel, (currentItem.installedItemProductivityLevel + currentItem.runs), currentItem.outputTypeID))
         elif currentItem.activityID == 4: # Material Research
             details = ('TTC: %s\nInstall ME: %s\nOutput ME %s\n1 unit of %s\n' % (details, currentItem.installedItemMaterialLevel, (currentItem.installedItemMaterialLevel + currentItem.runs), currentItem.outputTypeID))
+        if currentItem.activityID == 5: # Manufacturing
+            details = ('TTC: %s\n%s x %s\n' % (details, currentItem.runs, currentItem.outputTypeID))
+        if currentItem.activityID == 6: # Manufacturing
+            details = ('TTC: %s\n%s x %s\n' % (details, currentItem.runs, currentItem.outputTypeID))
+        if currentItem.activityID == 7: # Manufacturing
+            details = ('TTC: %s\n%s x %s\n' % (details, currentItem.runs, currentItem.outputTypeID))
+        if currentItem.activityID == 8: # Manufacturing
+            details = ('TTC: %s\n%s x %s\n' % (details, currentItem.runs, currentItem.outputTypeID))
 
         self.detailBox.SetValue(details)
 
