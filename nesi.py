@@ -70,8 +70,8 @@ class Job(object):
 #outputFlag,activityID,completedStatus,installTime,beginProductionTime,endProductionTime,pauseProductionTime"
 
 
-def onError(error):
-    dlg = wx.MessageDialog(self, 'An error has occured: ' + error, '', wx.OK | wx.ICON_ERROR)
+def onError(self, error):
+    dlg = wx.MessageDialog(self, 'An error has occured:\n' + error, '', wx.OK | wx.ICON_ERROR)
     dlg.ShowModal() # Show it
     dlg.Destroy() # finally destroy it when finished.
 
@@ -106,23 +106,23 @@ def getServerStatus(args):
             status.append('HTTP Error: ' + str(err.code)) # Server Status String
             status.append('0') # Players Online data 0 as no data
             status.append(serverTime) # Cache Until now as no data
-            onError(status[0])
+            onError(self, status[0])
         except urllib2.URLError, err:
             status.append('Error Connecting to Tranquility: ' + str(err.reason)) # Server Status String
             status.append('0') # Players Online data 0 as no data
             status.append(serverTime) # Cache Until now as no data
-            onError(status[0])
+            onError(self, status[0])
         except httplib.HTTPException, err:
             status.append('HTTP Exception') # Server Status String
             status.append('0') # Players Online data 0 as no data
             status.append(serverTime) # Cache Until now as no data
-            onError(status[0])
+            onError(self, status[0])
         except Exception:
             import traceback
             status.append('Generic Exception: ' + traceback.format_exc()) # Server Status String
             status.append('0') # Players Online data 0 as no data
             status.append(serverTime) # Cache Until now as no data
-            onError(status[0])
+            onError(self, status[0])
 
         return status
     else:
@@ -369,63 +369,67 @@ class MainWindow(wx.Frame):
         if serverTime >= jobsCachedUntil:
             # Get user settings.
             cfg = wx.Config('nesi')
-            if cfg.Exists('keyID'):
+            if cfg.Exists('keyID'): # Fetching the server will only work with an API key
                 keyID, vCode, characterID = cfg.Read('keyID'), cfg.Read('vCode'), cfg.Read('characterID')
             else:
                 (keyID, vCode, characterID) = ('', '', '')
 
-            #Download the Account Industry Data
-            apiURL = 'http://api.eveonline.com/corp/IndustryJobs.xml.aspx?keyID=%s&vCode=%s&characterID=%s' % (keyID, vCode, urllib.quote(characterID))
-            print apiURL # Console debug
+            if (keyID != '' and vCode != '' and characterID != ''):
+                #Download the Account Industry Data
+                apiURL = 'http://api.eveonline.com/corp/IndustryJobs.xml.aspx?keyID=%s&vCode=%s&characterID=%s' % (keyID, vCode, urllib.quote(characterID))
+                print apiURL # Console debug
 
-            target = urllib2.urlopen(apiURL) #download the file
-            downloadedData = target.read() #convert to string
-            target.close() #close file because we don't need it anymore:
+                target = urllib2.urlopen(apiURL) #download the file
+                downloadedData = target.read() #convert to string
+                target.close() #close file because we don't need it anymore:
 
-            XMLData = parseString(downloadedData)
-            dataNodes = XMLData.getElementsByTagName("row")
+                XMLData = parseString(downloadedData)
+                dataNodes = XMLData.getElementsByTagName("row")
 
-            cacheuntil = XMLData.getElementsByTagName('cachedUntil')
-            cacheExpire = datetime.datetime(*(time.strptime((cacheuntil[0].firstChild.nodeValue), "%Y-%m-%d %H:%M:%S")[0:6]))
-            jobsCachedUntil = cacheExpire
+                cacheuntil = XMLData.getElementsByTagName('cachedUntil')
+                cacheExpire = datetime.datetime(*(time.strptime((cacheuntil[0].firstChild.nodeValue), "%Y-%m-%d %H:%M:%S")[0:6]))
+                jobsCachedUntil = cacheExpire
 
-            rows = []
-            itemIDs = []
-            installerIDs = []
-            for row in dataNodes:
-                if row.getAttribute('completed') == '0': # Ignore Delivered Jobs
-                    if int(row.getAttribute('installedItemTypeID')) not in itemIDs:
-                        itemIDs.append(int(row.getAttribute('installedItemTypeID')))
-                    if int(row.getAttribute('outputTypeID')) not in itemIDs:
-                        itemIDs.append(int(row.getAttribute('outputTypeID')))
-                    if int(row.getAttribute('installerID')) not in installerIDs:
-                        installerIDs.append(int(row.getAttribute('installerID')))
+                rows = []
+                itemIDs = []
+                installerIDs = []
+                for row in dataNodes:
+                    if row.getAttribute('completed') == '0': # Ignore Delivered Jobs
+                        if int(row.getAttribute('installedItemTypeID')) not in itemIDs:
+                            itemIDs.append(int(row.getAttribute('installedItemTypeID')))
+                        if int(row.getAttribute('outputTypeID')) not in itemIDs:
+                            itemIDs.append(int(row.getAttribute('outputTypeID')))
+                        if int(row.getAttribute('installerID')) not in installerIDs:
+                            installerIDs.append(int(row.getAttribute('installerID')))
 
-            itemNames = iid2name(itemIDs)
-            pilotNames = cid2name(installerIDs)
+                itemNames = iid2name(itemIDs)
+                pilotNames = cid2name(installerIDs)
 
-            for row in dataNodes:
-                if row.getAttribute('completed') == '0': # Ignore Delivered Jobs
-                    rows.append(Job(row.getAttribute('jobID'),
-                                    row.getAttribute('completedStatus'),
-                                    int(row.getAttribute('activityID')), #Leave as int for ease in later clauses
-                                    itemNames[int(row.getAttribute('installedItemTypeID'))],
-                                    int(row.getAttribute('installedItemProductivityLevel')),
-                                    int(row.getAttribute('installedItemMaterialLevel')),
-                                    pilotNames[int(row.getAttribute('installerID'))],
-                                    int(row.getAttribute('runs')),
-                                    itemNames[int(row.getAttribute('outputTypeID'))],
-                                    row.getAttribute('installTime'),
-                                    row.getAttribute('endProductionTime')))
+                for row in dataNodes:
+                    if row.getAttribute('completed') == '0': # Ignore Delivered Jobs
+                        rows.append(Job(row.getAttribute('jobID'),
+                                        row.getAttribute('completedStatus'),
+                                        int(row.getAttribute('activityID')), #Leave as int for ease in later clauses
+                                        itemNames[int(row.getAttribute('installedItemTypeID'))],
+                                        int(row.getAttribute('installedItemProductivityLevel')),
+                                        int(row.getAttribute('installedItemMaterialLevel')),
+                                        pilotNames[int(row.getAttribute('installerID'))],
+                                        int(row.getAttribute('runs')),
+                                        itemNames[int(row.getAttribute('outputTypeID'))],
+                                        row.getAttribute('installTime'),
+                                        row.getAttribute('endProductionTime')))
 
-# This is what is left from the API:
-#columns="assemblyLineID,containerID,installedItemLocationID,installedItemQuantity,
-#installedItemLicensedProductionRunsRemaining,outputLocationID,licensedProductionRuns,
-#installedInSolarSystemID,containerLocationID,materialMultiplier,charMaterialMultiplier,timeMultiplier,charTimeMultiplier,
-#containerTypeID,installedItemCopy,completed,completedSuccessfully,installedItemFlag,
-#outputFlag,completedStatus,beginProductionTime,pauseProductionTime"
+    # This is what is left from the API:
+    #columns="assemblyLineID,containerID,installedItemLocationID,installedItemQuantity,
+    #installedItemLicensedProductionRunsRemaining,outputLocationID,licensedProductionRuns,
+    #installedInSolarSystemID,containerLocationID,materialMultiplier,charMaterialMultiplier,timeMultiplier,charTimeMultiplier,
+    #containerTypeID,installedItemCopy,completed,completedSuccessfully,installedItemFlag,
+    #outputFlag,completedStatus,beginProductionTime,pauseProductionTime"
 
-            self.myOlv.SetObjects(rows)
+                self.myOlv.SetObjects(rows)
+            else:
+                onError(self, 'Please open config to enter a valid API key')
+
         else:
             numItems = range(len(rows))
             for r in numItems:
