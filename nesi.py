@@ -231,9 +231,90 @@ def cid2name(ids): # Takes a list of characterIDs to query the api server.
     return pilotNames
 
 
+def id2name(idType, ids): # Takes a list of typeIDs to query the api server.
+    if idType == 'item':
+        itemNames = {}
+        cacheFile = 'items.cache'
+    elif idType == 'character':
+        pilotNames = {}
+        cacheFile = 'character.cache'
+
+    if (os.path.isfile(cacheFile)):
+        typeFile = open(cacheFile,'r')
+        typeNames = pickle.load(typeFile)
+        typeFile.close()
+
+    numItems = range(len(ids))
+    print ids # Console debug
+
+    for x in numItems:
+        if ids[x] in itemNames:
+            ids[x] = 'deleted'
+
+    for y in ids[:]:
+        if y == 'deleted':
+            ids.remove(y)
+
+    print ids # Console debug
+
+    if ids != [] and idType == 'item': # We still have some character ids we don't know
+        idList = ','.join(map(str, ids))
+
+        #Download the TypeName Data from API server
+        apiURL = 'https://api.eveonline.com/eve/TypeName.xml.aspx?ids=%s' % (idList)
+        print apiURL # Console debug
+
+        target = urllib2.urlopen(apiURL) #download the file
+        downloadedData = target.read() #convert to string
+        target.close() #close file because we don't need it anymore
+
+        XMLData = parseString(downloadedData)
+        dataNodes = XMLData.getElementsByTagName("row")
+
+        for row in dataNodes:
+            itemNames.update({int(row.getAttribute('typeID')) : str(row.getAttribute('typeName'))})
+
+        # Save the data we have so we don't have to fetch it
+        settingsfile = open("items.cache",'w')
+        pickle.dump(itemNames,settingsfile)
+        settingsfile.close()
+
+# Fail returns id as item
+#    numItems = range(len(ids))
+#    for y in numItems:
+#        itemNames.update({ids[y] : ids[y]})
+
+        return itemNames
+
+    elif ids != [] and idType == 'character': # We still have some character ids we don't know
+        idList = ','.join(map(str, ids))
+
+        #Download the Character Names from API server
+        apiURL = 'https://api.eveonline.com/eve/CharacterName.xml.aspx?ids=%s' % (idList)
+        print apiURL # Console debug
+
+        target = urllib2.urlopen(apiURL) #download the file
+        downloadedData = target.read() #convert to string
+        target.close() #close file because we don't need it anymore
+
+        XMLData = parseString(downloadedData)
+        dataNodes = XMLData.getElementsByTagName("row")
+
+        for row in dataNodes:
+            pilotNames.update({int(row.getAttribute('characterID')) : str(row.getAttribute('name'))})
+
+        # Save the data we have so we don't have to fetch it
+        settingsfile = open("character.cache",'w')
+        pickle.dump(pilotNames,settingsfile)
+        settingsfile.close()
+
+        return pilotNames
+
+
 def rowFormatter(listItem, row):
     if row.timeRemaining < datetime.timedelta(0):
         listItem.SetTextColour(wx.GREEN)
+
 
 def activityConv(act):
     activities = {1 : 'Manufacturing', 2 : '2', 3 : 'Time Efficiency Research', 4 : 'Material Research', 5 : 'Copy', 6 : '6', 7 : '7', 8 : 'Invention'} # POS activities list.
