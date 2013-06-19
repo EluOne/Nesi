@@ -232,11 +232,10 @@ def cid2name(ids): # Takes a list of characterIDs to query the api server.
 
 
 def id2name(idType, ids): # Takes a list of typeIDs to query the api server.
+    typeNames = {}
     if idType == 'item':
-        itemNames = {}
         cacheFile = 'items.cache'
     elif idType == 'character':
-        pilotNames = {}
         cacheFile = 'character.cache'
 
     if (os.path.isfile(cacheFile)):
@@ -272,19 +271,7 @@ def id2name(idType, ids): # Takes a list of typeIDs to query the api server.
         dataNodes = XMLData.getElementsByTagName("row")
 
         for row in dataNodes:
-            itemNames.update({int(row.getAttribute('typeID')) : str(row.getAttribute('typeName'))})
-
-        # Save the data we have so we don't have to fetch it
-        settingsfile = open("items.cache",'w')
-        pickle.dump(itemNames,settingsfile)
-        settingsfile.close()
-
-# Fail returns id as item
-#    numItems = range(len(ids))
-#    for y in numItems:
-#        itemNames.update({ids[y] : ids[y]})
-
-        return itemNames
+            typeNames.update({int(row.getAttribute('typeID')) : str(row.getAttribute('typeName'))})
 
     elif ids != [] and idType == 'character': # We still have some character ids we don't know
         idList = ','.join(map(str, ids))
@@ -301,14 +288,14 @@ def id2name(idType, ids): # Takes a list of typeIDs to query the api server.
         dataNodes = XMLData.getElementsByTagName("row")
 
         for row in dataNodes:
-            pilotNames.update({int(row.getAttribute('characterID')) : str(row.getAttribute('name'))})
+            typeNames.update({int(row.getAttribute('characterID')) : str(row.getAttribute('name'))})
 
-        # Save the data we have so we don't have to fetch it
-        settingsfile = open("character.cache",'w')
-        pickle.dump(pilotNames,settingsfile)
-        settingsfile.close()
+    # Save the data we have so we don't have to fetch it
+    settingsfile = open(cacheFile,'w')
+    pickle.dump(typeNames,settingsfile)
+    settingsfile.close()
 
-        return pilotNames
+    return typeNames
 
 
 def rowFormatter(listItem, row):
