@@ -356,55 +356,57 @@ class PreferencesDialog(wx.Dialog):
 
 
 class MainWindow(wx.Frame):
-    def __init__(self, parent, title):
-        """Our MainWindow layout"""
-        wx.Frame.__init__(self, parent, title=title, size=(1024, 600))
-
-        panel = wx.Panel(self, -1)
-        panel.SetBackgroundColour(wx.NullColour) # Use system default colour
-
-        self.statusbar = self.CreateStatusBar() # A Statusbar in the bottom of the window
-        self.statusbar.SetStatusText('Welcome to Nesi')
-
-        # Job Details box TODO
-        self.detailBox = wx.TextCtrl(panel, style=wx.TE_MULTILINE, size=(-1,-1))
-#        self.detailBox.SetFont(wx.Font(9, wx.FONTFAMILY_DEFAULT,
-#                                                   wx.FONTSTYLE_NORMAL,
-#                                                   wx.FONTWEIGHT_NORMAL,
-#                                                   False))
-
-        # Setting up the menu.
-        filemenu= wx.Menu()
-#        menuRefresh= filemenu.Append(wx.ID_ANY, "&Refresh", " Refresh the list")
-        menuConfig= filemenu.Append(wx.ID_ANY, "&Configure", " Configure Nesi") # TODO
-        menuAbout= filemenu.Append(wx.ID_ABOUT, "&About", " Information about this program")
-        menuExit = filemenu.Append(wx.ID_EXIT, "E&xit", " Terminate the program")
-
-        # Creating the menu bar.
-        menuBar = wx.MenuBar()
-        menuBar.Append(filemenu,"&File") # Adding the "file menu" to the MenuBar.
-        self.SetMenuBar(menuBar)  # Adding the MenuBar to the Frame content.
-
-        toolbar = wx.ToolBar(self, -1)
-#        self.tc = wx.TextCtrl(toolbar, -1, size=(100, -1))
-        btn = wx.Button(toolbar, 1, 'Refresh', size=(64, 28))
-
-#        toolbar.AddControl(self.tc)
-#        toolbar.AddSeparator()
-        toolbar.AddControl(btn)
-        toolbar.Realize()
-        self.SetToolBar(toolbar)
-
+    def __init__(self, *args, **kwds):
+        # begin wxGlade: MainWindow.__init__
+        kwds["style"] = wx.DEFAULT_FRAME_STYLE
+        wx.Frame.__init__(self, *args, **kwds)
+        self.bitmap_1 = wx.StaticBitmap(self, -1, wx.Bitmap("images/nesi.png", wx.BITMAP_TYPE_ANY))
+        self.label_1 = wx.StaticText(self, -1, "Science & Industry")
         self.myOlv = ObjectListView(self, -1, style=wx.LC_REPORT|wx.SUNKEN_BORDER)
-        self.myOlv.rowFormatter = rowFormatter
+        self.detailBox = wx.TextCtrl(self, -1, "", style=wx.TE_MULTILINE)
+        self.btn = wx.Button(self, -1, "Refresh")
 
-        # Menu events.
-        self.Bind(wx.EVT_MENU, self.onExit, menuExit)
-        self.Bind(wx.EVT_MENU, self.onAbout, menuAbout)
-        self.Bind(wx.EVT_BUTTON, self.onGetData, id=1)
-        self.Bind(wx.EVT_MENU, self.onConfig, menuConfig) # TODO
+        # Menu Bar
+        self.frame_menubar = wx.MenuBar()
+        self.fileMenu = wx.Menu()
+        self.menuAbout = wx.MenuItem(self.fileMenu, wx.NewId(), "&About", "", wx.ITEM_NORMAL)
+        self.fileMenu.AppendItem(self.menuAbout)
+        self.menuConfig = wx.MenuItem(self.fileMenu, wx.NewId(), "&Configure", "", wx.ITEM_NORMAL)
+        self.fileMenu.AppendItem(self.menuConfig)
+        self.menuExit = wx.MenuItem(self.fileMenu, wx.NewId(), "E&xit", "", wx.ITEM_NORMAL)
+        self.fileMenu.AppendItem(self.menuExit)
+        self.frame_menubar.Append(self.fileMenu, "File")
+        self.SetMenuBar(self.frame_menubar)
+        # Menu Bar end
+        self.statusbar = self.CreateStatusBar(1, 0)
+
+        self.__set_properties()
+        self.__do_layout()
+
+        self.Bind(wx.EVT_BUTTON, self.onGetData, self.btn)
+        self.Bind(wx.EVT_MENU, self.onAbout, self.menuAbout)
+        self.Bind(wx.EVT_MENU, self.onConfig, self.menuConfig)
+        self.Bind(wx.EVT_MENU, self.onExit, self.menuExit)
+        # end wxGlade
+
         self.myOlv.Bind(wx.EVT_LIST_ITEM_SELECTED, self.onItemSelected)
 
+
+    def __set_properties(self):
+        # begin wxGlade: MainWindow.__set_properties
+        self.SetTitle("Nesi")
+        self.SetSize((1024, 600))
+        self.SetBackgroundColour(wx.Colour(0, 0, 0))
+        self.bitmap_1.SetMinSize((64, 64))
+        self.label_1.SetBackgroundColour(wx.Colour(0, 0, 0))
+        self.label_1.SetForegroundColour(wx.Colour(255, 255, 255))
+        self.label_1.SetFont(wx.Font(18, wx.DEFAULT, wx.NORMAL, wx.NORMAL, 0, ""))
+        self.detailBox.SetBackgroundColour(wx.Colour(0, 0, 0))
+        self.detailBox.SetForegroundColour(wx.Colour(255, 255, 255))
+        # end wxGlade
+
+        self.statusbar.SetStatusText('Welcome to Nesi')
+        self.myOlv.rowFormatter = rowFormatter
         self.myOlv.SetColumns([
             ColumnDefn("State", "left", 100, "state"),
             ColumnDefn("Activity", "left", 180, "activityID", stringConverter=activityConv),
@@ -415,11 +417,20 @@ class MainWindow(wx.Frame):
 #            ColumnDefn("TTC", "left", 145, "timeRemaining")
         ])
 
- 
-        sizer = wx.BoxSizer(wx.VERTICAL)
-        sizer.Add(self.myOlv, 2, wx.ALL|wx.EXPAND, 4)
-        sizer.Add(self.detailBox, 1, wx.EXPAND | wx.ALL, 1) #TODO
-        self.SetSizer(sizer)
+
+    def __do_layout(self):
+        # begin wxGlade: MainWindow.__do_layout
+        sizer_1 = wx.BoxSizer(wx.VERTICAL)
+        sizer_2 = wx.BoxSizer(wx.HORIZONTAL)
+        sizer_2.Add(self.bitmap_1, 0, wx.FIXED_MINSIZE, 0)
+        sizer_2.Add(self.label_1, 0, wx.ALIGN_CENTER_VERTICAL|wx.FIXED_MINSIZE, 0)
+        sizer_1.Add(sizer_2, 0, 0, 0)
+        sizer_1.Add(self.myOlv, 1, wx.EXPAND, 0)
+        sizer_1.Add(self.detailBox, 0, wx.EXPAND, 0)
+        sizer_1.Add(self.btn, 0, wx.ALIGN_RIGHT|wx.ADJUST_MINSIZE, 0)
+        self.SetSizer(sizer_1)
+        self.Layout()
+        # end wxGlade
 
 
     def onGetData(self, event):
@@ -594,11 +605,19 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>."""
         if dlg.ShowModal() == wx.ID_YES:
             self.Close(True)
 
+# end of class MainWindow
 
 
-if __name__ == '__main__':
-    app = wx.App(0)
-    frame = MainWindow(None, "Nesi")
-    app.SetTopWindow(frame)
-    frame.Show()
+class MyApp(wx.App):
+    def OnInit(self):
+        wx.InitAllImageHandlers()
+        frame = MainWindow(None, -1, "")
+        self.SetTopWindow(frame)
+        frame.Show()
+        return 1
+
+# end of class MyApp
+
+if __name__ == "__main__":
+    app = MyApp(0)
     app.MainLoop()
