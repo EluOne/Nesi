@@ -361,7 +361,7 @@ class MainWindow(wx.Frame):
         kwds["style"] = wx.DEFAULT_FRAME_STYLE
         wx.Frame.__init__(self, *args, **kwds)
         self.bitmap_1 = wx.StaticBitmap(self, -1, wx.Bitmap("images/nesi.png", wx.BITMAP_TYPE_ANY))
-        self.label_1 = wx.StaticText(self, -1, "Science & Industry")
+        self.label_1 = wx.StaticText(self, -1, "Science and Industry")
         self.myOlv = ObjectListView(self, -1, style=wx.LC_REPORT|wx.SUNKEN_BORDER)
         self.detailBox = wx.TextCtrl(self, -1, "", style=wx.TE_MULTILINE)
         self.btn = wx.Button(self, -1, "Refresh")
@@ -396,13 +396,13 @@ class MainWindow(wx.Frame):
         # begin wxGlade: MainWindow.__set_properties
         self.SetTitle("Nesi")
         self.SetSize((1024, 600))
-        self.SetBackgroundColour(wx.Colour(0, 0, 0))
+#        self.SetBackgroundColour(wx.Colour(0, 0, 0))
         self.bitmap_1.SetMinSize((64, 64))
-        self.label_1.SetBackgroundColour(wx.Colour(0, 0, 0))
-        self.label_1.SetForegroundColour(wx.Colour(255, 255, 255))
+#        self.label_1.SetBackgroundColour(wx.Colour(0, 0, 0))
+#        self.label_1.SetForegroundColour(wx.Colour(255, 255, 255))
         self.label_1.SetFont(wx.Font(18, wx.DEFAULT, wx.NORMAL, wx.NORMAL, 0, ""))
-        self.detailBox.SetBackgroundColour(wx.Colour(0, 0, 0))
-        self.detailBox.SetForegroundColour(wx.Colour(255, 255, 255))
+#        self.detailBox.SetBackgroundColour(wx.Colour(0, 0, 0))
+#        self.detailBox.SetForegroundColour(wx.Colour(255, 255, 255))
         # end wxGlade
 
         self.statusbar.SetStatusText('Welcome to Nesi')
