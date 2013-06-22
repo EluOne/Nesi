@@ -422,8 +422,8 @@ class MainWindow(wx.Frame):
         sizer_2.Add(self.label_1, 0, wx.ALIGN_CENTER_VERTICAL|wx.FIXED_MINSIZE, 0)
         sizer_1.Add(sizer_2, 0, 0, 0)
         sizer_1.Add(self.btn, 0, wx.ALIGN_RIGHT|wx.ADJUST_MINSIZE, 0)
-        sizer_1.Add(self.myOlv, 1, wx.EXPAND, 0)
-        sizer_1.Add(self.detailBox, 0, wx.EXPAND, 0)
+        sizer_1.Add(self.myOlv, 3, wx.EXPAND, 0)
+        sizer_1.Add(self.detailBox, 1, wx.EXPAND, 0)
         self.SetSizer(sizer_1)
         self.Layout()
         # end wxGlade
