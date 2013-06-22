@@ -129,114 +129,19 @@ def getServerStatus(args):
         print 'Not Contacting Server For Status'
         return args
 
-def iid2name(ids): # Takes a list of typeIDs to query the api server.
-    itemNames = {}
-
-    if (os.path.isfile("items.cache")):
-        itemsfile = open("items.cache",'r')
-        itemNames = pickle.load(itemsfile)
-        itemsfile.close()
-
-    numItems = range(len(ids))
-    print ids # Console debug
-
-    for x in numItems:
-        if ids[x] in itemNames:
-            ids[x] = 'deleted'
-
-    for y in ids[:]:
-        if y == 'deleted':
-            ids.remove(y)
-
-    print ids # Console debug
-
-    if ids != []: # We still have some character ids we don't know
-        idList = ','.join(map(str, ids))
-
-        #Download the TypeName Data from API server
-        apiURL = 'https://api.eveonline.com/eve/TypeName.xml.aspx?ids=%s' % (idList)
-        print apiURL # Console debug
-
-        target = urllib2.urlopen(apiURL) #download the file
-        downloadedData = target.read() #convert to string
-        target.close() #close file because we don't need it anymore
-
-        XMLData = parseString(downloadedData)
-        dataNodes = XMLData.getElementsByTagName("row")
-
-        for row in dataNodes:
-            itemNames.update({int(row.getAttribute('typeID')) : str(row.getAttribute('typeName'))})
-
-        # Save the data we have so we don't have to fetch it
-        settingsfile = open("items.cache",'w')
-        pickle.dump(itemNames,settingsfile)
-        settingsfile.close()
-
-# Fail returns id as item
-#    numItems = range(len(ids))
-#    for y in numItems:
-#        itemNames.update({ids[y] : ids[y]})
-
-    return itemNames
-
-
-def cid2name(ids): # Takes a list of characterIDs to query the api server.
-    pilotNames = {}
-
-    if (os.path.isfile("character.cache")):
-        charactersfile = open("character.cache",'r')
-        pilotNames = pickle.load(charactersfile)
-        charactersfile.close()
-
-    numItems = range(len(ids))
-    print ids # Console debug
-
-    for x in numItems:
-        if ids[x] in pilotNames:
-            ids[x] = 'deleted'
-
-    for y in ids[:]:
-        if y == 'deleted':
-            ids.remove(y)
-
-    print ids # Console debug
-
-    if ids != []: # We still have some character ids we don't know
-        idList = ','.join(map(str, ids))
-
-        #Download the Character Names from API server
-        apiURL = 'https://api.eveonline.com/eve/CharacterName.xml.aspx?ids=%s' % (idList)
-        print apiURL # Console debug
-
-        target = urllib2.urlopen(apiURL) #download the file
-        downloadedData = target.read() #convert to string
-        target.close() #close file because we don't need it anymore
-
-        XMLData = parseString(downloadedData)
-        dataNodes = XMLData.getElementsByTagName("row")
-
-        for row in dataNodes:
-            pilotNames.update({int(row.getAttribute('characterID')) : str(row.getAttribute('name'))})
-
-        # Save the data we have so we don't have to fetch it
-        settingsfile = open("character.cache",'w')
-        pickle.dump(pilotNames,settingsfile)
-        settingsfile.close()
-
-# Fail returns id as name
-#    numItems = range(len(ids))
-#    for y in numItems:
-#        pilotNames.update({ids[y] : ids[y]})
-
-    return pilotNames
-
 
 def id2name(idType, ids): # Takes a list of typeIDs to query the api server.
     typeNames = {}
     if idType == 'item':
         cacheFile = 'items.cache'
+        baseUrl = 'https://api.eveonline.com/eve/TypeName.xml.aspx?ids=%s'
+        key = 'typeID'
+        value = 'typeName'
     elif idType == 'character':
         cacheFile = 'character.cache'
+        baseUrl = 'https://api.eveonline.com/eve/CharacterName.xml.aspx?ids=%s'
+        key = 'characterID'
+        value = 'name'
 
     if (os.path.isfile(cacheFile)):
         typeFile = open(cacheFile,'r')
@@ -247,7 +152,7 @@ def id2name(idType, ids): # Takes a list of typeIDs to query the api server.
     print ids # Console debug
 
     for x in numItems:
-        if ids[x] in itemNames:
+        if ids[x] in typeNames:
             ids[x] = 'deleted'
 
     for y in ids[:]:
@@ -256,11 +161,11 @@ def id2name(idType, ids): # Takes a list of typeIDs to query the api server.
 
     print ids # Console debug
 
-    if ids != [] and idType == 'item': # We still have some character ids we don't know
+    if ids != []: # We still have some character ids we don't know
         idList = ','.join(map(str, ids))
 
         #Download the TypeName Data from API server
-        apiURL = 'https://api.eveonline.com/eve/TypeName.xml.aspx?ids=%s' % (idList)
+        apiURL = baseUrl % (idList)
         print apiURL # Console debug
 
         target = urllib2.urlopen(apiURL) #download the file
@@ -271,29 +176,17 @@ def id2name(idType, ids): # Takes a list of typeIDs to query the api server.
         dataNodes = XMLData.getElementsByTagName("row")
 
         for row in dataNodes:
-            typeNames.update({int(row.getAttribute('typeID')) : str(row.getAttribute('typeName'))})
+            typeNames.update({int(row.getAttribute(key)) : str(row.getAttribute(value))})
 
-    elif ids != [] and idType == 'character': # We still have some character ids we don't know
-        idList = ','.join(map(str, ids))
+        # Save the data we have so we don't have to fetch it
+        settingsfile = open(cacheFile,'w')
+        pickle.dump(typeNames,settingsfile)
+        settingsfile.close()
 
-        #Download the Character Names from API server
-        apiURL = 'https://api.eveonline.com/eve/CharacterName.xml.aspx?ids=%s' % (idList)
-        print apiURL # Console debug
-
-        target = urllib2.urlopen(apiURL) #download the file
-        downloadedData = target.read() #convert to string
-        target.close() #close file because we don't need it anymore
-
-        XMLData = parseString(downloadedData)
-        dataNodes = XMLData.getElementsByTagName("row")
-
-        for row in dataNodes:
-            typeNames.update({int(row.getAttribute('characterID')) : str(row.getAttribute('name'))})
-
-    # Save the data we have so we don't have to fetch it
-    settingsfile = open(cacheFile,'w')
-    pickle.dump(typeNames,settingsfile)
-    settingsfile.close()
+# Fail returns id as name
+#    numItems = range(len(ids))
+#    for y in numItems:
+#        pilotNames.update({ids[y] : ids[y]})
 
     return typeNames
 
@@ -476,8 +369,8 @@ class MainWindow(wx.Frame):
                         if int(row.getAttribute('installerID')) not in installerIDs:
                             installerIDs.append(int(row.getAttribute('installerID')))
 
-                itemNames = iid2name(itemIDs)
-                pilotNames = cid2name(installerIDs)
+                itemNames = id2name('item', itemIDs)
+                pilotNames = id2name('character', installerIDs)
 
                 for row in dataNodes:
                     if row.getAttribute('completed') == '0': # Ignore Delivered Jobs
