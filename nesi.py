@@ -410,7 +410,6 @@ class MainWindow(wx.Frame):
             ColumnDefn("Installer", "center", 120, "installerID"),
             ColumnDefn("Install Date", "left", 145, "installTime"),
             ColumnDefn("End Date", "left", 145, "endProductionTime")
-#            ColumnDefn("TTC", "left", 145, "timeRemaining")
         ])
 
 
