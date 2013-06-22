@@ -364,7 +364,7 @@ class MainWindow(wx.Frame):
         self.label_1 = wx.StaticText(self, -1, "Science and Industry")
         self.myOlv = ObjectListView(self, -1, style=wx.LC_REPORT|wx.SUNKEN_BORDER)
         self.detailBox = wx.TextCtrl(self, -1, "", style=wx.TE_MULTILINE)
-        self.btn = wx.Button(self, -1, "Refresh")
+        self.btn = wx.Button(self, -1, "Get Jobs")
 
         # Menu Bar
         self.frame_menubar = wx.MenuBar()
@@ -396,16 +396,12 @@ class MainWindow(wx.Frame):
         # begin wxGlade: MainWindow.__set_properties
         self.SetTitle("Nesi")
         self.SetSize((1024, 600))
-#        self.SetBackgroundColour(wx.Colour(0, 0, 0))
         self.bitmap_1.SetMinSize((64, 64))
-#        self.label_1.SetBackgroundColour(wx.Colour(0, 0, 0))
-#        self.label_1.SetForegroundColour(wx.Colour(255, 255, 255))
         self.label_1.SetFont(wx.Font(18, wx.DEFAULT, wx.NORMAL, wx.NORMAL, 0, ""))
-#        self.detailBox.SetBackgroundColour(wx.Colour(0, 0, 0))
-#        self.detailBox.SetForegroundColour(wx.Colour(255, 255, 255))
         # end wxGlade
 
         self.statusbar.SetStatusText('Welcome to Nesi')
+        self.myOlv.SetEmptyListMsg("Click \"Get Jobs\" to fetch jobs") # In game: Click "Get Jobs" to fetch jobs with current filters
         self.myOlv.rowFormatter = rowFormatter
         self.myOlv.SetColumns([
             ColumnDefn("State", "left", 100, "state"),
@@ -425,9 +421,9 @@ class MainWindow(wx.Frame):
         sizer_2.Add(self.bitmap_1, 0, wx.FIXED_MINSIZE, 0)
         sizer_2.Add(self.label_1, 0, wx.ALIGN_CENTER_VERTICAL|wx.FIXED_MINSIZE, 0)
         sizer_1.Add(sizer_2, 0, 0, 0)
+        sizer_1.Add(self.btn, 0, wx.ALIGN_RIGHT|wx.ADJUST_MINSIZE, 0)
         sizer_1.Add(self.myOlv, 1, wx.EXPAND, 0)
         sizer_1.Add(self.detailBox, 0, wx.EXPAND, 0)
-        sizer_1.Add(self.btn, 0, wx.ALIGN_RIGHT|wx.ADJUST_MINSIZE, 0)
         self.SetSizer(sizer_1)
         self.Layout()
         # end wxGlade
