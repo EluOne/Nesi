@@ -161,7 +161,7 @@ def id2name(idType, ids): # Takes a list of typeIDs to query the api server.
 
     print ids # Console debug
 
-    if ids != []: # We still have some character ids we don't know
+    if ids != []: # We still have some ids we don't know
         idList = ','.join(map(str, ids))
 
         #Download the TypeName Data from API server
@@ -186,12 +186,12 @@ def id2name(idType, ids): # Takes a list of typeIDs to query the api server.
 # Fail returns id as name
 #    numItems = range(len(ids))
 #    for y in numItems:
-#        pilotNames.update({ids[y] : ids[y]})
+#        typeNames.update({ids[y] : ids[y]})
 
     return typeNames
 
 
-def rowFormatter(listItem, row):
+def rowFormatter(listItem, row): # Formatter for ObjectListView, will turn completed jobs green.
     if row.timeRemaining < datetime.timedelta(0):
         listItem.SetTextColour(wx.GREEN)
 
@@ -200,6 +200,8 @@ def activityConv(act):
     activities = {1 : 'Manufacturing', 2 : '2', 3 : 'Time Efficiency Research', 4 : 'Material Research', 5 : 'Copy', 6 : '6', 7 : '7', 8 : 'Invention'} # POS activities list.
     if act in activities:
         return activities[act]
+    else:
+        return act
 
 
 class PreferencesDialog(wx.Dialog):
@@ -246,6 +248,8 @@ class PreferencesDialog(wx.Dialog):
         self.cfg.Write("vCode", self.tc2.GetValue())
         self.cfg.Write("characterID", self.tc3.GetValue())
         self.EndModal(0)
+
+# end of class PreferencesDialog
 
 
 class MainWindow(wx.Frame):
@@ -294,7 +298,7 @@ class MainWindow(wx.Frame):
         # end wxGlade
 
         self.statusbar.SetStatusText('Welcome to Nesi')
-        self.myOlv.SetEmptyListMsg("Click \"Get Jobs\" to fetch jobs") # In game: Click "Get Jobs" to fetch jobs with current filters
+        self.myOlv.SetEmptyListMsg('Click \"Get Jobs\" to fetch jobs') # In game: Click "Get Jobs" to fetch jobs with current filters
         self.myOlv.rowFormatter = rowFormatter
         self.myOlv.SetColumns([
             ColumnDefn("State", "left", 100, "state"),
@@ -330,88 +334,89 @@ class MainWindow(wx.Frame):
 
         serverTime = datetime.datetime.utcnow().replace(microsecond=0) # Update Server Time.
 
-        self.statusbar.SetStatusText('Welcome to Nesi - ' + 'Connecting to Tranquility...')
+        self.statusbar.SetStatusText('Welcome to Nesi - ' + 'Connecting to Tranquility...') # Inform the user what we are doing.
         serverStatus = getServerStatus(serverStatus) # Try the API server for current server status.
 
-        if serverTime >= jobsCachedUntil:
-            # Get user settings.
-            cfg = wx.Config('nesi')
-            if cfg.Exists('keyID'): # Fetching the server will only work with an API key
-                keyID, vCode, characterID = cfg.Read('keyID'), cfg.Read('vCode'), cfg.Read('characterID')
-            else:
-                (keyID, vCode, characterID) = ('', '', '')
-
-            if (keyID != '' and vCode != '' and characterID != ''):
-                #Download the Account Industry Data
-                apiURL = 'http://api.eveonline.com/corp/IndustryJobs.xml.aspx?keyID=%s&vCode=%s&characterID=%s' % (keyID, vCode, urllib.quote(characterID))
-                print apiURL # Console debug
-
-                target = urllib2.urlopen(apiURL) #download the file
-                downloadedData = target.read() #convert to string
-                target.close() #close file because we don't need it anymore:
-
-                XMLData = parseString(downloadedData)
-                dataNodes = XMLData.getElementsByTagName("row")
-
-                cacheuntil = XMLData.getElementsByTagName('cachedUntil')
-                cacheExpire = datetime.datetime(*(time.strptime((cacheuntil[0].firstChild.nodeValue), "%Y-%m-%d %H:%M:%S")[0:6]))
-                jobsCachedUntil = cacheExpire
-
-                rows = []
-                itemIDs = []
-                installerIDs = []
-                for row in dataNodes:
-                    if row.getAttribute('completed') == '0': # Ignore Delivered Jobs
-                        if int(row.getAttribute('installedItemTypeID')) not in itemIDs:
-                            itemIDs.append(int(row.getAttribute('installedItemTypeID')))
-                        if int(row.getAttribute('outputTypeID')) not in itemIDs:
-                            itemIDs.append(int(row.getAttribute('outputTypeID')))
-                        if int(row.getAttribute('installerID')) not in installerIDs:
-                            installerIDs.append(int(row.getAttribute('installerID')))
-
-                itemNames = id2name('item', itemIDs)
-                pilotNames = id2name('character', installerIDs)
-
-                for row in dataNodes:
-                    if row.getAttribute('completed') == '0': # Ignore Delivered Jobs
-                        rows.append(Job(row.getAttribute('jobID'),
-                                        row.getAttribute('completedStatus'),
-                                        int(row.getAttribute('activityID')), #Leave as int for ease in later clauses
-                                        itemNames[int(row.getAttribute('installedItemTypeID'))],
-                                        int(row.getAttribute('installedItemProductivityLevel')),
-                                        int(row.getAttribute('installedItemMaterialLevel')),
-                                        pilotNames[int(row.getAttribute('installerID'))],
-                                        int(row.getAttribute('runs')),
-                                        itemNames[int(row.getAttribute('outputTypeID'))],
-                                        row.getAttribute('installTime'),
-                                        row.getAttribute('endProductionTime')))
-
-    # This is what is left from the API:
-    #columns="assemblyLineID,containerID,installedItemLocationID,installedItemQuantity,
-    #installedItemLicensedProductionRunsRemaining,outputLocationID,licensedProductionRuns,
-    #installedInSolarSystemID,containerLocationID,materialMultiplier,charMaterialMultiplier,timeMultiplier,charTimeMultiplier,
-    #containerTypeID,installedItemCopy,completed,completedSuccessfully,installedItemFlag,
-    #outputFlag,completedStatus,beginProductionTime,pauseProductionTime"
-
-                self.myOlv.SetObjects(rows)
-            else:
-                onError(self, 'Please open config to enter a valid API key')
-
-        else:
-            numItems = range(len(rows))
-            for r in numItems:
-                if rows[r].endProductionTime > serverTime:
-                    rows[r].timeRemaining = rows[r].endProductionTime - serverTime
-                    rows[r].state = 'In Progress'
+        if serverStatus[0] == 'Tranquility Online': # Server status has returned a value other than online, so why continue?
+            if serverTime >= jobsCachedUntil:
+                # Get user settings.
+                cfg = wx.Config('nesi')
+                if cfg.Exists('keyID'): # Fetching the server will only work with an API key
+                    keyID, vCode, characterID = cfg.Read('keyID'), cfg.Read('vCode'), cfg.Read('characterID')
                 else:
-                    rows[r].timeRemaining = rows[r].endProductionTime - serverTime
-                    rows[r].state = 'Ready'
-            self.myOlv.RefreshObjects(rows)
-            print 'Not Contacting Server, Cache Not Expired'
+                    (keyID, vCode, characterID) = ('', '', '')
 
-        self.statusbar.SetStatusText(serverStatus[0] + ' - ' + serverStatus[1]
-                                     + ' Players Online - EvE Time: ' + str(serverTime)
-                                     + ' - API Cached Until: ' + str(jobsCachedUntil))
+                if (keyID != '' and vCode != '' and characterID != ''): # Hopefully the API key data is correct
+                    #Download the Account Industry Data
+                    apiURL = 'http://api.eveonline.com/corp/IndustryJobs.xml.aspx?keyID=%s&vCode=%s&characterID=%s' % (keyID, vCode, urllib.quote(characterID))
+                    print apiURL # Console debug
+
+                    target = urllib2.urlopen(apiURL) #download the file
+                    downloadedData = target.read() #convert to string
+                    target.close() #close file because we don't need it anymore:
+
+                    XMLData = parseString(downloadedData)
+                    dataNodes = XMLData.getElementsByTagName("row")
+
+                    cacheuntil = XMLData.getElementsByTagName('cachedUntil')
+                    cacheExpire = datetime.datetime(*(time.strptime((cacheuntil[0].firstChild.nodeValue), "%Y-%m-%d %H:%M:%S")[0:6]))
+                    jobsCachedUntil = cacheExpire
+
+                    rows = []
+                    itemIDs = []
+                    installerIDs = []
+                    for row in dataNodes:
+                        if row.getAttribute('completed') == '0': # Ignore Delivered Jobs
+                            if int(row.getAttribute('installedItemTypeID')) not in itemIDs:
+                                itemIDs.append(int(row.getAttribute('installedItemTypeID')))
+                            if int(row.getAttribute('outputTypeID')) not in itemIDs:
+                                itemIDs.append(int(row.getAttribute('outputTypeID')))
+                            if int(row.getAttribute('installerID')) not in installerIDs:
+                                installerIDs.append(int(row.getAttribute('installerID')))
+
+                    itemNames = id2name('item', itemIDs)
+                    pilotNames = id2name('character', installerIDs)
+
+                    for row in dataNodes:
+                        if row.getAttribute('completed') == '0': # Ignore Delivered Jobs
+                            rows.append(Job(row.getAttribute('jobID'),
+                                            row.getAttribute('completedStatus'),
+                                            int(row.getAttribute('activityID')), #Leave as int for ease in later clauses
+                                            itemNames[int(row.getAttribute('installedItemTypeID'))],
+                                            int(row.getAttribute('installedItemProductivityLevel')),
+                                            int(row.getAttribute('installedItemMaterialLevel')),
+                                            pilotNames[int(row.getAttribute('installerID'))],
+                                            int(row.getAttribute('runs')),
+                                            itemNames[int(row.getAttribute('outputTypeID'))],
+                                            row.getAttribute('installTime'),
+                                            row.getAttribute('endProductionTime')))
+
+        # This is what is left from the API:
+        #columns="assemblyLineID,containerID,installedItemLocationID,installedItemQuantity,
+        #installedItemLicensedProductionRunsRemaining,outputLocationID,licensedProductionRuns,
+        #installedInSolarSystemID,containerLocationID,materialMultiplier,charMaterialMultiplier,timeMultiplier,charTimeMultiplier,
+        #containerTypeID,installedItemCopy,completed,completedSuccessfully,installedItemFlag,
+        #outputFlag,completedStatus,beginProductionTime,pauseProductionTime"
+
+                    self.myOlv.SetObjects(rows)
+                else:
+                    onError(self, 'Please open config to enter a valid API key')
+
+            else:
+                numItems = range(len(rows))
+                for r in numItems:
+                    if rows[r].endProductionTime > serverTime:
+                        rows[r].timeRemaining = rows[r].endProductionTime - serverTime
+                        rows[r].state = 'In Progress'
+                    else:
+                        rows[r].timeRemaining = rows[r].endProductionTime - serverTime
+                        rows[r].state = 'Ready'
+                self.myOlv.RefreshObjects(rows)
+                print 'Not Contacting Server, Cache Not Expired'
+
+            self.statusbar.SetStatusText(serverStatus[0] + ' - ' + serverStatus[1]
+                                         + ' Players Online - EvE Time: ' + str(serverTime)
+                                         + ' - API Cached Until: ' + str(jobsCachedUntil))
 
 
     def onItemSelected(self, event):
