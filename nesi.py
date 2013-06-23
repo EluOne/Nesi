@@ -439,7 +439,7 @@ class MainWindow(wx.Frame):
 #       activities = {1 : 'Manufacturing', 2 : '2', 3 : 'Time Efficiency Research', 4 : 'Material Research',
 #                     5 : 'Copy', 6 : '6', 7 : '7', 8 : 'Invention'} # POS activities list.
         if currentItem.activityID == 1:  # Manufacturing
-            details = ('TTC: %s\n%s x %s\n' % (details, currentItem.runs, currentItem.outputTypeID))
+            details = ('TTC: %s\n%s runs of %s\n' % (details, currentItem.runs, currentItem.outputTypeID))
         elif currentItem.activityID == 2:  # FIXME
             details = ('TTC: %s\n%s x %s\n' % (details, currentItem.runs, currentItem.outputTypeID))
         elif currentItem.activityID == 3:  # Time Efficiency Research
@@ -459,7 +459,7 @@ class MainWindow(wx.Frame):
         elif currentItem.activityID == 8:  # Invention
             details = ('TTC: %s\n%s x %s\n' % (details, currentItem.runs, currentItem.outputTypeID))
         else:  # Fall back unknown activity
-            details = ('TTC: %s\n%s x %s\n' % (details, currentItem.runs, currentItem.outputTypeID))
+            details = ('TTC: %s\n%s runs of %s\n' % (details, currentItem.runs, currentItem.outputTypeID))
 
         self.detailBox.SetValue(details)
 
