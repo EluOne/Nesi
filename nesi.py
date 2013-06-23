@@ -56,8 +56,8 @@ class Job(object):
         self.installerID = installerID
         self.runs = runs
         self.outputTypeID = outputTypeID
-        self.installTime = datetime.datetime(*(time.strptime(installTime, "%Y-%m-%d %H:%M:%S")[0:6]))
-        self.endProductionTime = datetime.datetime(*(time.strptime(endProductionTime, "%Y-%m-%d %H:%M:%S")[0:6]))
+        self.installTime = datetime.datetime(*(time.strptime(installTime, '%Y-%m-%d %H:%M:%S')[0:6]))
+        self.endProductionTime = datetime.datetime(*(time.strptime(endProductionTime, '%Y-%m-%d %H:%M:%S')[0:6]))
         if self.endProductionTime > serverTime:
             self.timeRemaining = self.endProductionTime - serverTime
             self.state = 'In Progress'
@@ -95,17 +95,17 @@ def getServerStatus(args):
             XMLData = parseString(downloadedData)
 
             result = XMLData.getElementsByTagName('result')
-            serveropen = result[0].getElementsByTagName("serverOpen")
-            onlineplayers = result[0].getElementsByTagName("onlinePlayers")
+            serveropen = result[0].getElementsByTagName('serverOpen')
+            onlineplayers = result[0].getElementsByTagName('onlinePlayers')
             cacheuntil = XMLData.getElementsByTagName('cachedUntil')
 
             if (serveropen[0].firstChild.nodeValue):
-                status.append("Tranquility Online")
+                status.append('Tranquility Online')
             else:
-                status.append("Server down.")
+                status.append('Server down.')
 
             status.append(onlineplayers[0].firstChild.nodeValue)
-            cacheExpire = datetime.datetime(*(time.strptime((cacheuntil[0].firstChild.nodeValue), "%Y-%m-%d %H:%M:%S")[0:6]))
+            cacheExpire = datetime.datetime(*(time.strptime((cacheuntil[0].firstChild.nodeValue), '%Y-%m-%d %H:%M:%S')[0:6]))
             status.append(cacheExpire)
         except urllib2.HTTPError as err:
             status.append('HTTP Error: ' + str(err.code))  # Server Status String
@@ -178,7 +178,7 @@ def id2name(idType, ids):  # Takes a list of typeIDs to query the api server.
         target.close()  # close file because we don't need it anymore
 
         XMLData = parseString(downloadedData)
-        dataNodes = XMLData.getElementsByTagName("row")
+        dataNodes = XMLData.getElementsByTagName('row')
 
         for row in dataNodes:
             typeNames.update({int(row.getAttribute(key)): str(row.getAttribute(value))})
@@ -237,7 +237,7 @@ class PreferencesDialog(wx.Dialog):
         prefsSizer.Add(self.tc2, (1, 1), wx.DefaultSpan, wx.EXPAND)
         prefsSizer.Add(self.tc3, (2, 1), wx.DefaultSpan, wx.EXPAND)
 
-        saveBtn = wx.Button(self, wx.ID_OK, label="Save")
+        saveBtn = wx.Button(self, wx.ID_OK, label='Save')
         saveBtn.Bind(wx.EVT_BUTTON, self.onSave)
         btnSizer.AddButton(saveBtn)
 
@@ -250,9 +250,9 @@ class PreferencesDialog(wx.Dialog):
         self.SetSizer(mainSizer)
 
     def onSave(self, event):
-        self.cfg.Write("keyID", self.tc1.GetValue())
-        self.cfg.Write("vCode", self.tc2.GetValue())
-        self.cfg.Write("characterID", self.tc3.GetValue())
+        self.cfg.Write('keyID', self.tc1.GetValue())
+        self.cfg.Write('vCode', self.tc2.GetValue())
+        self.cfg.Write('characterID', self.tc3.GetValue())
         self.EndModal(0)
 
 # end of class PreferencesDialog
@@ -263,22 +263,22 @@ class MainWindow(wx.Frame):
         # begin wxGlade: MainWindow.__init__
         kwds["style"] = wx.DEFAULT_FRAME_STYLE
         wx.Frame.__init__(self, *args, **kwds)
-        self.bitmap_1 = wx.StaticBitmap(self, -1, wx.Bitmap("images/nesi.png", wx.BITMAP_TYPE_ANY))
-        self.label_1 = wx.StaticText(self, -1, "Science and Industry")
+        self.bitmap_1 = wx.StaticBitmap(self, -1, wx.Bitmap('images/nesi.png', wx.BITMAP_TYPE_ANY))
+        self.label_1 = wx.StaticText(self, -1, 'Science and Industry')
         self.myOlv = ObjectListView(self, -1, style=wx.LC_REPORT | wx.SUNKEN_BORDER)
-        self.detailBox = wx.TextCtrl(self, -1, "", style=wx.TE_MULTILINE)
-        self.btn = wx.Button(self, -1, "Get Jobs")
+        self.detailBox = wx.TextCtrl(self, -1, '', style=wx.TE_MULTILINE)
+        self.btn = wx.Button(self, -1, 'Get Jobs')
 
         # Menu Bar
         self.frame_menubar = wx.MenuBar()
         self.fileMenu = wx.Menu()
-        self.menuAbout = wx.MenuItem(self.fileMenu, wx.NewId(), "&About", "", wx.ITEM_NORMAL)
+        self.menuAbout = wx.MenuItem(self.fileMenu, wx.NewId(), '&About', '', wx.ITEM_NORMAL)
         self.fileMenu.AppendItem(self.menuAbout)
-        self.menuConfig = wx.MenuItem(self.fileMenu, wx.NewId(), "&Configure", "", wx.ITEM_NORMAL)
+        self.menuConfig = wx.MenuItem(self.fileMenu, wx.NewId(), '&Configure', '', wx.ITEM_NORMAL)
         self.fileMenu.AppendItem(self.menuConfig)
-        self.menuExit = wx.MenuItem(self.fileMenu, wx.NewId(), "E&xit", "", wx.ITEM_NORMAL)
+        self.menuExit = wx.MenuItem(self.fileMenu, wx.NewId(), 'E&xit', '', wx.ITEM_NORMAL)
         self.fileMenu.AppendItem(self.menuExit)
-        self.frame_menubar.Append(self.fileMenu, "File")
+        self.frame_menubar.Append(self.fileMenu, 'File')
         self.SetMenuBar(self.frame_menubar)
         # Menu Bar end
         self.statusbar = self.CreateStatusBar(1, 0)
@@ -296,7 +296,7 @@ class MainWindow(wx.Frame):
 
     def __set_properties(self):
         # begin wxGlade: MainWindow.__set_properties
-        self.SetTitle("Nesi")
+        self.SetTitle('Nesi')
         self.SetSize((1024, 600))
         self.bitmap_1.SetMinSize((64, 64))
         self.label_1.SetFont(wx.Font(18, wx.DEFAULT, wx.NORMAL, wx.NORMAL, 0, ""))
@@ -309,12 +309,12 @@ class MainWindow(wx.Frame):
 
         self.myOlv.rowFormatter = rowFormatter
         self.myOlv.SetColumns([
-            ColumnDefn("State", "left", 100, "state"),
-            ColumnDefn("Activity", "left", 180, "activityID", stringConverter=activityConv),
-            ColumnDefn("Type", "center", 300, "installedItemTypeID"),
-            ColumnDefn("Installer", "center", 120, "installerID"),
-            ColumnDefn("Install Date", "left", 145, "installTime"),
-            ColumnDefn("End Date", "left", 145, "endProductionTime")
+            ColumnDefn('State', 'left', 100, 'state'),
+            ColumnDefn('Activity', 'left', 180, 'activityID', stringConverter=activityConv),
+            ColumnDefn('Type', 'center', 300, 'installedItemTypeID'),
+            ColumnDefn('Installer', 'center', 120, 'installerID'),
+            ColumnDefn('Install Date', 'left', 145, 'installTime'),
+            ColumnDefn('End Date', 'left', 145, 'endProductionTime')
         ])
 
     def __do_layout(self):
@@ -512,13 +512,13 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>."""
 class MyApp(wx.App):
     def OnInit(self):
         wx.InitAllImageHandlers()
-        frame = MainWindow(None, -1, "")
+        frame = MainWindow(None, -1, '')
         self.SetTopWindow(frame)
         frame.Show()
         return 1
 
 # end of class MyApp
 
-if __name__ == "__main__":
+if __name__ == '__main__':
     app = MyApp(0)
     app.MainLoop()
