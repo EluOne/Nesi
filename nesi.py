@@ -32,10 +32,14 @@ import time
 
 
 # Establish some current time data for calculations later.
-serverTime = datetime.datetime.utcnow().replace(microsecond=0) # Server Time is UTC so we will use that for now generated locally.
-localTime = datetime.datetime.now().replace(microsecond=0) # Client Time reported locally.
-serverStatus = ['', '0', serverTime] # A global variable to store the returned status.
-jobsCachedUntil = serverTime # A global variable to store the cacheUtil time.
+# Server Time is UTC so we will use that for now generated locally.
+serverTime = datetime.datetime.utcnow().replace(microsecond=0)
+# Client Time reported locally.
+localTime = datetime.datetime.now().replace(microsecond=0)
+# A global variable to store the returned status.
+serverStatus = ['', '0', serverTime]
+# A global variable to store the cacheUtil time.
+jobsCachedUntil = serverTime
 rows = []
 
 
@@ -63,17 +67,18 @@ class Job(object):
 
 # S&I window shows: state, activity, type, location, jumps, installer, owner, install date, end date
 # This is what the API returns:
-#columns="jobID,assemblyLineID,containerID,installedItemID,installedItemLocationID,installedItemQuantity,installedItemProductivityLevel,
-#installedItemMaterialLevel,installedItemLicensedProductionRunsRemaining,outputLocationID,installerID,runs,licensedProductionRuns,
-#installedInSolarSystemID,containerLocationID,materialMultiplier,charMaterialMultiplier,timeMultiplier,charTimeMultiplier,
-#installedItemTypeID,outputTypeID,containerTypeID,installedItemCopy,completed,completedSuccessfully,installedItemFlag,
-#outputFlag,activityID,completedStatus,installTime,beginProductionTime,endProductionTime,pauseProductionTime"
+#columns="jobID,assemblyLineID,containerID,installedItemID,installedItemLocationID,installedItemQuantity
+#installedItemProductivityLevel,installedItemMaterialLevel,installedItemLicensedProductionRunsRemaining,
+#outputLocationID,installerID,runs,licensedProductionRuns,installedInSolarSystemID,containerLocationID,
+#materialMultiplier,charMaterialMultiplier,timeMultiplier,charTimeMultiplier,installedItemTypeID,outputTypeID,
+#containerTypeID,installedItemCopy,completed,completedSuccessfully,installedItemFlag,outputFlag,activityID,
+#completedStatus,installTime,beginProductionTime,endProductionTime,pauseProductionTime"
 
 
 def onError(self, error):
     dlg = wx.MessageDialog(self, 'An error has occured:\n' + error, '', wx.OK | wx.ICON_ERROR)
-    dlg.ShowModal() # Show it
-    dlg.Destroy() # finally destroy it when finished.
+    dlg.ShowModal()  # Show it
+    dlg.Destroy()  # finally destroy it when finished.
 
 
 def getServerStatus(args):
@@ -82,10 +87,10 @@ def getServerStatus(args):
         #Download the Account Industry Data from API server
         apiURL = 'https://api.eveonline.com/server/ServerStatus.xml.aspx/'
 
-        try: # Try to connect to the API server
-            target = urllib2.urlopen(apiURL) #download the file
-            downloadedData = target.read() #convert to string
-            target.close() #close file because we don't need it anymore
+        try:  # Try to connect to the API server
+            target = urllib2.urlopen(apiURL)  # download the file
+            downloadedData = target.read()  # convert to string
+            target.close()  # close file because we don't need it anymore
 
             XMLData = parseString(downloadedData)
 
@@ -102,35 +107,35 @@ def getServerStatus(args):
             status.append(onlineplayers[0].firstChild.nodeValue)
             cacheExpire = datetime.datetime(*(time.strptime((cacheuntil[0].firstChild.nodeValue), "%Y-%m-%d %H:%M:%S")[0:6]))
             status.append(cacheExpire)
-        except urllib2.HTTPError, err:
-            status.append('HTTP Error: ' + str(err.code)) # Server Status String
-            status.append('0') # Players Online data 0 as no data
-            status.append(serverTime) # Cache Until now as no data
-            onError(self, status[0])
-        except urllib2.URLError, err:
-            status.append('Error Connecting to Tranquility: ' + str(err.reason)) # Server Status String
-            status.append('0') # Players Online data 0 as no data
-            status.append(serverTime) # Cache Until now as no data
-            onError(self, status[0])
-        except httplib.HTTPException, err:
-            status.append('HTTP Exception') # Server Status String
-            status.append('0') # Players Online data 0 as no data
-            status.append(serverTime) # Cache Until now as no data
-            onError(self, status[0])
+        except urllib2.HTTPError as err:
+            status.append('HTTP Error: ' + str(err.code))  # Server Status String
+            status.append('0')  # Players Online data 0 as no data
+            status.append(serverTime)  # Cache Until now as no data
+            onError('self', status[0])
+        except urllib2.URLError as err:
+            status.append('Error Connecting to Tranquility: ' + str(err.reason))  # Server Status String
+            status.append('0')  # Players Online data 0 as no data
+            status.append(serverTime)  # Cache Until now as no data
+            onError('self', status[0])
+        except httplib.HTTPException as err:
+            status.append('HTTP Exception')  # Server Status String
+            status.append('0')  # Players Online data 0 as no data
+            status.append(serverTime)  # Cache Until now as no data
+            onError('self', status[0])
         except Exception:
             import traceback
-            status.append('Generic Exception: ' + traceback.format_exc()) # Server Status String
-            status.append('0') # Players Online data 0 as no data
-            status.append(serverTime) # Cache Until now as no data
-            onError(self, status[0])
+            status.append('Generic Exception: ' + traceback.format_exc())  # Server Status String
+            status.append('0')  # Players Online data 0 as no data
+            status.append(serverTime)  # Cache Until now as no data
+            onError('self', status[0])
 
         return status
     else:
-        print 'Not Contacting Server For Status'
+        print('Not Contacting Server For Status')
         return args
 
 
-def id2name(idType, ids): # Takes a list of typeIDs to query the api server.
+def id2name(idType, ids):  # Takes a list of typeIDs to query the api server.
     typeNames = {}
     if idType == 'item':
         cacheFile = 'items.cache'
@@ -144,12 +149,12 @@ def id2name(idType, ids): # Takes a list of typeIDs to query the api server.
         value = 'name'
 
     if (os.path.isfile(cacheFile)):
-        typeFile = open(cacheFile,'r')
+        typeFile = open(cacheFile, 'r')
         typeNames = pickle.load(typeFile)
         typeFile.close()
 
-    numItems = range(len(ids))
-    print ids # Console debug
+    numItems = list(range(len(ids)))
+    print(ids)  # Console debug
 
     for x in numItems:
         if ids[x] in typeNames:
@@ -159,28 +164,28 @@ def id2name(idType, ids): # Takes a list of typeIDs to query the api server.
         if y == 'deleted':
             ids.remove(y)
 
-    print ids # Console debug
+    print(ids)  # Console debug
 
-    if ids != []: # We still have some ids we don't know
+    if ids != []:  # We still have some ids we don't know
         idList = ','.join(map(str, ids))
 
         #Download the TypeName Data from API server
         apiURL = baseUrl % (idList)
-        print apiURL # Console debug
+        print(apiURL)  # Console debug
 
-        target = urllib2.urlopen(apiURL) #download the file
-        downloadedData = target.read() #convert to string
-        target.close() #close file because we don't need it anymore
+        target = urllib2.urlopen(apiURL)  # download the file
+        downloadedData = target.read()  # convert to string
+        target.close()  # close file because we don't need it anymore
 
         XMLData = parseString(downloadedData)
         dataNodes = XMLData.getElementsByTagName("row")
 
         for row in dataNodes:
-            typeNames.update({int(row.getAttribute(key)) : str(row.getAttribute(value))})
+            typeNames.update({int(row.getAttribute(key)): str(row.getAttribute(value))})
 
         # Save the data we have so we don't have to fetch it
-        settingsfile = open(cacheFile,'w')
-        pickle.dump(typeNames,settingsfile)
+        settingsfile = open(cacheFile, 'w')
+        pickle.dump(typeNames, settingsfile)
         settingsfile.close()
 
 # Fail returns id as name
@@ -191,13 +196,14 @@ def id2name(idType, ids): # Takes a list of typeIDs to query the api server.
     return typeNames
 
 
-def rowFormatter(listItem, row): # Formatter for ObjectListView, will turn completed jobs green.
+def rowFormatter(listItem, row):  # Formatter for ObjectListView, will turn completed jobs green.
     if row.timeRemaining < datetime.timedelta(0):
         listItem.SetTextColour(wx.GREEN)
 
 
 def activityConv(act):
-    activities = {1 : 'Manufacturing', 2 : '2', 3 : 'Time Efficiency Research', 4 : 'Material Research', 5 : 'Copy', 6 : '6', 7 : '7', 8 : 'Invention'} # POS activities list.
+    activities = {1: 'Manufacturing', 2: '2', 3: 'Time Efficiency Research', 4: 'Material Research',
+                    5: 'Copy', 6: '6', 7: '7', 8: 'Invention'}  # POS activities list.
     if act in activities:
         return activities[act]
     else:
@@ -207,7 +213,7 @@ def activityConv(act):
 class PreferencesDialog(wx.Dialog):
     def __init__(self):
         """A simple user preferences window"""
-        wx.Dialog.__init__(self, None, wx.ID_ANY, 'Preferences', size=(400,150))
+        wx.Dialog.__init__(self, None, wx.ID_ANY, 'Preferences', size=(400, 150))
 
         self.cfg = wx.Config('nesi')
         if self.cfg.Exists('keyID'):
@@ -259,7 +265,7 @@ class MainWindow(wx.Frame):
         wx.Frame.__init__(self, *args, **kwds)
         self.bitmap_1 = wx.StaticBitmap(self, -1, wx.Bitmap("images/nesi.png", wx.BITMAP_TYPE_ANY))
         self.label_1 = wx.StaticText(self, -1, "Science and Industry")
-        self.myOlv = ObjectListView(self, -1, style=wx.LC_REPORT|wx.SUNKEN_BORDER)
+        self.myOlv = ObjectListView(self, -1, style=wx.LC_REPORT | wx.SUNKEN_BORDER)
         self.detailBox = wx.TextCtrl(self, -1, "", style=wx.TE_MULTILINE)
         self.btn = wx.Button(self, -1, "Get Jobs")
 
@@ -288,7 +294,6 @@ class MainWindow(wx.Frame):
 
         self.myOlv.Bind(wx.EVT_LIST_ITEM_SELECTED, self.onItemSelected)
 
-
     def __set_properties(self):
         # begin wxGlade: MainWindow.__set_properties
         self.SetTitle("Nesi")
@@ -298,7 +303,10 @@ class MainWindow(wx.Frame):
         # end wxGlade
 
         self.statusbar.SetStatusText('Welcome to Nesi')
-        self.myOlv.SetEmptyListMsg('Click \"Get Jobs\" to fetch jobs') # In game: Click "Get Jobs" to fetch jobs with current filters
+
+        # In game: Click "Get Jobs" to fetch jobs with current filters
+        self.myOlv.SetEmptyListMsg('Click \"Get Jobs\" to fetch jobs')
+
         self.myOlv.rowFormatter = rowFormatter
         self.myOlv.SetColumns([
             ColumnDefn("State", "left", 100, "state"),
@@ -309,21 +317,19 @@ class MainWindow(wx.Frame):
             ColumnDefn("End Date", "left", 145, "endProductionTime")
         ])
 
-
     def __do_layout(self):
         # begin wxGlade: MainWindow.__do_layout
         sizer_1 = wx.BoxSizer(wx.VERTICAL)
         sizer_2 = wx.BoxSizer(wx.HORIZONTAL)
         sizer_2.Add(self.bitmap_1, 0, wx.FIXED_MINSIZE, 0)
-        sizer_2.Add(self.label_1, 0, wx.ALIGN_CENTER_VERTICAL|wx.FIXED_MINSIZE, 0)
+        sizer_2.Add(self.label_1, 0, wx.ALIGN_CENTER_VERTICAL | wx.FIXED_MINSIZE, 0)
         sizer_1.Add(sizer_2, 0, 0, 0)
-        sizer_1.Add(self.btn, 0, wx.ALIGN_RIGHT|wx.ADJUST_MINSIZE, 0)
+        sizer_1.Add(self.btn, 0, wx.ALIGN_RIGHT | wx.ADJUST_MINSIZE, 0)
         sizer_1.Add(self.myOlv, 3, wx.EXPAND, 0)
         sizer_1.Add(self.detailBox, 1, wx.EXPAND, 0)
         self.SetSizer(sizer_1)
         self.Layout()
         # end wxGlade
-
 
     def onGetData(self, event):
         """Event handler to fetch data from server"""
@@ -332,28 +338,29 @@ class MainWindow(wx.Frame):
         global jobsCachedUntil
         global serverTime
 
-        serverTime = datetime.datetime.utcnow().replace(microsecond=0) # Update Server Time.
+        serverTime = datetime.datetime.utcnow().replace(microsecond=0)  # Update Server Time.
+        # Inform the user what we are doing.
+        self.statusbar.SetStatusText('Welcome to Nesi - ' + 'Connecting to Tranquility...')
+        serverStatus = getServerStatus(serverStatus)  # Try the API server for current server status.
 
-        self.statusbar.SetStatusText('Welcome to Nesi - ' + 'Connecting to Tranquility...') # Inform the user what we are doing.
-        serverStatus = getServerStatus(serverStatus) # Try the API server for current server status.
-
-        if serverStatus[0] == 'Tranquility Online': # Server status has returned a value other than online, so why continue?
+        if serverStatus[0] == 'Tranquility Online':  # Status has returned a value other than online, so why continue?
             if serverTime >= jobsCachedUntil:
                 # Get user settings.
                 cfg = wx.Config('nesi')
-                if cfg.Exists('keyID'): # Fetching the server will only work with an API key
+                if cfg.Exists('keyID'):  # Fetching the server will only work with an API key
                     keyID, vCode, characterID = cfg.Read('keyID'), cfg.Read('vCode'), cfg.Read('characterID')
                 else:
                     (keyID, vCode, characterID) = ('', '', '')
 
-                if (keyID != '' and vCode != '' and characterID != ''): # Hopefully the API key data is correct
+                if (keyID != '' and vCode != '' and characterID != ''):  # Hopefully the API key data is correct
                     #Download the Account Industry Data
-                    apiURL = 'http://api.eveonline.com/corp/IndustryJobs.xml.aspx?keyID=%s&vCode=%s&characterID=%s' % (keyID, vCode, urllib.quote(characterID))
-                    print apiURL # Console debug
+                    baseUrl = 'http://api.eveonline.com/corp/IndustryJobs.xml.aspx?keyID=%s&vCode=%s&characterID=%s'
+                    apiURL = baseUrl % (keyID, vCode, urllib.quote(characterID))
+                    print(apiURL)  # Console debug
 
-                    target = urllib2.urlopen(apiURL) #download the file
-                    downloadedData = target.read() #convert to string
-                    target.close() #close file because we don't need it anymore:
+                    target = urllib2.urlopen(apiURL)  # download the file
+                    downloadedData = target.read()  # convert to string
+                    target.close()  # close file because we don't need it anymore:
 
                     XMLData = parseString(downloadedData)
                     dataNodes = XMLData.getElementsByTagName("row")
@@ -366,7 +373,7 @@ class MainWindow(wx.Frame):
                     itemIDs = []
                     installerIDs = []
                     for row in dataNodes:
-                        if row.getAttribute('completed') == '0': # Ignore Delivered Jobs
+                        if row.getAttribute('completed') == '0':  # Ignore Delivered Jobs
                             if int(row.getAttribute('installedItemTypeID')) not in itemIDs:
                                 itemIDs.append(int(row.getAttribute('installedItemTypeID')))
                             if int(row.getAttribute('outputTypeID')) not in itemIDs:
@@ -378,10 +385,10 @@ class MainWindow(wx.Frame):
                     pilotNames = id2name('character', installerIDs)
 
                     for row in dataNodes:
-                        if row.getAttribute('completed') == '0': # Ignore Delivered Jobs
+                        if row.getAttribute('completed') == '0':  # Ignore Delivered Jobs
                             rows.append(Job(row.getAttribute('jobID'),
                                             row.getAttribute('completedStatus'),
-                                            int(row.getAttribute('activityID')), #Leave as int for ease in later clauses
+                                            int(row.getAttribute('activityID')),  # Leave as int for clauses
                                             itemNames[int(row.getAttribute('installedItemTypeID'))],
                                             int(row.getAttribute('installedItemProductivityLevel')),
                                             int(row.getAttribute('installedItemMaterialLevel')),
@@ -394,16 +401,17 @@ class MainWindow(wx.Frame):
         # This is what is left from the API:
         #columns="assemblyLineID,containerID,installedItemLocationID,installedItemQuantity,
         #installedItemLicensedProductionRunsRemaining,outputLocationID,licensedProductionRuns,
-        #installedInSolarSystemID,containerLocationID,materialMultiplier,charMaterialMultiplier,timeMultiplier,charTimeMultiplier,
-        #containerTypeID,installedItemCopy,completed,completedSuccessfully,installedItemFlag,
-        #outputFlag,completedStatus,beginProductionTime,pauseProductionTime"
+        #installedInSolarSystemID,containerLocationID,materialMultiplier,charMaterialMultiplier,
+        #timeMultiplier,charTimeMultiplier,containerTypeID,installedItemCopy,completed,
+        #completedSuccessfully,installedItemFlag,outputFlag,completedStatus,beginProductionTime,
+        #pauseProductionTime"
 
                     self.myOlv.SetObjects(rows)
                 else:
                     onError(self, 'Please open config to enter a valid API key')
 
             else:
-                numItems = range(len(rows))
+                numItems = list(range(len(rows)))
                 for r in numItems:
                     if rows[r].endProductionTime > serverTime:
                         rows[r].timeRemaining = rows[r].endProductionTime - serverTime
@@ -412,12 +420,11 @@ class MainWindow(wx.Frame):
                         rows[r].timeRemaining = rows[r].endProductionTime - serverTime
                         rows[r].state = 'Ready'
                 self.myOlv.RefreshObjects(rows)
-                print 'Not Contacting Server, Cache Not Expired'
+                print('Not Contacting Server, Cache Not Expired')
 
             self.statusbar.SetStatusText(serverStatus[0] + ' - ' + serverStatus[1]
                                          + ' Players Online - EvE Time: ' + str(serverTime)
                                          + ' - API Cached Until: ' + str(jobsCachedUntil))
-
 
     def onItemSelected(self, event):
         """Handle showing details for item select from list"""
@@ -431,38 +438,39 @@ class MainWindow(wx.Frame):
 
 #       activities = {1 : 'Manufacturing', 2 : '2', 3 : 'Time Efficiency Research', 4 : 'Material Research',
 #                     5 : 'Copy', 6 : '6', 7 : '7', 8 : 'Invention'} # POS activities list.
-        if currentItem.activityID == 1: # Manufacturing
+        if currentItem.activityID == 1:  # Manufacturing
             details = ('TTC: %s\n%s x %s\n' % (details, currentItem.runs, currentItem.outputTypeID))
-        elif currentItem.activityID == 2: # FIXME
+        elif currentItem.activityID == 2:  # FIXME
             details = ('TTC: %s\n%s x %s\n' % (details, currentItem.runs, currentItem.outputTypeID))
-        elif currentItem.activityID == 3: # Time Efficiency Research
-            details = ('TTC: %s\nInstall PE: %s\nOutput PE %s\n1 unit of %s\n' % (details, currentItem.installedItemProductivityLevel, (currentItem.installedItemProductivityLevel + currentItem.runs), currentItem.outputTypeID))
-        elif currentItem.activityID == 4: # Material Research
-            details = ('TTC: %s\nInstall ME: %s\nOutput ME %s\n1 unit of %s\n' % (details, currentItem.installedItemMaterialLevel, (currentItem.installedItemMaterialLevel + currentItem.runs), currentItem.outputTypeID))
-        elif currentItem.activityID == 5: # Copy
+        elif currentItem.activityID == 3:  # Time Efficiency Research
+            details = ('TTC: %s\nInstall PE: %s\nOutput PE %s\n1 unit of %s\n' %
+                (details, currentItem.installedItemProductivityLevel,
+                (currentItem.installedItemProductivityLevel + currentItem.runs), currentItem.outputTypeID))
+        elif currentItem.activityID == 4:  # Material Research
+            details = ('TTC: %s\nInstall ME: %s\nOutput ME %s\n1 unit of %s\n' %
+                (details, currentItem.installedItemMaterialLevel,
+                (currentItem.installedItemMaterialLevel + currentItem.runs), currentItem.outputTypeID))
+        elif currentItem.activityID == 5:  # Copy
             details = ('TTC: %s\n%s x %s\n' % (details, currentItem.runs, currentItem.outputTypeID))
-        elif currentItem.activityID == 6: # FIXME
+        elif currentItem.activityID == 6:  # FIXME
             details = ('TTC: %s\n%s x %s\n' % (details, currentItem.runs, currentItem.outputTypeID))
-        elif currentItem.activityID == 7: # FIXME
+        elif currentItem.activityID == 7:  # FIXME
             details = ('TTC: %s\n%s x %s\n' % (details, currentItem.runs, currentItem.outputTypeID))
-        elif currentItem.activityID == 8: # Invention
+        elif currentItem.activityID == 8:  # Invention
             details = ('TTC: %s\n%s x %s\n' % (details, currentItem.runs, currentItem.outputTypeID))
-        else: # Fall back unknown activity
+        else:  # Fall back unknown activity
             details = ('TTC: %s\n%s x %s\n' % (details, currentItem.runs, currentItem.outputTypeID))
 
         self.detailBox.SetValue(details)
 
-
     def onConfig(self, event):
         # Open the config frame for user.
         dlg = PreferencesDialog()
-        dlg.ShowModal() # Show it
-        dlg.Destroy() # finally destroy it when finished.
-
+        dlg.ShowModal()  # Show it
+        dlg.Destroy()  # finally destroy it when finished.
 
     def onAbout(self, event):
         description = """A tool to let you see your EvE Online science and industry job queues while out of game."""
-
         licence = """This program is free software: you can redistribute it and/or modify
 it under the terms of the GNU General Public License as published by
 the Free Software Foundation, either version 3 of the License, or
@@ -492,9 +500,9 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>."""
 
         wx.AboutBox(info)
 
-
     def onExit(self, event):
-        dlg = wx.MessageDialog(self, 'Are you sure to quit Nesi?', 'Please Confirm', wx.YES_NO | wx.NO_DEFAULT | wx.ICON_QUESTION)
+        dlg = wx.MessageDialog(self, 'Are you sure to quit Nesi?', 'Please Confirm',
+                                wx.YES_NO | wx.NO_DEFAULT | wx.ICON_QUESTION)
         if dlg.ShowModal() == wx.ID_YES:
             self.Close(True)
 
