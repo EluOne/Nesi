@@ -173,25 +173,46 @@ def id2name(idType, ids):  # Takes a list of typeIDs to query the api server.
         apiURL = baseUrl % (idList)
         print(apiURL)  # Console debug
 
-        target = urllib2.urlopen(apiURL)  # download the file
-        downloadedData = target.read()  # convert to string
-        target.close()  # close file because we don't need it anymore
+        try:  # Try to connect to the API server
+            target = urllib2.urlopen(apiURL)  # download the file
+            downloadedData = target.read()  # convert to string
+            target.close()  # close file because we don't need it anymore
 
-        XMLData = parseString(downloadedData)
-        dataNodes = XMLData.getElementsByTagName('row')
+            XMLData = parseString(downloadedData)
+            dataNodes = XMLData.getElementsByTagName('row')
 
-        for row in dataNodes:
-            typeNames.update({int(row.getAttribute(key)): str(row.getAttribute(value))})
+            for row in dataNodes:
+                typeNames.update({int(row.getAttribute(key)): str(row.getAttribute(value))})
 
-        # Save the data we have so we don't have to fetch it
-        settingsfile = open(cacheFile, 'w')
-        pickle.dump(typeNames, settingsfile)
-        settingsfile.close()
-
-# Fail returns id as name
-#    numItems = range(len(ids))
-#    for y in numItems:
-#        typeNames.update({ids[y] : ids[y]})
+            # Save the data we have so we don't have to fetch it
+            settingsfile = open(cacheFile, 'w')
+            pickle.dump(typeNames, settingsfile)
+            settingsfile.close()
+        except urllib2.HTTPError as err:
+            error = ('HTTP Error: ' + str(err.code))  # Server Status String
+            numItems = range(len(ids))
+            for y in numItems:
+                typeNames.update({ids[y] : ids[y]})
+            onError('self', error)
+        except urllib2.URLError as err:
+            error = ('Error Connecting to Tranquility: ' + str(err.reason))  # Server Status String
+            numItems = range(len(ids))
+            for y in numItems:
+                typeNames.update({ids[y] : ids[y]})
+            onError('self', error)
+        except httplib.HTTPException as err:
+            error = ('HTTP Exception')  # Server Status String
+            numItems = range(len(ids))
+            for y in numItems:
+                typeNames.update({ids[y] : ids[y]})
+            onError('self', error)
+        except Exception:
+            import traceback
+            error = ('Generic Exception: ' + traceback.format_exc())  # Server Status String
+            numItems = range(len(ids))
+            for y in numItems:
+                typeNames.update({ids[y] : ids[y]})
+            onError('self', error)
 
     return typeNames
 
