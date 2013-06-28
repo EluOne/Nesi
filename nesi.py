@@ -277,7 +277,7 @@ class MainWindow(wx.Frame):
         # begin wxGlade: MainWindow.__init__
         kwds["style"] = wx.DEFAULT_FRAME_STYLE
         wx.Frame.__init__(self, *args, **kwds)
-        self.bitmap_1 = wx.StaticBitmap(self, -1, wx.Bitmap('images/nesi.png', wx.BITMAP_TYPE_ANY))
+        self.bitmap_1 = wx.StaticBitmap(self, -1, wx.Bitmap('images/nesi.png', wx.BITMAP_TYPE_PNG))
         self.label_1 = wx.StaticText(self, -1, 'Science and Industry')
         self.myOlv = ObjectListView(self, -1, style=wx.LC_REPORT | wx.SUNKEN_BORDER)
         self.detailBox = wx.TextCtrl(self, -1, '', style=wx.TE_MULTILINE)
@@ -517,14 +517,14 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>."""
 
         info = wx.AboutDialogInfo()
 
-        #info.SetIcon(wx.Icon('hunter.png', wx.BITMAP_TYPE_PNG))
+        info.SetIcon(wx.Icon('images/nesi.png', wx.BITMAP_TYPE_PNG))
         info.SetName('Nova Echo Science & Industry')
         info.SetVersion('0.0.1')
         info.SetDescription(description)
         info.SetCopyright('(C) 2013 Tim Cumming')
         info.SetWebSite('https://github.com/EluOne/Nesi')
         info.SetLicence(licence)
-        #info.AddDeveloper('Tim Cumming')
+        info.AddDeveloper('Tim Cumming aka Elusive One')
         #info.AddDocWriter('Tim Cumming')
         #info.AddArtist('Tim Cumming')
         #info.AddTranslator('Tim Cumming')
