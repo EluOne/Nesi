@@ -108,25 +108,21 @@ def getServerStatus(args):
             cacheExpire = datetime.datetime(*(time.strptime((cacheuntil[0].firstChild.nodeValue), '%Y-%m-%d %H:%M:%S')[0:6]))
             status.append(cacheExpire)
         except urllib2.HTTPError as err:
-            status.append('HTTP Error: ' + str(err.code))  # Server Status String
-            status.append('0')  # Players Online data 0 as no data
-            status.append(serverTime)  # Cache Until now as no data
+            # HTTP Error String, Players Online data 0 as no data, Cache Until now as no data
+            status = [('HTTP Error: ' + str(err.code)), '0', serverTime]
             onError('self', status[0])
         except urllib2.URLError as err:
-            status.append('Error Connecting to Tranquility: ' + str(err.reason))  # Server Status String
-            status.append('0')  # Players Online data 0 as no data
-            status.append(serverTime)  # Cache Until now as no data
+            # Error Connection String, Players Online data 0 as no data, Cache Until now as no data
+            status = [('Error Connecting to Tranquility: ' + str(err.reason)), '0', serverTime]
             onError('self', status[0])
         except httplib.HTTPException as err:
-            status.append('HTTP Exception')  # Server Status String
-            status.append('0')  # Players Online data 0 as no data
-            status.append(serverTime)  # Cache Until now as no data
+            # HTTP Exception String, Players Online data 0 as no data, Cache Until now as no data
+            status = [('HTTP Exception'), '0', serverTime]
             onError('self', status[0])
         except Exception:
             import traceback
-            status.append('Generic Exception: ' + traceback.format_exc())  # Server Status String
-            status.append('0')  # Players Online data 0 as no data
-            status.append(serverTime)  # Cache Until now as no data
+            # Exception String, Players Online data 0 as no data, Cache Until now as no data
+            status = [('Generic Exception: ' + traceback.format_exc()), '0', serverTime]
             onError('self', status[0])
 
         return status
@@ -168,6 +164,7 @@ def id2name(idType, ids):  # Takes a list of typeIDs to query the api server.
 
     if ids != []:  # We still have some ids we don't know
         idList = ','.join(map(str, ids))
+        numItems = range(len(ids)) # Used later if we have a protocol fail.
 
         #Download the TypeName Data from API server
         apiURL = baseUrl % (idList)
@@ -190,26 +187,22 @@ def id2name(idType, ids):  # Takes a list of typeIDs to query the api server.
             settingsfile.close()
         except urllib2.HTTPError as err:
             error = ('HTTP Error: ' + str(err.code))  # Server Status String
-            numItems = range(len(ids))
             for y in numItems:
                 typeNames.update({ids[y] : ids[y]})
             onError('self', error)
         except urllib2.URLError as err:
             error = ('Error Connecting to Tranquility: ' + str(err.reason))  # Server Status String
-            numItems = range(len(ids))
             for y in numItems:
                 typeNames.update({ids[y] : ids[y]})
             onError('self', error)
         except httplib.HTTPException as err:
             error = ('HTTP Exception')  # Server Status String
-            numItems = range(len(ids))
             for y in numItems:
                 typeNames.update({ids[y] : ids[y]})
             onError('self', error)
         except Exception:
             import traceback
             error = ('Generic Exception: ' + traceback.format_exc())  # Server Status String
-            numItems = range(len(ids))
             for y in numItems:
                 typeNames.update({ids[y] : ids[y]})
             onError('self', error)
