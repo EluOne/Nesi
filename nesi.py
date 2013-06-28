@@ -75,8 +75,8 @@ class Job(object):
 #completedStatus,installTime,beginProductionTime,endProductionTime,pauseProductionTime"
 
 
-def onError(self, error):
-    dlg = wx.MessageDialog(self, 'An error has occured:\n' + error, '', wx.OK | wx.ICON_ERROR)
+def onError(error):
+    dlg = wx.MessageDialog(None, 'An error has occured:\n' + error, '', wx.OK | wx.ICON_ERROR)
     dlg.ShowModal()  # Show it
     dlg.Destroy()  # finally destroy it when finished.
 
@@ -110,20 +110,20 @@ def getServerStatus(args):
         except urllib2.HTTPError as err:
             # HTTP Error String, Players Online data 0 as no data, Cache Until now as no data
             status = [('HTTP Error: ' + str(err.code)), '0', serverTime]
-            onError('self', status[0])
+            onError(status[0])
         except urllib2.URLError as err:
             # Error Connection String, Players Online data 0 as no data, Cache Until now as no data
             status = [('Error Connecting to Tranquility: ' + str(err.reason)), '0', serverTime]
-            onError('self', status[0])
+            onError(status[0])
         except httplib.HTTPException as err:
             # HTTP Exception String, Players Online data 0 as no data, Cache Until now as no data
             status = [('HTTP Exception'), '0', serverTime]
-            onError('self', status[0])
+            onError(status[0])
         except Exception:
             import traceback
             # Exception String, Players Online data 0 as no data, Cache Until now as no data
             status = [('Generic Exception: ' + traceback.format_exc()), '0', serverTime]
-            onError('self', status[0])
+            onError(status[0])
 
         return status
     else:
@@ -361,7 +361,7 @@ class MainWindow(wx.Frame):
             if serverTime >= jobsCachedUntil:
                 # Get user settings.
                 cfg = wx.Config('nesi')
-                if cfg.Exists('keyID'):  # Fetching the server will only work with an API key
+                if cfg.Exists('keyID'):  # Make sure we have a key in the config
                     keyID, vCode, characterID = cfg.Read('keyID'), cfg.Read('vCode'), cfg.Read('characterID')
                 else:
                     (keyID, vCode, characterID) = ('', '', '')
@@ -372,58 +372,75 @@ class MainWindow(wx.Frame):
                     apiURL = baseUrl % (keyID, vCode, urllib.quote(characterID))
                     print(apiURL)  # Console debug
 
-                    target = urllib2.urlopen(apiURL)  # download the file
-                    downloadedData = target.read()  # convert to string
-                    target.close()  # close file because we don't need it anymore:
+                    try:  # Try to connect to the API server
+                        target = urllib2.urlopen(apiURL)  # download the file
+                        downloadedData = target.read()  # convert to string
+                        target.close()  # close file because we don't need it anymore:
 
-                    XMLData = parseString(downloadedData)
-                    dataNodes = XMLData.getElementsByTagName("row")
+                        XMLData = parseString(downloadedData)
+                        dataNodes = XMLData.getElementsByTagName("row")
 
-                    cacheuntil = XMLData.getElementsByTagName('cachedUntil')
-                    cacheExpire = datetime.datetime(*(time.strptime((cacheuntil[0].firstChild.nodeValue), "%Y-%m-%d %H:%M:%S")[0:6]))
-                    jobsCachedUntil = cacheExpire
+                        cacheuntil = XMLData.getElementsByTagName('cachedUntil')
+                        cacheExpire = datetime.datetime(*(time.strptime((cacheuntil[0].firstChild.nodeValue), "%Y-%m-%d %H:%M:%S")[0:6]))
+                        jobsCachedUntil = cacheExpire
 
-                    rows = []
-                    itemIDs = []
-                    installerIDs = []
-                    for row in dataNodes:
-                        if row.getAttribute('completed') == '0':  # Ignore Delivered Jobs
-                            if int(row.getAttribute('installedItemTypeID')) not in itemIDs:
-                                itemIDs.append(int(row.getAttribute('installedItemTypeID')))
-                            if int(row.getAttribute('outputTypeID')) not in itemIDs:
-                                itemIDs.append(int(row.getAttribute('outputTypeID')))
-                            if int(row.getAttribute('installerID')) not in installerIDs:
-                                installerIDs.append(int(row.getAttribute('installerID')))
+                        rows = []
+                        itemIDs = []
+                        installerIDs = []
+                        for row in dataNodes:
+                            if row.getAttribute('completed') == '0':  # Ignore Delivered Jobs
+                                if int(row.getAttribute('installedItemTypeID')) not in itemIDs:
+                                    itemIDs.append(int(row.getAttribute('installedItemTypeID')))
+                                if int(row.getAttribute('outputTypeID')) not in itemIDs:
+                                    itemIDs.append(int(row.getAttribute('outputTypeID')))
+                                if int(row.getAttribute('installerID')) not in installerIDs:
+                                    installerIDs.append(int(row.getAttribute('installerID')))
 
-                    itemNames = id2name('item', itemIDs)
-                    pilotNames = id2name('character', installerIDs)
+                        itemNames = id2name('item', itemIDs)
+                        pilotNames = id2name('character', installerIDs)
 
-                    for row in dataNodes:
-                        if row.getAttribute('completed') == '0':  # Ignore Delivered Jobs
-                            rows.append(Job(row.getAttribute('jobID'),
-                                            row.getAttribute('completedStatus'),
-                                            int(row.getAttribute('activityID')),  # Leave as int for clauses
-                                            itemNames[int(row.getAttribute('installedItemTypeID'))],
-                                            int(row.getAttribute('installedItemProductivityLevel')),
-                                            int(row.getAttribute('installedItemMaterialLevel')),
-                                            pilotNames[int(row.getAttribute('installerID'))],
-                                            int(row.getAttribute('runs')),
-                                            itemNames[int(row.getAttribute('outputTypeID'))],
-                                            row.getAttribute('installTime'),
-                                            row.getAttribute('endProductionTime')))
+                        for row in dataNodes:
+                            if row.getAttribute('completed') == '0':  # Ignore Delivered Jobs
+                                rows.append(Job(row.getAttribute('jobID'),
+                                                row.getAttribute('completedStatus'),
+                                                int(row.getAttribute('activityID')),  # Leave as int for clauses
+                                                itemNames[int(row.getAttribute('installedItemTypeID'))],
+                                                int(row.getAttribute('installedItemProductivityLevel')),
+                                                int(row.getAttribute('installedItemMaterialLevel')),
+                                                pilotNames[int(row.getAttribute('installerID'))],
+                                                int(row.getAttribute('runs')),
+                                                itemNames[int(row.getAttribute('outputTypeID'))],
+                                                row.getAttribute('installTime'),
+                                                row.getAttribute('endProductionTime')))
 
-        # This is what is left from the API:
-        #columns="assemblyLineID,containerID,installedItemLocationID,installedItemQuantity,
-        #installedItemLicensedProductionRunsRemaining,outputLocationID,licensedProductionRuns,
-        #installedInSolarSystemID,containerLocationID,materialMultiplier,charMaterialMultiplier,
-        #timeMultiplier,charTimeMultiplier,containerTypeID,installedItemCopy,completed,
-        #completedSuccessfully,installedItemFlag,outputFlag,completedStatus,beginProductionTime,
-        #pauseProductionTime"
+                            # This is what is left from the API:
+                            #columns="assemblyLineID,containerID,installedItemLocationID,installedItemQuantity,
+                            #installedItemLicensedProductionRunsRemaining,outputLocationID,licensedProductionRuns,
+                            #installedInSolarSystemID,containerLocationID,materialMultiplier,charMaterialMultiplier,
+                            #timeMultiplier,charTimeMultiplier,containerTypeID,installedItemCopy,completed,
+                            #completedSuccessfully,installedItemFlag,outputFlag,completedStatus,beginProductionTime,
+                            #pauseProductionTime"
 
-                    self.myOlv.SetObjects(rows)
+                        self.myOlv.SetObjects(rows)
+                    except urllib2.HTTPError as err:
+                        error = ('HTTP Error: ' + str(err.code))  # Server Status String
+                        self.statusbar.SetStatusText(error)
+                        onError(error)
+                    except urllib2.URLError as err:
+                        error = ('Error Connecting to Tranquility: ' + str(err.reason))  # Server Status String
+                        self.statusbar.SetStatusText(error)
+                        onError(error)
+                    except httplib.HTTPException as err:
+                        error = ('HTTP Exception')  # Server Status String
+                        self.statusbar.SetStatusText(error)
+                        onError(error)
+                    except Exception:
+                        import traceback
+                        error = ('Generic Exception: ' + traceback.format_exc())  # Server Status String
+                        self.statusbar.SetStatusText(error)
+                        onError(error)
                 else:
                     onError(self, 'Please open config to enter a valid API key')
-
             else:
                 numItems = list(range(len(rows)))
                 for r in numItems:
