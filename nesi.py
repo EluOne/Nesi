@@ -81,6 +81,53 @@ def onError(error):
     dlg.Destroy()  # finally destroy it when finished.
 
 
+def apiCheck(keyID, vCode):
+    baseUrl = 'https://api.eveonline.com/account/APIKeyInfo.xml.aspx?keyID=%s&vCode=%s'
+    apiURL = baseUrl % (keyID, vCode)
+    print(apiURL)  # Console debug
+
+    try:  # Try to connect to the API server
+        target = urllib2.urlopen(apiURL)  # download the file
+        downloadedData = target.read()  # convert to string
+        target.close()  # close file because we don't need it anymore:
+
+        XMLData = parseString(downloadedData)
+        key = XMLData.getElementsByTagName('key')
+        keyInfo = {'accessMask': key[0].getAttribute('accessMask'),
+                   'type': key[0].getAttribute('type'),
+                   'expires': key[0].getAttribute('expires') }
+        print(keyInfo)
+
+        cacheuntil = XMLData.getElementsByTagName('cachedUntil')
+        cacheExpire = datetime.datetime(*(time.strptime((cacheuntil[0].firstChild.nodeValue), "%Y-%m-%d %H:%M:%S")[0:6]))
+        keyCachedUntil = cacheExpire
+        print(keyCachedUntil)
+
+        dataNodes = XMLData.getElementsByTagName('row')
+
+        pilots = []
+        for row in dataNodes:
+            pilots.append([row.getAttribute('characterID'),
+                            row.getAttribute('characterName'),
+                            row.getAttribute('corporationID'),
+                            row.getAttribute('corporationName')])
+        print(pilots)
+
+    except urllib2.HTTPError as err:
+        error = ('HTTP Error: ' + str(err.code))  # Server Status String
+        onError(error)
+    except urllib2.URLError as err:
+        error = ('Error Connecting to Tranquility: ' + str(err.reason))  # Server Status String
+        onError(error)
+    except httplib.HTTPException as err:
+        error = ('HTTP Exception')  # Server Status String
+        onError(error)
+    except Exception:
+        import traceback
+        error = ('Generic Exception: ' + traceback.format_exc())  # Server Status String
+        onError(error)
+
+
 def getServerStatus(args):
     if serverTime >= args[2]:
         status = []
@@ -267,6 +314,7 @@ class PreferencesDialog(wx.Dialog):
         self.cfg.Write('keyID', self.tc1.GetValue())
         self.cfg.Write('vCode', self.tc2.GetValue())
         self.cfg.Write('characterID', self.tc3.GetValue())
+        apiCheck(self.tc1.GetValue(), self.tc2.GetValue())
         self.EndModal(0)
 
 # end of class PreferencesDialog
@@ -368,7 +416,7 @@ class MainWindow(wx.Frame):
 
                 if (keyID != '' and vCode != '' and characterID != ''):  # Hopefully the API key data is correct
                     #Download the Account Industry Data
-                    baseUrl = 'http://api.eveonline.com/corp/IndustryJobs.xml.aspx?keyID=%s&vCode=%s&characterID=%s'
+                    baseUrl = 'https://api.eveonline.com/corp/IndustryJobs.xml.aspx?keyID=%s&vCode=%s&characterID=%s'
                     apiURL = baseUrl % (keyID, vCode, urllib.quote(characterID))
                     print(apiURL)  # Console debug
 
