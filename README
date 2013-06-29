@@ -1,7 +1,7 @@
 Nova Echo Science & Industry
 
 A work in progress single window application to display the status of science and industrial jobs in the game "Eve Online" by CCP Games.
-At present it is taking data from the CCP API server using the credentials provided by the user, and is downloadeding an xml file from the industry jobs API.
+At present it is taking data from the CCP API server using the credentials provided by the user, and is downloading an xml file from the industry jobs API.
 The API key the user provides must currently have the role 'Factory Manager' industry access or be a corporation key.
 The application generates a set of local cache files within its directory to reduce network data, and saves the user details in ~/.nesi file.
 
