@@ -21,7 +21,6 @@
 from xml.dom.minidom import parseString
 from ObjectListView import ObjectListView, ColumnDefn
 
-import urllib
 import urllib2
 import httplib
 import os.path
@@ -40,7 +39,9 @@ localTime = datetime.datetime.now().replace(microsecond=0)
 serverStatus = ['', '0', serverTime]
 # A global variable to store the cacheUtil time.
 jobsCachedUntil = serverTime
-rows = []
+jobRows = []
+# This is where we are storing our API keys for now.
+pilotRows = []
 
 
 class Job(object):
@@ -75,6 +76,27 @@ class Job(object):
 #completedStatus,installTime,beginProductionTime,endProductionTime,pauseProductionTime"
 
 
+class Character(object):
+    def __init__(self, keyID, vCode, characterID, characterName, corporationID, corporationName, keyType, keyExpires, isActive):
+        self.keyID = keyID
+        self.vCode = vCode
+        self.characterID = characterID
+        self.characterName = characterName
+        self.corporationID = corporationID
+        self.corporationName = corporationName
+        self.keyType = keyType
+        self.keyExpires = datetime.datetime(*(time.strptime(keyExpires, '%Y-%m-%d %H:%M:%S')[0:6]))
+        self.isActive = isActive
+
+
+# Lets try to load up our API keys from the config file.
+# This requires the above classes to work.
+if (os.path.isfile('nesi.ini')):
+    iniFile = open('nesi.ini', 'r')
+    pilotRows = pickle.load(iniFile)
+    iniFile.close()
+
+
 def onError(error):
     dlg = wx.MessageDialog(None, 'An error has occured:\n' + error, '', wx.OK | wx.ICON_ERROR)
     dlg.ShowModal()  # Show it
@@ -82,6 +104,7 @@ def onError(error):
 
 
 def apiCheck(keyID, vCode):
+    pilots = []
     baseUrl = 'https://api.eveonline.com/account/APIKeyInfo.xml.aspx?keyID=%s&vCode=%s'
     apiURL = baseUrl % (keyID, vCode)
     print(apiURL)  # Console debug
@@ -95,37 +118,34 @@ def apiCheck(keyID, vCode):
         key = XMLData.getElementsByTagName('key')
         keyInfo = {'accessMask': key[0].getAttribute('accessMask'),
                    'type': key[0].getAttribute('type'),
-                   'expires': key[0].getAttribute('expires') }
-        print(keyInfo)
-
-        cacheuntil = XMLData.getElementsByTagName('cachedUntil')
-        cacheExpire = datetime.datetime(*(time.strptime((cacheuntil[0].firstChild.nodeValue), "%Y-%m-%d %H:%M:%S")[0:6]))
-        keyCachedUntil = cacheExpire
-        print(keyCachedUntil)
+                   'expires': key[0].getAttribute('expires')}
 
         dataNodes = XMLData.getElementsByTagName('row')
 
-        pilots = []
         for row in dataNodes:
-            pilots.append([row.getAttribute('characterID'),
+            pilots.append([keyID, vCode,
+                            row.getAttribute('characterID'),
                             row.getAttribute('characterName'),
                             row.getAttribute('corporationID'),
-                            row.getAttribute('corporationName')])
-        print(pilots)
+                            row.getAttribute('corporationName'),
+                            keyInfo['type'], keyInfo['expires']
+                            ])
 
     except urllib2.HTTPError as err:
-        error = ('HTTP Error: ' + str(err.code))  # Server Status String
+        error = ('HTTP Error: ' + str(err.code))  # Error String
         onError(error)
     except urllib2.URLError as err:
-        error = ('Error Connecting to Tranquility: ' + str(err.reason))  # Server Status String
+        error = ('Error Connecting to Tranquility: ' + str(err.reason))  # Error String
         onError(error)
     except httplib.HTTPException as err:
-        error = ('HTTP Exception')  # Server Status String
+        error = ('HTTP Exception')  # Error String
         onError(error)
     except Exception:
         import traceback
-        error = ('Generic Exception: ' + traceback.format_exc())  # Server Status String
+        error = ('Generic Exception: ' + traceback.format_exc())  # Error String
         onError(error)
+
+    return pilots
 
 
 def getServerStatus(args):
@@ -229,27 +249,27 @@ def id2name(idType, ids):  # Takes a list of typeIDs to query the api server.
                 typeNames.update({int(row.getAttribute(key)): str(row.getAttribute(value))})
 
             # Save the data we have so we don't have to fetch it
-            settingsfile = open(cacheFile, 'w')
-            pickle.dump(typeNames, settingsfile)
-            settingsfile.close()
+            typeFile = open(cacheFile, 'w')
+            pickle.dump(typeNames, typeFile)
+            typeFile.close()
         except urllib2.HTTPError as err:
-            error = ('HTTP Error: ' + str(err.code))  # Server Status String
+            error = ('HTTP Error: ' + str(err.code))  # Error String
             for y in numItems:
                 typeNames.update({ids[y] : ids[y]})
             onError('self', error)
         except urllib2.URLError as err:
-            error = ('Error Connecting to Tranquility: ' + str(err.reason))  # Server Status String
+            error = ('Error Connecting to Tranquility: ' + str(err.reason))  # Error String
             for y in numItems:
                 typeNames.update({ids[y] : ids[y]})
             onError('self', error)
         except httplib.HTTPException as err:
-            error = ('HTTP Exception')  # Server Status String
+            error = ('HTTP Exception')  # Error String
             for y in numItems:
                 typeNames.update({ids[y] : ids[y]})
             onError('self', error)
         except Exception:
             import traceback
-            error = ('Generic Exception: ' + traceback.format_exc())  # Server Status String
+            error = ('Generic Exception: ' + traceback.format_exc())  # Error String
             for y in numItems:
                 typeNames.update({ids[y] : ids[y]})
             onError('self', error)
@@ -262,6 +282,11 @@ def rowFormatter(listItem, row):  # Formatter for ObjectListView, will turn comp
         listItem.SetTextColour(wx.GREEN)
 
 
+def apiRowFormatter(listItem, row):  # Formatter for ObjectListView, will turn completed jobs green.
+    if row.keyExpires < serverTime:
+        listItem.SetTextColour(wx.RED)
+
+
 def activityConv(act):
     activities = {1: 'Manufacturing', 2: '2', 3: 'Time Efficiency Research', 4: 'Material Research',
                     5: 'Copy', 6: '6', 7: '7', 8: 'Invention'}  # POS activities list.
@@ -272,49 +297,97 @@ def activityConv(act):
 
 
 class PreferencesDialog(wx.Dialog):
-    def __init__(self):
-        """A simple user preferences window"""
-        wx.Dialog.__init__(self, None, wx.ID_ANY, 'Preferences', size=(400, 150))
+    def __init__(self, *args, **kwds):
+        # begin wxGlade: PreferenceDialog.__init__
+        kwds["style"] = wx.DEFAULT_DIALOG_STYLE
+        wx.Dialog.__init__(self, *args, **kwds)
+        self.label_4 = wx.StaticText(self, -1, "Key ID:")
+        self.keyIDTextCtrl = wx.TextCtrl(self, -1, "")
+        self.label_5 = wx.StaticText(self, -1, "vCode:")
+        self.vCodeTextCtrl = wx.TextCtrl(self, -1, "")
+        self.addBtn = wx.Button(self, -1, "+")
+        self.charList = ObjectListView(self, -1, style=wx.LC_REPORT | wx.SUNKEN_BORDER)
+        self.cancelBtn = wx.Button(self, wx.ID_CANCEL)
+        self.saveBtn = wx.Button(self, -1, "Save")
 
-        self.cfg = wx.Config('nesi')
-        if self.cfg.Exists('keyID'):
-            keyID, vCode, characterID = self.cfg.Read('keyID'), self.cfg.Read('vCode'), self.cfg.Read('characterID')
-        else:
-            (keyID, vCode, characterID) = ('', '', '')
+        self.__set_properties()
+        self.__do_layout()
+        # end wxGlade
 
-        prefsSizer = wx.GridBagSizer(5, 5)
-        btnSizer = wx.StdDialogButtonSizer()
-        mainSizer = wx.BoxSizer(wx.VERTICAL)
+        self.saveBtn.Bind(wx.EVT_BUTTON, self.onSave)
+        self.addBtn.Bind(wx.EVT_BUTTON, self.onAdd)
 
-        prefsSizer.Add(wx.StaticText(self, -1, 'keyID: '), (0, 0), wx.DefaultSpan, wx.EXPAND)
-        prefsSizer.Add(wx.StaticText(self, -1, 'vCode: '), (1, 0), wx.DefaultSpan, wx.EXPAND)
-        prefsSizer.Add(wx.StaticText(self, -1, 'characterID: '), (2, 0), wx.DefaultSpan, wx.EXPAND)
+    def __set_properties(self):
+        global pilotRows
 
-        self.tc1 = wx.TextCtrl(self, -1, value=keyID, size=(300, -1))
-        self.tc2 = wx.TextCtrl(self, -1, value=vCode, size=(300, -1))
-        self.tc3 = wx.TextCtrl(self, -1, value=characterID, size=(300, -1))
+        # begin wxGlade: PreferenceDialog.__set_properties
+        self.SetTitle("Preferences")
+        self.SetSize((750, 300))
+        self.keyIDTextCtrl.SetMinSize((120, 21))
+        self.vCodeTextCtrl.SetMinSize((300, 21))
+        self.addBtn.SetMinSize((27, 27))
+        self.saveBtn.SetDefault()
+        # end wxGlade
+        self.charList.SetEmptyListMsg('Fill in boxes above and\n click + to add pilots')
 
-        prefsSizer.Add(self.tc1, (0, 1), wx.DefaultSpan, wx.EXPAND)
-        prefsSizer.Add(self.tc2, (1, 1), wx.DefaultSpan, wx.EXPAND)
-        prefsSizer.Add(self.tc3, (2, 1), wx.DefaultSpan, wx.EXPAND)
+        self.charList.rowFormatter = apiRowFormatter
+        self.charList.SetColumns([
+            ColumnDefn('keyID', 'left', 80, 'keyID'),
+            ColumnDefn('Key Type', 'left', 90, 'keyType'),
+            ColumnDefn('Character Name', 'left', 200, 'characterName'),
+            ColumnDefn('Corporation', 'left', 225, 'corporationName'),
+            ColumnDefn('Expires', 'left', 150, 'keyExpires')
+        ])
 
-        saveBtn = wx.Button(self, wx.ID_OK, label='Save')
-        saveBtn.Bind(wx.EVT_BUTTON, self.onSave)
-        btnSizer.AddButton(saveBtn)
+        self.charList.SetObjects(pilotRows)
 
-        cancelBtn = wx.Button(self, wx.ID_CANCEL)
-        btnSizer.AddButton(cancelBtn)
-        btnSizer.Realize()
+    def __do_layout(self):
+        # begin wxGlade: PreferenceDialog.__do_layout
+        sizer_3 = wx.BoxSizer(wx.VERTICAL)
+        sizer_4 = wx.BoxSizer(wx.HORIZONTAL)
+        sizer_5 = wx.BoxSizer(wx.HORIZONTAL)
+        sizer_5.Add(self.label_4, 0, wx.ALIGN_CENTER_VERTICAL|wx.ADJUST_MINSIZE, 0)
+        sizer_5.Add(self.keyIDTextCtrl, 0, wx.ALIGN_CENTER_VERTICAL|wx.ADJUST_MINSIZE, 0)
+        sizer_5.Add(self.label_5, 0, wx.ALIGN_CENTER_VERTICAL|wx.ADJUST_MINSIZE, 0)
+        sizer_5.Add(self.vCodeTextCtrl, 0, wx.ALIGN_CENTER_VERTICAL|wx.ADJUST_MINSIZE, 0)
+        sizer_5.Add(self.addBtn, 0, wx.ALIGN_CENTER_HORIZONTAL|wx.ALIGN_CENTER_VERTICAL|wx.ADJUST_MINSIZE, 0)
+        sizer_3.Add(sizer_5, 1, wx.ALL|wx.ALIGN_CENTER_HORIZONTAL, 0)
+        sizer_3.Add(self.charList, 3, wx.EXPAND, 0)
+        sizer_4.Add(self.cancelBtn, 0, wx.ADJUST_MINSIZE, 0)
+        sizer_4.Add(self.saveBtn, 0, wx.ADJUST_MINSIZE, 0)
+        sizer_3.Add(sizer_4, 1, wx.ALL|wx.ALIGN_CENTER_HORIZONTAL, 0)
+        self.SetSizer(sizer_3)
+        self.Layout()
+        # end wxGlade
 
-        mainSizer.Add(prefsSizer, 0, wx.ALL | wx.ALIGN_CENTER)
-        mainSizer.Add(btnSizer, 0, wx.ALL | wx.ALIGN_CENTER)
-        self.SetSizer(mainSizer)
+    def onAdd(self, event):
+        global pilotRows
+
+        numPilotRows = list(range(len(pilotRows)))
+        keyID, vCode = (self.keyIDTextCtrl.GetValue(), self.vCodeTextCtrl.GetValue())
+
+        if (keyID != '') or (vCode != ''):  # Check neither field was left blank.
+            for x in numPilotRows:
+                if (self.keyIDTextCtrl.GetValue() == pilotRows[x].keyID) and (self.vCodeTextCtrl.GetValue() == pilotRows[x].vCode):
+                    keyID, vCode = ('', '')  # We already have this key so null it so next check fails
+
+            if (keyID != '') and (vCode != ''):
+                pilots = apiCheck(keyID, vCode)
+
+                print(pilots)  # Console debug
+
+                if pilots != []:
+                    for row in pilots:
+                        # keyID, vCode, characterID, characterName, corporationID, corporationName, keyType, keyExpires, isActive
+                        pilotRows.append(Character(row[0], row[1], row[2], row[3], row[4], row[5], row[6], row[7], 0))
+
+        self.charList.SetObjects(pilotRows)
 
     def onSave(self, event):
-        self.cfg.Write('keyID', self.tc1.GetValue())
-        self.cfg.Write('vCode', self.tc2.GetValue())
-        self.cfg.Write('characterID', self.tc3.GetValue())
-        apiCheck(self.tc1.GetValue(), self.tc2.GetValue())
+        if pilotRows != []:
+            iniFile = open('nesi.ini', 'w')
+            pickle.dump(pilotRows, iniFile)
+            iniFile.close()
         self.EndModal(0)
 
 # end of class PreferencesDialog
@@ -364,7 +437,7 @@ class MainWindow(wx.Frame):
         self.label_1.SetFont(wx.Font(18, wx.DEFAULT, wx.NORMAL, wx.NORMAL, 0, ""))
         # end wxGlade
 
-        self.statusbar.SetStatusText('Welcome to Nesi')
+        self.statusbar.SetStatusText('Welcome to Nesi - Idle')
 
         # In game: Click "Get Jobs" to fetch jobs with current filters
         self.myOlv.SetEmptyListMsg('Click \"Get Jobs\" to fetch jobs')
@@ -395,7 +468,7 @@ class MainWindow(wx.Frame):
 
     def onGetData(self, event):
         """Event handler to fetch data from server"""
-        global rows
+        global jobRows
         global serverStatus
         global jobsCachedUntil
         global serverTime
@@ -408,97 +481,98 @@ class MainWindow(wx.Frame):
         if serverStatus[0] == 'Tranquility Online':  # Status has returned a value other than online, so why continue?
             if serverTime >= jobsCachedUntil:
                 # Get user settings.
-                cfg = wx.Config('nesi')
-                if cfg.Exists('keyID'):  # Make sure we have a key in the config
-                    keyID, vCode, characterID = cfg.Read('keyID'), cfg.Read('vCode'), cfg.Read('characterID')
-                else:
-                    (keyID, vCode, characterID) = ('', '', '')
+                if pilotRows != []:  # Make sure we have keys in the config
+                    # keyID, vCode, characterID, characterName, corporationID, corporationName, keyType, keyExpires, isActive
+                    #(keyID, vCode, characterID) = (pilotRows[0].keyID, pilotRows[0].vCode, pilotRows[0].characterID)
+                    numPilotRows = list(range(len(pilotRows)))
+                    for x in numPilotRows:  # Iterate over all of the keys and character ids in config
+                        #Download the Account Industry Data
+                        if pilotRows[x].keyType == 'Corporation':
+                            baseUrl = 'https://api.eveonline.com/corp/IndustryJobs.xml.aspx?keyID=%s&vCode=%s&characterID=%s'
+                        else:  # Should be an account key
+                            baseUrl = 'https://api.eveonline.com/char/IndustryJobs.xml.aspx?keyID=%s&vCode=%s&characterID=%s'
 
-                if (keyID != '' and vCode != '' and characterID != ''):  # Hopefully the API key data is correct
-                    #Download the Account Industry Data
-                    baseUrl = 'https://api.eveonline.com/corp/IndustryJobs.xml.aspx?keyID=%s&vCode=%s&characterID=%s'
-                    apiURL = baseUrl % (keyID, vCode, urllib.quote(characterID))
-                    print(apiURL)  # Console debug
+                        apiURL = baseUrl % (pilotRows[x].keyID, pilotRows[x].vCode, pilotRows[x].characterID)
+                        print(apiURL)  # Console debug
 
-                    try:  # Try to connect to the API server
-                        target = urllib2.urlopen(apiURL)  # download the file
-                        downloadedData = target.read()  # convert to string
-                        target.close()  # close file because we don't need it anymore:
+                        try:  # Try to connect to the API server
+                            target = urllib2.urlopen(apiURL)  # download the file
+                            downloadedData = target.read()  # convert to string
+                            target.close()  # close file because we don't need it anymore:
 
-                        XMLData = parseString(downloadedData)
-                        dataNodes = XMLData.getElementsByTagName("row")
+                            XMLData = parseString(downloadedData)
+                            dataNodes = XMLData.getElementsByTagName("row")
 
-                        cacheuntil = XMLData.getElementsByTagName('cachedUntil')
-                        cacheExpire = datetime.datetime(*(time.strptime((cacheuntil[0].firstChild.nodeValue), "%Y-%m-%d %H:%M:%S")[0:6]))
-                        jobsCachedUntil = cacheExpire
+                            cacheuntil = XMLData.getElementsByTagName('cachedUntil')
+                            cacheExpire = datetime.datetime(*(time.strptime((cacheuntil[0].firstChild.nodeValue), "%Y-%m-%d %H:%M:%S")[0:6]))
+                            jobsCachedUntil = cacheExpire
 
-                        rows = []
-                        itemIDs = []
-                        installerIDs = []
-                        for row in dataNodes:
-                            if row.getAttribute('completed') == '0':  # Ignore Delivered Jobs
-                                if int(row.getAttribute('installedItemTypeID')) not in itemIDs:
-                                    itemIDs.append(int(row.getAttribute('installedItemTypeID')))
-                                if int(row.getAttribute('outputTypeID')) not in itemIDs:
-                                    itemIDs.append(int(row.getAttribute('outputTypeID')))
-                                if int(row.getAttribute('installerID')) not in installerIDs:
-                                    installerIDs.append(int(row.getAttribute('installerID')))
+                            itemIDs = []
+                            installerIDs = []
+                            for row in dataNodes:
+                                if row.getAttribute('completed') == '0':  # Ignore Delivered Jobs
+                                    if int(row.getAttribute('installedItemTypeID')) not in itemIDs:
+                                        itemIDs.append(int(row.getAttribute('installedItemTypeID')))
+                                    if int(row.getAttribute('outputTypeID')) not in itemIDs:
+                                        itemIDs.append(int(row.getAttribute('outputTypeID')))
+                                    if int(row.getAttribute('installerID')) not in installerIDs:
+                                        installerIDs.append(int(row.getAttribute('installerID')))
 
-                        itemNames = id2name('item', itemIDs)
-                        pilotNames = id2name('character', installerIDs)
+                            itemNames = id2name('item', itemIDs)
+                            pilotNames = id2name('character', installerIDs)
 
-                        for row in dataNodes:
-                            if row.getAttribute('completed') == '0':  # Ignore Delivered Jobs
-                                rows.append(Job(row.getAttribute('jobID'),
-                                                row.getAttribute('completedStatus'),
-                                                int(row.getAttribute('activityID')),  # Leave as int for clauses
-                                                itemNames[int(row.getAttribute('installedItemTypeID'))],
-                                                int(row.getAttribute('installedItemProductivityLevel')),
-                                                int(row.getAttribute('installedItemMaterialLevel')),
-                                                pilotNames[int(row.getAttribute('installerID'))],
-                                                int(row.getAttribute('runs')),
-                                                itemNames[int(row.getAttribute('outputTypeID'))],
-                                                row.getAttribute('installTime'),
-                                                row.getAttribute('endProductionTime')))
+                            for row in dataNodes:
+                                if row.getAttribute('completed') == '0':  # Ignore Delivered Jobs
+                                    jobRows.append(Job(row.getAttribute('jobID'),
+                                                    row.getAttribute('completedStatus'),
+                                                    int(row.getAttribute('activityID')),  # Leave as int for clauses
+                                                    itemNames[int(row.getAttribute('installedItemTypeID'))],
+                                                    int(row.getAttribute('installedItemProductivityLevel')),
+                                                    int(row.getAttribute('installedItemMaterialLevel')),
+                                                    pilotNames[int(row.getAttribute('installerID'))],
+                                                    int(row.getAttribute('runs')),
+                                                    itemNames[int(row.getAttribute('outputTypeID'))],
+                                                    row.getAttribute('installTime'),
+                                                    row.getAttribute('endProductionTime')))
 
-                            # This is what is left from the API:
-                            #columns="assemblyLineID,containerID,installedItemLocationID,installedItemQuantity,
-                            #installedItemLicensedProductionRunsRemaining,outputLocationID,licensedProductionRuns,
-                            #installedInSolarSystemID,containerLocationID,materialMultiplier,charMaterialMultiplier,
-                            #timeMultiplier,charTimeMultiplier,containerTypeID,installedItemCopy,completed,
-                            #completedSuccessfully,installedItemFlag,outputFlag,completedStatus,beginProductionTime,
-                            #pauseProductionTime"
+                                # This is what is left from the API:
+                                #columns="assemblyLineID,containerID,installedItemLocationID,installedItemQuantity,
+                                #installedItemLicensedProductionRunsRemaining,outputLocationID,licensedProductionRuns,
+                                #installedInSolarSystemID,containerLocationID,materialMultiplier,charMaterialMultiplier,
+                                #timeMultiplier,charTimeMultiplier,containerTypeID,installedItemCopy,completed,
+                                #completedSuccessfully,installedItemFlag,outputFlag,completedStatus,beginProductionTime,
+                                #pauseProductionTime"
 
-                        self.myOlv.SetObjects(rows)
-                    except urllib2.HTTPError as err:
-                        error = ('HTTP Error: ' + str(err.code))  # Server Status String
-                        self.statusbar.SetStatusText(error)
-                        onError(error)
-                    except urllib2.URLError as err:
-                        error = ('Error Connecting to Tranquility: ' + str(err.reason))  # Server Status String
-                        self.statusbar.SetStatusText(error)
-                        onError(error)
-                    except httplib.HTTPException as err:
-                        error = ('HTTP Exception')  # Server Status String
-                        self.statusbar.SetStatusText(error)
-                        onError(error)
-                    except Exception:
-                        import traceback
-                        error = ('Generic Exception: ' + traceback.format_exc())  # Server Status String
-                        self.statusbar.SetStatusText(error)
-                        onError(error)
+                        except urllib2.HTTPError as err:
+                            error = ('HTTP Error: ' + str(err.code))  # Server Status String
+                            self.statusbar.SetStatusText(error)
+                            onError(error)
+                        except urllib2.URLError as err:
+                            error = ('Error Connecting to Tranquility: ' + str(err.reason))  # Server Status String
+                            self.statusbar.SetStatusText(error)
+                            onError(error)
+                        except httplib.HTTPException as err:
+                            error = ('HTTP Exception')  # Server Status String
+                            self.statusbar.SetStatusText(error)
+                            onError(error)
+                        except Exception:
+                            import traceback
+                            error = ('Generic Exception: ' + traceback.format_exc())  # Server Status String
+                            self.statusbar.SetStatusText(error)
+                            onError(error)
+                    self.myOlv.SetObjects(jobRows)
                 else:
                     onError(self, 'Please open config to enter a valid API key')
             else:
-                numItems = list(range(len(rows)))
+                numItems = list(range(len(jobRows)))
                 for r in numItems:
-                    if rows[r].endProductionTime > serverTime:
-                        rows[r].timeRemaining = rows[r].endProductionTime - serverTime
-                        rows[r].state = 'In Progress'
+                    if jobRows[r].endProductionTime > serverTime:
+                        jobRows[r].timeRemaining = jobRows[r].endProductionTime - serverTime
+                        jobRows[r].state = 'In Progress'
                     else:
-                        rows[r].timeRemaining = rows[r].endProductionTime - serverTime
-                        rows[r].state = 'Ready'
-                self.myOlv.RefreshObjects(rows)
+                        jobRows[r].timeRemaining = jobRows[r].endProductionTime - serverTime
+                        jobRows[r].state = 'Ready'
+                self.myOlv.RefreshObjects(jobRows)
                 print('Not Contacting Server, Cache Not Expired')
 
             self.statusbar.SetStatusText(serverStatus[0] + ' - ' + serverStatus[1]
@@ -544,7 +618,7 @@ class MainWindow(wx.Frame):
 
     def onConfig(self, event):
         # Open the config frame for user.
-        dlg = PreferencesDialog()
+        dlg = PreferencesDialog(None, -1, '')
         dlg.ShowModal()  # Show it
         dlg.Destroy()  # finally destroy it when finished.
 
