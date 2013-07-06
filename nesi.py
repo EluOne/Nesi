@@ -20,6 +20,7 @@
 
 from xml.dom.minidom import parseString
 from ObjectListView import ObjectListView, ColumnDefn, GroupListView
+from time import clock
 
 import urllib2
 import httplib
@@ -107,7 +108,7 @@ def apiCheck(keyID, vCode):
     pilots = []
     baseUrl = 'https://api.eveonline.com/account/APIKeyInfo.xml.aspx?keyID=%s&vCode=%s'
     apiURL = baseUrl % (keyID, vCode)
-    print(apiURL)  # Console debug
+    # print(apiURL)  # Console debug
 
     try:  # Try to connect to the API server
         target = urllib2.urlopen(apiURL)  # download the file
@@ -194,7 +195,7 @@ def getServerStatus(args):
 
         return status
     else:
-        print('Not Contacting Server For Status')
+        # print('Not Contacting Server For Status')
         return args
 
 
@@ -217,7 +218,7 @@ def id2name(idType, ids):  # Takes a list of typeIDs to query the api server.
         typeFile.close()
 
     numItems = list(range(len(ids)))
-    print(ids)  # Console debug
+    # print(ids)  # Console debug
 
     for x in numItems:
         if ids[x] in typeNames:
@@ -227,7 +228,7 @@ def id2name(idType, ids):  # Takes a list of typeIDs to query the api server.
         if y == 'deleted':
             ids.remove(y)
 
-    print(ids)  # Console debug
+    # print(ids)  # Console debug
 
     if ids != []:  # We still have some ids we don't know
         idList = ','.join(map(str, ids))
@@ -235,7 +236,7 @@ def id2name(idType, ids):  # Takes a list of typeIDs to query the api server.
 
         #Download the TypeName Data from API server
         apiURL = baseUrl % (idList)
-        print(apiURL)  # Console debug
+        # print(apiURL)  # Console debug
 
         try:  # Try to connect to the API server
             target = urllib2.urlopen(apiURL)  # download the file
@@ -379,7 +380,7 @@ class PreferencesDialog(wx.Dialog):
             if (keyID != '') and (vCode != ''):
                 pilots = apiCheck(keyID, vCode)
 
-                print(pilots)  # Console debug
+                # print(pilots)  # Console debug
 
                 if pilots != []:
                     for row in pilots:
@@ -392,7 +393,7 @@ class PreferencesDialog(wx.Dialog):
         numPilotRows = list(range(len(self.tempPilotRows)))
 
         for x in self.charList.GetSelectedObjects():
-            print(x.keyID, x.characterID)
+            # print(x.keyID, x.characterID)
 
             for y in numPilotRows:
                 if (x.keyID == self.tempPilotRows[y].keyID) and (x.characterID == self.tempPilotRows[y].characterID):
@@ -406,7 +407,9 @@ class PreferencesDialog(wx.Dialog):
 
     def onSave(self, event):
         global pilotRows
+        global jobsCachedUntil
         pilotRows = self.tempPilotRows[:]
+        jobsCachedUntil = serverTime  # Lets reset the cache time as we have updated the api keys.
         if pilotRows != []:
             iniFile = open('nesi.ini', 'w')
             pickle.dump(pilotRows, iniFile)
@@ -496,6 +499,7 @@ class MainWindow(wx.Frame):
         global jobsCachedUntil
         global serverTime
 
+        timingMsg = 'Using Local Cache'
         serverTime = datetime.datetime.utcnow().replace(microsecond=0)  # Update Server Time.
         # Inform the user what we are doing.
         self.statusbar.SetStatusText('Welcome to Nesi - ' + 'Connecting to Tranquility...')
@@ -503,10 +507,11 @@ class MainWindow(wx.Frame):
 
         if serverStatus[0] == 'Tranquility Online':  # Status has returned a value other than online, so why continue?
             if serverTime >= jobsCachedUntil:
-                # Get user settings.
+                # Start the clock.
+                t = clock()
+                tempJobRows = []
                 if pilotRows != []:  # Make sure we have keys in the config
                     # keyID, vCode, characterID, characterName, corporationID, corporationName, keyType, keyExpires, isActive
-                    #(keyID, vCode, characterID) = (pilotRows[0].keyID, pilotRows[0].vCode, pilotRows[0].characterID)
                     numPilotRows = list(range(len(pilotRows)))
                     for x in numPilotRows:  # Iterate over all of the keys and character ids in config
                         #Download the Account Industry Data
@@ -516,7 +521,7 @@ class MainWindow(wx.Frame):
                             baseUrl = 'https://api.eveonline.com/char/IndustryJobs.xml.aspx?keyID=%s&vCode=%s&characterID=%s'
 
                         apiURL = baseUrl % (pilotRows[x].keyID, pilotRows[x].vCode, pilotRows[x].characterID)
-                        print(apiURL)  # Console debug
+                        # print(apiURL)  # Console debug
 
                         try:  # Try to connect to the API server
                             target = urllib2.urlopen(apiURL)  # download the file
@@ -546,7 +551,7 @@ class MainWindow(wx.Frame):
 
                             for row in dataNodes:
                                 if row.getAttribute('completed') == '0':  # Ignore Delivered Jobs
-                                    jobRows.append(Job(row.getAttribute('jobID'),
+                                    tempJobRows.append(Job(row.getAttribute('jobID'),
                                                     row.getAttribute('completedStatus'),
                                                     int(row.getAttribute('activityID')),  # Leave as int for clauses
                                                     itemNames[int(row.getAttribute('installedItemTypeID'))],
@@ -583,9 +588,12 @@ class MainWindow(wx.Frame):
                             error = ('Generic Exception: ' + traceback.format_exc())  # Server Status String
                             self.statusbar.SetStatusText(error)
                             onError(error)
+                    if tempJobRows != []:
+                        jobRows = tempJobRows[:]
                     self.myOlv.SetObjects(jobRows)
+                    timingMsg = 'Updated in: %0.2f ms' % (((clock() - t) * 1000))
                 else:
-                    onError(self, 'Please open config to enter a valid API key')
+                    onError(self, 'Please open Config to enter a valid API key')
             else:
                 numItems = list(range(len(jobRows)))
                 for r in numItems:
@@ -596,11 +604,12 @@ class MainWindow(wx.Frame):
                         jobRows[r].timeRemaining = jobRows[r].endProductionTime - serverTime
                         jobRows[r].state = 'Ready'
                 self.myOlv.RefreshObjects(jobRows)
-                print('Not Contacting Server, Cache Not Expired')
+                # print('Not Contacting Server, Cache Not Expired')
 
             self.statusbar.SetStatusText(serverStatus[0] + ' - ' + serverStatus[1]
                                          + ' Players Online - EvE Time: ' + str(serverTime)
-                                         + ' - API Cached Until: ' + str(jobsCachedUntil))
+                                         + ' - API Cached Until: ' + str(jobsCachedUntil)
+                                         + ' - ' + timingMsg)
 
     def onItemSelected(self, event):
         """Handle showing details for item select from list"""
