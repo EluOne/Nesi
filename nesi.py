@@ -46,8 +46,8 @@ pilotRows = []
 
 class Job(object):
     def __init__(self, jobID, completedStatus, activityID, installedItemTypeID,
-                 installedItemProductivityLevel, installedItemMaterialLevel, installerID,
-                 runs, outputTypeID, installTime, endProductionTime):
+                 installedItemProductivityLevel, installedItemMaterialLevel,
+                 installerID, runs, outputTypeID, installTime, endProductionTime):
         self.jobID = jobID
         self.completedStatus = completedStatus
         self.activityID = activityID
@@ -231,7 +231,7 @@ def id2name(idType, ids):  # Takes a list of typeIDs to query the api server.
 
     if ids != []:  # We still have some ids we don't know
         idList = ','.join(map(str, ids))
-        numItems = range(len(ids)) # Used later if we have a protocol fail.
+        numItems = range(len(ids))  # Used later if we have a protocol fail.
 
         #Download the TypeName Data from API server
         apiURL = baseUrl % (idList)
@@ -255,23 +255,23 @@ def id2name(idType, ids):  # Takes a list of typeIDs to query the api server.
         except urllib2.HTTPError as err:
             error = ('HTTP Error: ' + str(err.code))  # Error String
             for y in numItems:
-                typeNames.update({ids[y] : ids[y]})
+                typeNames.update({ids[y]: ids[y]})
             onError('self', error)
         except urllib2.URLError as err:
             error = ('Error Connecting to Tranquility: ' + str(err.reason))  # Error String
             for y in numItems:
-                typeNames.update({ids[y] : ids[y]})
+                typeNames.update({ids[y]: ids[y]})
             onError('self', error)
         except httplib.HTTPException as err:
             error = ('HTTP Exception')  # Error String
             for y in numItems:
-                typeNames.update({ids[y] : ids[y]})
+                typeNames.update({ids[y]: ids[y]})
             onError('self', error)
         except Exception:
             import traceback
             error = ('Generic Exception: ' + traceback.format_exc())  # Error String
             for y in numItems:
-                typeNames.update({ids[y] : ids[y]})
+                typeNames.update({ids[y]: ids[y]})
             onError('self', error)
 
     return typeNames
@@ -346,16 +346,16 @@ class PreferencesDialog(wx.Dialog):
         sizer_3 = wx.BoxSizer(wx.VERTICAL)
         sizer_4 = wx.BoxSizer(wx.HORIZONTAL)
         sizer_5 = wx.BoxSizer(wx.HORIZONTAL)
-        sizer_5.Add(self.label_4, 0, wx.ALIGN_CENTER_VERTICAL|wx.ADJUST_MINSIZE, 0)
-        sizer_5.Add(self.keyIDTextCtrl, 0, wx.ALIGN_CENTER_VERTICAL|wx.ADJUST_MINSIZE, 0)
-        sizer_5.Add(self.label_5, 0, wx.ALIGN_CENTER_VERTICAL|wx.ADJUST_MINSIZE, 0)
-        sizer_5.Add(self.vCodeTextCtrl, 0, wx.ALIGN_CENTER_VERTICAL|wx.ADJUST_MINSIZE, 0)
-        sizer_5.Add(self.addBtn, 0, wx.ALIGN_CENTER_HORIZONTAL|wx.ALIGN_CENTER_VERTICAL|wx.ADJUST_MINSIZE, 0)
-        sizer_3.Add(sizer_5, 1, wx.ALL|wx.ALIGN_CENTER_HORIZONTAL, 0)
+        sizer_5.Add(self.label_4, 0, wx.ALIGN_CENTER_VERTICAL | wx.ADJUST_MINSIZE, 0)
+        sizer_5.Add(self.keyIDTextCtrl, 0, wx.ALIGN_CENTER_VERTICAL | wx.ADJUST_MINSIZE, 0)
+        sizer_5.Add(self.label_5, 0, wx.ALIGN_CENTER_VERTICAL | wx.ADJUST_MINSIZE, 0)
+        sizer_5.Add(self.vCodeTextCtrl, 0, wx.ALIGN_CENTER_VERTICAL | wx.ADJUST_MINSIZE, 0)
+        sizer_5.Add(self.addBtn, 0, wx.ALIGN_CENTER_HORIZONTAL | wx.ALIGN_CENTER_VERTICAL | wx.ADJUST_MINSIZE, 0)
+        sizer_3.Add(sizer_5, 1, wx.ALL | wx.ALIGN_CENTER_HORIZONTAL, 0)
         sizer_3.Add(self.charList, 3, wx.EXPAND, 0)
         sizer_4.Add(self.cancelBtn, 0, wx.ADJUST_MINSIZE, 0)
         sizer_4.Add(self.saveBtn, 0, wx.ADJUST_MINSIZE, 0)
-        sizer_3.Add(sizer_4, 1, wx.ALL|wx.ALIGN_CENTER_HORIZONTAL, 0)
+        sizer_3.Add(sizer_4, 1, wx.ALL | wx.ALIGN_CENTER_HORIZONTAL, 0)
         self.SetSizer(sizer_3)
         self.Layout()
         # end wxGlade
