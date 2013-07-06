@@ -19,7 +19,7 @@
 # Created: 21/04/13
 
 from xml.dom.minidom import parseString
-from ObjectListView import ObjectListView, ColumnDefn
+from ObjectListView import ObjectListView, ColumnDefn, GroupListView
 
 import urllib2
 import httplib
@@ -98,7 +98,7 @@ if (os.path.isfile('nesi.ini')):
 
 
 def onError(error):
-    dlg = wx.MessageDialog(None, 'An error has occured:\n' + error, '', wx.OK | wx.ICON_ERROR)
+    dlg = wx.MessageDialog(None, 'An error has occurred:\n' + error, '', wx.OK | wx.ICON_ERROR)
     dlg.ShowModal()  # Show it
     dlg.Destroy()  # finally destroy it when finished.
 
@@ -282,9 +282,14 @@ def rowFormatter(listItem, row):  # Formatter for ObjectListView, will turn comp
         listItem.SetTextColour(wx.GREEN)
 
 
-def apiRowFormatter(listItem, row):  # Formatter for ObjectListView, will turn completed jobs green.
+def apiRowFormatter(listItem, row):  # Formatter for GroupListView, will turn expired api keys red.
     if row.keyExpires < serverTime:
         listItem.SetTextColour(wx.RED)
+
+
+def apiGroupKeyConverter(groupKey):
+    # Convert the given group key (which is a date) into a representation string
+    return 'API Key: %s' % (groupKey)
 
 
 def activityConv(act):
@@ -306,8 +311,9 @@ class PreferencesDialog(wx.Dialog):
         self.label_5 = wx.StaticText(self, -1, "vCode:")
         self.vCodeTextCtrl = wx.TextCtrl(self, -1, "")
         self.addBtn = wx.Button(self, -1, "+")
-        self.charList = ObjectListView(self, -1, style=wx.LC_REPORT | wx.SUNKEN_BORDER)
+        self.charList = GroupListView(self, -1, style=wx.LC_REPORT | wx.SUNKEN_BORDER)
         self.cancelBtn = wx.Button(self, wx.ID_CANCEL)
+        self.deleteBtn = wx.Button(self, -1, "Delete")
         self.saveBtn = wx.Button(self, -1, "Save")
 
         self.__set_properties()
@@ -316,10 +322,9 @@ class PreferencesDialog(wx.Dialog):
 
         self.saveBtn.Bind(wx.EVT_BUTTON, self.onSave)
         self.addBtn.Bind(wx.EVT_BUTTON, self.onAdd)
+        self.deleteBtn.Bind(wx.EVT_BUTTON, self.onDelete)
 
     def __set_properties(self):
-        global pilotRows
-
         # begin wxGlade: PreferenceDialog.__set_properties
         self.SetTitle("Preferences")
         self.SetSize((750, 300))
@@ -332,14 +337,15 @@ class PreferencesDialog(wx.Dialog):
 
         self.charList.rowFormatter = apiRowFormatter
         self.charList.SetColumns([
-            ColumnDefn('keyID', 'left', 80, 'keyID'),
-            ColumnDefn('Key Type', 'left', 90, 'keyType'),
             ColumnDefn('Character Name', 'left', 200, 'characterName'),
             ColumnDefn('Corporation', 'left', 225, 'corporationName'),
+            ColumnDefn('API Key', 'left', 80, 'keyID', groupKeyConverter=apiGroupKeyConverter),
+            ColumnDefn('Key Type', 'left', 90, 'keyType'),
             ColumnDefn('Expires', 'left', 150, 'keyExpires')
         ])
-
-        self.charList.SetObjects(pilotRows)
+        self.charList.SetSortColumn(self.charList.columns[3])
+        self.tempPilotRows = pilotRows[:]
+        self.charList.SetObjects(self.tempPilotRows)
 
     def __do_layout(self):
         # begin wxGlade: PreferenceDialog.__do_layout
@@ -354,6 +360,7 @@ class PreferencesDialog(wx.Dialog):
         sizer_3.Add(sizer_5, 1, wx.ALL | wx.ALIGN_CENTER_HORIZONTAL, 0)
         sizer_3.Add(self.charList, 3, wx.EXPAND, 0)
         sizer_4.Add(self.cancelBtn, 0, wx.ADJUST_MINSIZE, 0)
+        sizer_4.Add(self.deleteBtn, 0, wx.ADJUST_MINSIZE, 0)
         sizer_4.Add(self.saveBtn, 0, wx.ADJUST_MINSIZE, 0)
         sizer_3.Add(sizer_4, 1, wx.ALL | wx.ALIGN_CENTER_HORIZONTAL, 0)
         self.SetSizer(sizer_3)
@@ -361,14 +368,12 @@ class PreferencesDialog(wx.Dialog):
         # end wxGlade
 
     def onAdd(self, event):
-        global pilotRows
-
-        numPilotRows = list(range(len(pilotRows)))
+        numPilotRows = list(range(len(self.tempPilotRows)))
         keyID, vCode = (self.keyIDTextCtrl.GetValue(), self.vCodeTextCtrl.GetValue())
 
         if (keyID != '') or (vCode != ''):  # Check neither field was left blank.
             for x in numPilotRows:
-                if (self.keyIDTextCtrl.GetValue() == pilotRows[x].keyID) and (self.vCodeTextCtrl.GetValue() == pilotRows[x].vCode):
+                if (self.keyIDTextCtrl.GetValue() == self.tempPilotRows[x].keyID) and (self.vCodeTextCtrl.GetValue() == self.tempPilotRows[x].vCode):
                     keyID, vCode = ('', '')  # We already have this key so null it so next check fails
 
             if (keyID != '') and (vCode != ''):
@@ -379,11 +384,29 @@ class PreferencesDialog(wx.Dialog):
                 if pilots != []:
                     for row in pilots:
                         # keyID, vCode, characterID, characterName, corporationID, corporationName, keyType, keyExpires, isActive
-                        pilotRows.append(Character(row[0], row[1], row[2], row[3], row[4], row[5], row[6], row[7], 0))
+                        self.tempPilotRows.append(Character(row[0], row[1], row[2], row[3], row[4], row[5], row[6], row[7], 0))
 
-        self.charList.SetObjects(pilotRows)
+        self.charList.SetObjects(self.tempPilotRows)
+
+    def onDelete(self, event):
+        numPilotRows = list(range(len(self.tempPilotRows)))
+
+        for x in self.charList.GetSelectedObjects():
+            print(x.keyID, x.characterID)
+
+            for y in numPilotRows:
+                if (x.keyID == self.tempPilotRows[y].keyID) and (x.characterID == self.tempPilotRows[y].characterID):
+                    self.tempPilotRows[y] = 'deleted'
+
+            for z in self.tempPilotRows[:]:
+                if z == 'deleted':
+                    self.tempPilotRows.remove(z)
+
+        self.charList.SetObjects(self.tempPilotRows)
 
     def onSave(self, event):
+        global pilotRows
+        pilotRows = self.tempPilotRows[:]
         if pilotRows != []:
             iniFile = open('nesi.ini', 'w')
             pickle.dump(pilotRows, iniFile)
