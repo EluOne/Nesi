@@ -459,6 +459,7 @@ class MainWindow(wx.Frame):
         # begin wxGlade: MainWindow.__set_properties
         self.SetTitle('Nesi')
         self.SetSize((1024, 600))
+        self.SetBackgroundColour(wx.NullColour)  # Use system default colour
         self.bitmap_1.SetMinSize((64, 64))
         self.label_1.SetFont(wx.Font(18, wx.DEFAULT, wx.NORMAL, wx.NORMAL, 0, ""))
         # end wxGlade
