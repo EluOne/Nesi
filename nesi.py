@@ -257,23 +257,23 @@ def id2name(idType, ids):  # Takes a list of typeIDs to query the api server.
             error = ('HTTP Error: ' + str(err.code))  # Error String
             for y in numItems:
                 typeNames.update({ids[y]: ids[y]})
-            onError('self', error)
+            onError(error)
         except urllib2.URLError as err:
             error = ('Error Connecting to Tranquility: ' + str(err.reason))  # Error String
             for y in numItems:
                 typeNames.update({ids[y]: ids[y]})
-            onError('self', error)
+            onError(error)
         except httplib.HTTPException as err:
             error = ('HTTP Exception')  # Error String
             for y in numItems:
                 typeNames.update({ids[y]: ids[y]})
-            onError('self', error)
+            onError(error)
         except Exception:
             import traceback
             error = ('Generic Exception: ' + traceback.format_exc())  # Error String
             for y in numItems:
                 typeNames.update({ids[y]: ids[y]})
-            onError('self', error)
+            onError(error)
 
     return typeNames
 
@@ -594,7 +594,7 @@ class MainWindow(wx.Frame):
                     self.myOlv.SetObjects(jobRows)
                     timingMsg = 'Updated in: %0.2f ms' % (((clock() - t) * 1000))
                 else:
-                    onError(self, 'Please open Config to enter a valid API key')
+                    onError('Please open Config to enter a valid API key')
             else:
                 numItems = list(range(len(jobRows)))
                 for r in numItems:
@@ -611,6 +611,8 @@ class MainWindow(wx.Frame):
                                          + ' Players Online - EvE Time: ' + str(serverTime)
                                          + ' - API Cached Until: ' + str(jobsCachedUntil)
                                          + ' - ' + timingMsg)
+        else:
+            self.statusbar.SetStatusText('Welcome to Nesi - ' + serverStatus[0])
 
     def onItemSelected(self, event):
         """Handle showing details for item select from list"""
