@@ -86,7 +86,10 @@ class Character(object):
         self.corporationID = corporationID
         self.corporationName = corporationName
         self.keyType = keyType
-        self.keyExpires = datetime.datetime(*(time.strptime(keyExpires, '%Y-%m-%d %H:%M:%S')[0:6]))
+        if keyExpires == '':
+            self.keyExpires = 'Never'
+        else:
+            self.keyExpires = datetime.datetime(*(time.strptime(keyExpires, '%Y-%m-%d %H:%M:%S')[0:6]))
         self.isActive = isActive
 
 
@@ -234,46 +237,54 @@ def id2name(idType, ids):  # Takes a list of typeIDs to query the api server.
         idList = ','.join(map(str, ids))
         numItems = range(len(ids))  # Used later if we have a protocol fail.
 
-        #Download the TypeName Data from API server
-        apiURL = baseUrl % (idList)
-        # print(apiURL)  # Console debug
+        # Calculate the number of ids we have left. Server has hard maximum of 250 IDs per query.
+        # So we'll need to split this into multiple queries. TODO
+        numIDs = len(ids)
 
-        try:  # Try to connect to the API server
-            target = urllib2.urlopen(apiURL)  # download the file
-            downloadedData = target.read()  # convert to string
-            target.close()  # close file because we don't need it anymore
+        if numIDs > 250:
+            # TODO
+            print(numIDs)
+        else:
+            #Download the TypeName Data from API server
+            apiURL = baseUrl % (idList)
+            # print(apiURL)  # Console debug
 
-            XMLData = parseString(downloadedData)
-            dataNodes = XMLData.getElementsByTagName('row')
+            try:  # Try to connect to the API server
+                target = urllib2.urlopen(apiURL)  # download the file
+                downloadedData = target.read()  # convert to string
+                target.close()  # close file because we don't need it anymore
 
-            for row in dataNodes:
-                typeNames.update({int(row.getAttribute(key)): str(row.getAttribute(value))})
+                XMLData = parseString(downloadedData)
+                dataNodes = XMLData.getElementsByTagName('row')
 
-            # Save the data we have so we don't have to fetch it
-            typeFile = open(cacheFile, 'w')
-            pickle.dump(typeNames, typeFile)
-            typeFile.close()
-        except urllib2.HTTPError as err:
-            error = ('HTTP Error: ' + str(err.code))  # Error String
-            for y in numItems:
-                typeNames.update({ids[y]: ids[y]})
-            onError(error)
-        except urllib2.URLError as err:
-            error = ('Error Connecting to Tranquility: ' + str(err.reason))  # Error String
-            for y in numItems:
-                typeNames.update({ids[y]: ids[y]})
-            onError(error)
-        except httplib.HTTPException as err:
-            error = ('HTTP Exception')  # Error String
-            for y in numItems:
-                typeNames.update({ids[y]: ids[y]})
-            onError(error)
-        except Exception:
-            import traceback
-            error = ('Generic Exception: ' + traceback.format_exc())  # Error String
-            for y in numItems:
-                typeNames.update({ids[y]: ids[y]})
-            onError(error)
+                for row in dataNodes:
+                    typeNames.update({int(row.getAttribute(key)): str(row.getAttribute(value))})
+
+                # Save the data we have so we don't have to fetch it
+                typeFile = open(cacheFile, 'w')
+                pickle.dump(typeNames, typeFile)
+                typeFile.close()
+            except urllib2.HTTPError as err:
+                error = ('HTTP Error: ' + str(err.code))  # Error String
+                for y in numItems:
+                    typeNames.update({ids[y]: ids[y]})
+                onError(error)
+            except urllib2.URLError as err:
+                error = ('Error Connecting to Tranquility: ' + str(err.reason))  # Error String
+                for y in numItems:
+                    typeNames.update({ids[y]: ids[y]})
+                onError(error)
+            except httplib.HTTPException as err:
+                error = ('HTTP Exception')  # Error String
+                for y in numItems:
+                    typeNames.update({ids[y]: ids[y]})
+                onError(error)
+            except Exception:
+                import traceback
+                error = ('Generic Exception: ' + traceback.format_exc())  # Error String
+                for y in numItems:
+                    typeNames.update({ids[y]: ids[y]})
+                onError(error)
 
     return typeNames
 
@@ -284,8 +295,9 @@ def rowFormatter(listItem, row):  # Formatter for ObjectListView, will turn comp
 
 
 def apiRowFormatter(listItem, row):  # Formatter for GroupListView, will turn expired api keys red.
-    if row.keyExpires < serverTime:
-        listItem.SetTextColour(wx.RED)
+    if row.keyExpires != 'Never':
+        if row.keyExpires < serverTime:
+            listItem.SetTextColour(wx.RED)
 
 
 def apiGroupKeyConverter(groupKey):
@@ -516,79 +528,87 @@ class MainWindow(wx.Frame):
                     numPilotRows = list(range(len(pilotRows)))
                     for x in numPilotRows:  # Iterate over all of the keys and character ids in config
                         #Download the Account Industry Data
-                        if pilotRows[x].keyType == 'Corporation':
-                            baseUrl = 'https://api.eveonline.com/corp/IndustryJobs.xml.aspx?keyID=%s&vCode=%s&characterID=%s'
-                        else:  # Should be an account key
-                            baseUrl = 'https://api.eveonline.com/char/IndustryJobs.xml.aspx?keyID=%s&vCode=%s&characterID=%s'
+                        keyOK = 1  # Set key check to OK test below changes if expired
+                        if pilotRows[x].keyExpires != 'Never':
+                            if pilotRows[x].keyExpires < serverTime:
+                                keyOK = 0
+                                error = ('KeyID' + pilotRows[x].keyID + 'has Expired')
+                                onError(error)
 
-                        apiURL = baseUrl % (pilotRows[x].keyID, pilotRows[x].vCode, pilotRows[x].characterID)
-                        # print(apiURL)  # Console debug
+                        if keyOK == 1:
+                            if pilotRows[x].keyType == 'Corporation':
+                                baseUrl = 'https://api.eveonline.com/corp/IndustryJobs.xml.aspx?keyID=%s&vCode=%s&characterID=%s'
+                            else:  # Should be an account key
+                                baseUrl = 'https://api.eveonline.com/char/IndustryJobs.xml.aspx?keyID=%s&vCode=%s&characterID=%s'
 
-                        try:  # Try to connect to the API server
-                            target = urllib2.urlopen(apiURL)  # download the file
-                            downloadedData = target.read()  # convert to string
-                            target.close()  # close file because we don't need it anymore:
+                            apiURL = baseUrl % (pilotRows[x].keyID, pilotRows[x].vCode, pilotRows[x].characterID)
+                            # print(apiURL)  # Console debug
 
-                            XMLData = parseString(downloadedData)
-                            dataNodes = XMLData.getElementsByTagName("row")
+                            try:  # Try to connect to the API server
+                                target = urllib2.urlopen(apiURL)  # download the file
+                                downloadedData = target.read()  # convert to string
+                                target.close()  # close file because we don't need it anymore:
 
-                            cacheuntil = XMLData.getElementsByTagName('cachedUntil')
-                            cacheExpire = datetime.datetime(*(time.strptime((cacheuntil[0].firstChild.nodeValue), "%Y-%m-%d %H:%M:%S")[0:6]))
-                            jobsCachedUntil = cacheExpire
+                                XMLData = parseString(downloadedData)
+                                dataNodes = XMLData.getElementsByTagName("row")
 
-                            itemIDs = []
-                            installerIDs = []
-                            for row in dataNodes:
-                                if row.getAttribute('completed') == '0':  # Ignore Delivered Jobs
-                                    if int(row.getAttribute('installedItemTypeID')) not in itemIDs:
-                                        itemIDs.append(int(row.getAttribute('installedItemTypeID')))
-                                    if int(row.getAttribute('outputTypeID')) not in itemIDs:
-                                        itemIDs.append(int(row.getAttribute('outputTypeID')))
-                                    if int(row.getAttribute('installerID')) not in installerIDs:
-                                        installerIDs.append(int(row.getAttribute('installerID')))
+                                cacheuntil = XMLData.getElementsByTagName('cachedUntil')
+                                cacheExpire = datetime.datetime(*(time.strptime((cacheuntil[0].firstChild.nodeValue), "%Y-%m-%d %H:%M:%S")[0:6]))
+                                jobsCachedUntil = cacheExpire
 
-                            itemNames = id2name('item', itemIDs)
-                            pilotNames = id2name('character', installerIDs)
+                                itemIDs = []
+                                installerIDs = []
+                                for row in dataNodes:
+                                    if row.getAttribute('completed') == '0':  # Ignore Delivered Jobs
+                                        if int(row.getAttribute('installedItemTypeID')) not in itemIDs:
+                                            itemIDs.append(int(row.getAttribute('installedItemTypeID')))
+                                        if int(row.getAttribute('outputTypeID')) not in itemIDs:
+                                            itemIDs.append(int(row.getAttribute('outputTypeID')))
+                                        if int(row.getAttribute('installerID')) not in installerIDs:
+                                            installerIDs.append(int(row.getAttribute('installerID')))
 
-                            for row in dataNodes:
-                                if row.getAttribute('completed') == '0':  # Ignore Delivered Jobs
-                                    tempJobRows.append(Job(row.getAttribute('jobID'),
-                                                    row.getAttribute('completedStatus'),
-                                                    int(row.getAttribute('activityID')),  # Leave as int for clauses
-                                                    itemNames[int(row.getAttribute('installedItemTypeID'))],
-                                                    int(row.getAttribute('installedItemProductivityLevel')),
-                                                    int(row.getAttribute('installedItemMaterialLevel')),
-                                                    pilotNames[int(row.getAttribute('installerID'))],
-                                                    int(row.getAttribute('runs')),
-                                                    itemNames[int(row.getAttribute('outputTypeID'))],
-                                                    row.getAttribute('installTime'),
-                                                    row.getAttribute('endProductionTime')))
+                                itemNames = id2name('item', itemIDs)
+                                pilotNames = id2name('character', installerIDs)
 
-                                # This is what is left from the API:
-                                #columns="assemblyLineID,containerID,installedItemLocationID,installedItemQuantity,
-                                #installedItemLicensedProductionRunsRemaining,outputLocationID,licensedProductionRuns,
-                                #installedInSolarSystemID,containerLocationID,materialMultiplier,charMaterialMultiplier,
-                                #timeMultiplier,charTimeMultiplier,containerTypeID,installedItemCopy,completed,
-                                #completedSuccessfully,installedItemFlag,outputFlag,completedStatus,beginProductionTime,
-                                #pauseProductionTime"
+                                for row in dataNodes:
+                                    if row.getAttribute('completed') == '0':  # Ignore Delivered Jobs
+                                        tempJobRows.append(Job(row.getAttribute('jobID'),
+                                                        row.getAttribute('completedStatus'),
+                                                        int(row.getAttribute('activityID')),  # Leave as int for clauses
+                                                        itemNames[int(row.getAttribute('installedItemTypeID'))],
+                                                        int(row.getAttribute('installedItemProductivityLevel')),
+                                                        int(row.getAttribute('installedItemMaterialLevel')),
+                                                        pilotNames[int(row.getAttribute('installerID'))],
+                                                        int(row.getAttribute('runs')),
+                                                        itemNames[int(row.getAttribute('outputTypeID'))],
+                                                        row.getAttribute('installTime'),
+                                                        row.getAttribute('endProductionTime')))
 
-                        except urllib2.HTTPError as err:
-                            error = ('HTTP Error: ' + str(err.code))  # Server Status String
-                            self.statusbar.SetStatusText(error)
-                            onError(error)
-                        except urllib2.URLError as err:
-                            error = ('Error Connecting to Tranquility: ' + str(err.reason))  # Server Status String
-                            self.statusbar.SetStatusText(error)
-                            onError(error)
-                        except httplib.HTTPException as err:
-                            error = ('HTTP Exception')  # Server Status String
-                            self.statusbar.SetStatusText(error)
-                            onError(error)
-                        except Exception:
-                            import traceback
-                            error = ('Generic Exception: ' + traceback.format_exc())  # Server Status String
-                            self.statusbar.SetStatusText(error)
-                            onError(error)
+                                    # This is what is left from the API:
+                                    #columns="assemblyLineID,containerID,installedItemLocationID,installedItemQuantity,
+                                    #installedItemLicensedProductionRunsRemaining,outputLocationID,licensedProductionRuns,
+                                    #installedInSolarSystemID,containerLocationID,materialMultiplier,charMaterialMultiplier,
+                                    #timeMultiplier,charTimeMultiplier,containerTypeID,installedItemCopy,completed,
+                                    #completedSuccessfully,installedItemFlag,outputFlag,completedStatus,beginProductionTime,
+                                    #pauseProductionTime"
+
+                            except urllib2.HTTPError as err:
+                                error = ('HTTP Error: ' + str(err.code))  # Server Status String
+                                self.statusbar.SetStatusText(error)
+                                onError(error)
+                            except urllib2.URLError as err:
+                                error = ('Error Connecting to Tranquility: ' + str(err.reason))  # Server Status String
+                                self.statusbar.SetStatusText(error)
+                                onError(error)
+                            except httplib.HTTPException as err:
+                                error = ('HTTP Exception')  # Server Status String
+                                self.statusbar.SetStatusText(error)
+                                onError(error)
+                            except Exception:
+                                import traceback
+                                error = ('Generic Exception: ' + traceback.format_exc())  # Server Status String
+                                self.statusbar.SetStatusText(error)
+                                onError(error)
                     if tempJobRows != []:
                         jobRows = tempJobRows[:]
                     self.myOlv.SetObjects(jobRows)
