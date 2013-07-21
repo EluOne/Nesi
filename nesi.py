@@ -234,19 +234,32 @@ def id2name(idType, ids):  # Takes a list of typeIDs to query the api server.
     # print(ids)  # Console debug
 
     if ids != []:  # We still have some ids we don't know
-        idList = ','.join(map(str, ids))
-        numItems = range(len(ids))  # Used later if we have a protocol fail.
-
         # Calculate the number of ids we have left. Server has hard maximum of 250 IDs per query.
-        # So we'll need to split this into multiple queries. TODO
+        # So we'll need to split this into multiple queries.
         numIDs = len(ids)
+        idList = []
 
         if numIDs > 250:
-            # TODO
-            print(numIDs)
+            startID = 0
+            endID = 250
+            while startID < numIDs:
+                idList.append(','.join(map(str, ids[startID:endID])))
+                startID = startID + 250
+                if ((numIDs - endID)) > 250:
+                    endID = endID + 250
+                else:
+                    endID = numIDs
+
         else:
+            idList.append(','.join(map(str, ids[0:numIDs])))
+
+        numIdLists = list(range(len(idList)))
+        for x in numIdLists:  # Iterate over all of the id lists generated above.
+
+            #numItems = range(len(ids))  # Used later if we have a protocol fail. FIXME this is no longer correct
+
             #Download the TypeName Data from API server
-            apiURL = baseUrl % (idList)
+            apiURL = baseUrl % (idList[x])
             # print(apiURL)  # Console debug
 
             try:  # Try to connect to the API server
@@ -266,24 +279,24 @@ def id2name(idType, ids):  # Takes a list of typeIDs to query the api server.
                 typeFile.close()
             except urllib2.HTTPError as err:
                 error = ('HTTP Error: ' + str(err.code))  # Error String
-                for y in numItems:
-                    typeNames.update({ids[y]: ids[y]})
+                #for y in numItems:
+                #    typeNames.update({ids[y]: ids[y]})
                 onError(error)
             except urllib2.URLError as err:
                 error = ('Error Connecting to Tranquility: ' + str(err.reason))  # Error String
-                for y in numItems:
-                    typeNames.update({ids[y]: ids[y]})
+                #for y in numItems:
+                #    typeNames.update({ids[y]: ids[y]})
                 onError(error)
             except httplib.HTTPException as err:
                 error = ('HTTP Exception')  # Error String
-                for y in numItems:
-                    typeNames.update({ids[y]: ids[y]})
+                #for y in numItems:
+                #    typeNames.update({ids[y]: ids[y]})
                 onError(error)
             except Exception:
                 import traceback
                 error = ('Generic Exception: ' + traceback.format_exc())  # Error String
-                for y in numItems:
-                    typeNames.update({ids[y]: ids[y]})
+                #for y in numItems:
+                #    typeNames.update({ids[y]: ids[y]})
                 onError(error)
 
     return typeNames
