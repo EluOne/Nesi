@@ -86,7 +86,7 @@ class Character(object):
         self.corporationID = corporationID
         self.corporationName = corporationName
         self.keyType = keyType
-        if keyExpires == '':
+        if keyExpires == '':  # API Server returns blank field for keys that have no expiry date set.
             self.keyExpires = 'Never'
         else:
             self.keyExpires = datetime.datetime(*(time.strptime(keyExpires, '%Y-%m-%d %H:%M:%S')[0:6]))
@@ -136,7 +136,8 @@ def apiCheck(keyID, vCode):
                             ])
 
     except urllib2.HTTPError as err:
-        error = ('HTTP Error: ' + str(err.code))  # Error String
+        error = ('HTTP Error: ' + str(err.code) + str(err.reason)
+                 + '\nPlease check you key details have been entered correctly.')  # Error String
         onError(error)
     except urllib2.URLError as err:
         error = ('Error Connecting to Tranquility: ' + str(err.reason))  # Error String
@@ -276,7 +277,7 @@ def id2name(idType, ids):  # Takes a list of typeIDs to query the api server.
                 pickle.dump(typeNames, typeFile)
                 typeFile.close()
             except urllib2.HTTPError as err:
-                error = ('HTTP Error: ' + str(err.code))  # Error String
+                error = ('HTTP Error: ' + str(err.code) + str(err.reason))  # Error String
                 ids = idList[x].split(',')
                 numItems = range(len(ids))
                 for y in numItems:
@@ -325,8 +326,8 @@ def apiGroupKeyConverter(groupKey):
 
 
 def activityConv(act):
-    activities = {1: 'Manufacturing', 2: '2', 3: 'Time Efficiency Research', 4: 'Material Research',
-                    5: 'Copy', 6: '6', 7: '7', 8: 'Invention'}  # POS activities list.
+    activities = {1: 'Manufacturing', 2: 'Technological research', 3: 'Time Efficiency Research', 4: 'Material Research',
+                    5: 'Copy', 6: 'Duplicating', 7: 'Reverse Engineering', 8: 'Invention'}  # POS activities list.
     if act in activities:
         return activities[act]
     else:
@@ -663,11 +664,11 @@ class MainWindow(wx.Frame):
         else:
             details = str(currentItem.timeRemaining)
 
-#       activities = {1 : 'Manufacturing', 2 : '2', 3 : 'Time Efficiency Research', 4 : 'Material Research',
-#                     5 : 'Copy', 6 : '6', 7 : '7', 8 : 'Invention'} # POS activities list.
+#       activities = {1: 'Manufacturing', 2: 'Technological research', 3: 'Time Efficiency Research', 4: 'Material Research',
+#                    5: 'Copy', 6: 'Duplicating', 7: 'Reverse Engineering', 8: 'Invention'}  # POS activities list.
         if currentItem.activityID == 1:  # Manufacturing
             details = ('TTC: %s\n%s runs of %s\n' % (details, currentItem.runs, currentItem.outputTypeID))
-        elif currentItem.activityID == 2:  # FIXME
+        elif currentItem.activityID == 2:  # Technological research
             details = ('TTC: %s\n%s x %s\n' % (details, currentItem.runs, currentItem.outputTypeID))
         elif currentItem.activityID == 3:  # Time Efficiency Research
             details = ('TTC: %s\nInstall PE: %s\nOutput PE %s\n1 unit of %s\n' %
@@ -679,9 +680,9 @@ class MainWindow(wx.Frame):
                 (currentItem.installedItemMaterialLevel + currentItem.runs), currentItem.outputTypeID))
         elif currentItem.activityID == 5:  # Copy
             details = ('TTC: %s\n%s x %s\n' % (details, currentItem.runs, currentItem.outputTypeID))
-        elif currentItem.activityID == 6:  # FIXME
+        elif currentItem.activityID == 6:  # Duplicating
             details = ('TTC: %s\n%s x %s\n' % (details, currentItem.runs, currentItem.outputTypeID))
-        elif currentItem.activityID == 7:  # FIXME
+        elif currentItem.activityID == 7:  # Reverse Engineering
             details = ('TTC: %s\n%s x %s\n' % (details, currentItem.runs, currentItem.outputTypeID))
         elif currentItem.activityID == 8:  # Invention
             details = ('TTC: %s\n%s x %s\n' % (details, currentItem.runs, currentItem.outputTypeID))
