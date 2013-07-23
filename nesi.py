@@ -256,8 +256,6 @@ def id2name(idType, ids):  # Takes a list of typeIDs to query the api server.
         numIdLists = list(range(len(idList)))
         for x in numIdLists:  # Iterate over all of the id lists generated above.
 
-            #numItems = range(len(ids))  # Used later if we have a protocol fail. FIXME this is no longer correct
-
             #Download the TypeName Data from API server
             apiURL = baseUrl % (idList[x])
             # print(apiURL)  # Console debug
@@ -279,24 +277,32 @@ def id2name(idType, ids):  # Takes a list of typeIDs to query the api server.
                 typeFile.close()
             except urllib2.HTTPError as err:
                 error = ('HTTP Error: ' + str(err.code))  # Error String
-                #for y in numItems:
-                #    typeNames.update({ids[y]: ids[y]})
+                ids = idList[x].split(',')
+                numItems = range(len(ids))
+                for y in numItems:
+                    typeNames.update({ids[y]: ids[y]})
                 onError(error)
             except urllib2.URLError as err:
                 error = ('Error Connecting to Tranquility: ' + str(err.reason))  # Error String
-                #for y in numItems:
-                #    typeNames.update({ids[y]: ids[y]})
+                ids = idList[x].split(',')
+                numItems = range(len(ids))
+                for y in numItems:
+                    typeNames.update({ids[y]: ids[y]})
                 onError(error)
             except httplib.HTTPException as err:
                 error = ('HTTP Exception')  # Error String
-                #for y in numItems:
-                #    typeNames.update({ids[y]: ids[y]})
+                ids = idList[x].split(',')
+                numItems = range(len(ids))
+                for y in numItems:
+                    typeNames.update({ids[y]: ids[y]})
                 onError(error)
             except Exception:
                 import traceback
                 error = ('Generic Exception: ' + traceback.format_exc())  # Error String
-                #for y in numItems:
-                #    typeNames.update({ids[y]: ids[y]})
+                ids = idList[x].split(',')
+                numItems = range(len(ids))
+                for y in numItems:
+                    typeNames.update({ids[y]: ids[y]})
                 onError(error)
 
     return typeNames
