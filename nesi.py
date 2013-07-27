@@ -343,7 +343,7 @@ class PreferencesDialog(wx.Dialog):
         self.keyIDTextCtrl = wx.TextCtrl(self, -1, "")
         self.label_5 = wx.StaticText(self, -1, "vCode:")
         self.vCodeTextCtrl = wx.TextCtrl(self, -1, "")
-        self.addBtn = wx.Button(self, -1, "+")
+        self.addBtn = wx.Button(self, wx.ID_ADD, "")
         self.charList = GroupListView(self, -1, style=wx.LC_REPORT | wx.SUNKEN_BORDER)
         self.cancelBtn = wx.Button(self, wx.ID_CANCEL)
         self.deleteBtn = wx.Button(self, -1, "Delete")
@@ -363,7 +363,6 @@ class PreferencesDialog(wx.Dialog):
         self.SetSize((750, 300))
         self.keyIDTextCtrl.SetMinSize((120, 21))
         self.vCodeTextCtrl.SetMinSize((300, 21))
-        self.addBtn.SetMinSize((27, 27))
         self.saveBtn.SetDefault()
         # end wxGlade
         self.charList.SetEmptyListMsg('Fill in boxes above and\n click + to add pilots')
@@ -382,21 +381,21 @@ class PreferencesDialog(wx.Dialog):
 
     def __do_layout(self):
         # begin wxGlade: PreferenceDialog.__do_layout
-        sizer_3 = wx.BoxSizer(wx.VERTICAL)
-        sizer_4 = wx.BoxSizer(wx.HORIZONTAL)
-        sizer_5 = wx.BoxSizer(wx.HORIZONTAL)
-        sizer_5.Add(self.label_4, 0, wx.ALIGN_CENTER_VERTICAL | wx.ADJUST_MINSIZE, 0)
-        sizer_5.Add(self.keyIDTextCtrl, 0, wx.ALIGN_CENTER_VERTICAL | wx.ADJUST_MINSIZE, 0)
-        sizer_5.Add(self.label_5, 0, wx.ALIGN_CENTER_VERTICAL | wx.ADJUST_MINSIZE, 0)
-        sizer_5.Add(self.vCodeTextCtrl, 0, wx.ALIGN_CENTER_VERTICAL | wx.ADJUST_MINSIZE, 0)
-        sizer_5.Add(self.addBtn, 0, wx.ALIGN_CENTER_HORIZONTAL | wx.ALIGN_CENTER_VERTICAL | wx.ADJUST_MINSIZE, 0)
-        sizer_3.Add(sizer_5, 1, wx.ALL | wx.ALIGN_CENTER_HORIZONTAL, 0)
-        sizer_3.Add(self.charList, 3, wx.EXPAND, 0)
-        sizer_4.Add(self.cancelBtn, 0, wx.ADJUST_MINSIZE, 0)
-        sizer_4.Add(self.deleteBtn, 0, wx.ADJUST_MINSIZE, 0)
-        sizer_4.Add(self.saveBtn, 0, wx.ADJUST_MINSIZE, 0)
-        sizer_3.Add(sizer_4, 1, wx.ALL | wx.ALIGN_CENTER_HORIZONTAL, 0)
-        self.SetSizer(sizer_3)
+        prefSizer = wx.BoxSizer(wx.VERTICAL)
+        prefBtnSizer = wx.BoxSizer(wx.HORIZONTAL)
+        prefAddSizer = wx.BoxSizer(wx.HORIZONTAL)
+        prefAddSizer.Add(self.label_4, 0, wx.ALIGN_CENTER_VERTICAL | wx.ADJUST_MINSIZE, 0)
+        prefAddSizer.Add(self.keyIDTextCtrl, 0, wx.ALIGN_CENTER_VERTICAL | wx.ADJUST_MINSIZE, 0)
+        prefAddSizer.Add(self.label_5, 0, wx.ALIGN_CENTER_VERTICAL | wx.ADJUST_MINSIZE, 0)
+        prefAddSizer.Add(self.vCodeTextCtrl, 0, wx.ALIGN_CENTER_VERTICAL | wx.ADJUST_MINSIZE, 0)
+        prefAddSizer.Add(self.addBtn, 0, wx.ALIGN_CENTER_HORIZONTAL | wx.ALIGN_CENTER_VERTICAL | wx.ADJUST_MINSIZE, 0)
+        prefSizer.Add(prefAddSizer, 1, wx.ALL | wx.ALIGN_CENTER_HORIZONTAL, 0)
+        prefSizer.Add(self.charList, 3, wx.EXPAND, 0)
+        prefBtnSizer.Add(self.cancelBtn, 0, wx.ADJUST_MINSIZE, 0)
+        prefBtnSizer.Add(self.deleteBtn, 0, wx.ADJUST_MINSIZE, 0)
+        prefBtnSizer.Add(self.saveBtn, 0, wx.ADJUST_MINSIZE, 0)
+        prefSizer.Add(prefBtnSizer, 1, wx.ALL | wx.ALIGN_CENTER_HORIZONTAL, 0)
+        self.SetSizer(prefSizer)
         self.Layout()
         # end wxGlade
 
@@ -458,9 +457,9 @@ class MainWindow(wx.Frame):
         wx.Frame.__init__(self, *args, **kwds)
         self.bitmap_1 = wx.StaticBitmap(self, -1, wx.Bitmap('images/nesi.png', wx.BITMAP_TYPE_PNG))
         self.label_1 = wx.StaticText(self, -1, 'Science and Industry')
-        self.myOlv = ObjectListView(self, -1, style=wx.LC_REPORT | wx.SUNKEN_BORDER)
-        self.detailBox = wx.TextCtrl(self, -1, '', style=wx.TE_MULTILINE)
-        self.btn = wx.Button(self, -1, 'Get Jobs')
+        self.jobList = ObjectListView(self, -1, style=wx.LC_REPORT | wx.SUNKEN_BORDER)
+        self.jobDetailBox = wx.TextCtrl(self, -1, '', style=wx.TE_MULTILINE)
+        self.jobBtn = wx.Button(self, -1, 'Get Jobs')
 
         # Menu Bar
         self.frame_menubar = wx.MenuBar()
@@ -479,13 +478,13 @@ class MainWindow(wx.Frame):
         self.__set_properties()
         self.__do_layout()
 
-        self.Bind(wx.EVT_BUTTON, self.onGetData, self.btn)
+        self.Bind(wx.EVT_BUTTON, self.onGetJobs, self.jobBtn)
         self.Bind(wx.EVT_MENU, self.onAbout, self.menuAbout)
         self.Bind(wx.EVT_MENU, self.onConfig, self.menuConfig)
         self.Bind(wx.EVT_MENU, self.onExit, self.menuExit)
         # end wxGlade
 
-        self.myOlv.Bind(wx.EVT_LIST_ITEM_SELECTED, self.onItemSelected)
+        self.jobList.Bind(wx.EVT_LIST_ITEM_SELECTED, self.onItemSelected)
 
     def __set_properties(self):
         # begin wxGlade: MainWindow.__set_properties
@@ -499,10 +498,10 @@ class MainWindow(wx.Frame):
         self.statusbar.SetStatusText('Welcome to Nesi - Idle')
 
         # In game: Click "Get Jobs" to fetch jobs with current filters
-        self.myOlv.SetEmptyListMsg('Click \"Get Jobs\" to fetch jobs')
+        self.jobList.SetEmptyListMsg('Click \"Get Jobs\" to fetch jobs')
 
-        self.myOlv.rowFormatter = rowFormatter
-        self.myOlv.SetColumns([
+        self.jobList.rowFormatter = rowFormatter
+        self.jobList.SetColumns([
             ColumnDefn('State', 'left', 100, 'state'),
             ColumnDefn('Activity', 'left', 180, 'activityID', stringConverter=activityConv),
             ColumnDefn('Type', 'center', 300, 'installedItemTypeID'),
@@ -513,19 +512,19 @@ class MainWindow(wx.Frame):
 
     def __do_layout(self):
         # begin wxGlade: MainWindow.__do_layout
-        sizer_1 = wx.BoxSizer(wx.VERTICAL)
-        sizer_2 = wx.BoxSizer(wx.HORIZONTAL)
-        sizer_2.Add(self.bitmap_1, 0, wx.FIXED_MINSIZE, 0)
-        sizer_2.Add(self.label_1, 0, wx.ALIGN_CENTER_VERTICAL | wx.FIXED_MINSIZE, 0)
-        sizer_1.Add(sizer_2, 0, 0, 0)
-        sizer_1.Add(self.btn, 0, wx.ALIGN_RIGHT | wx.ADJUST_MINSIZE, 0)
-        sizer_1.Add(self.myOlv, 3, wx.EXPAND, 0)
-        sizer_1.Add(self.detailBox, 1, wx.EXPAND, 0)
-        self.SetSizer(sizer_1)
+        mainSizer = wx.BoxSizer(wx.VERTICAL)
+        headerSizer = wx.BoxSizer(wx.HORIZONTAL)
+        headerSizer.Add(self.bitmap_1, 0, wx.FIXED_MINSIZE, 0)
+        headerSizer.Add(self.label_1, 0, wx.ALIGN_CENTER_VERTICAL | wx.FIXED_MINSIZE, 0)
+        mainSizer.Add(headerSizer, 0, 0, 0)
+        mainSizer.Add(self.jobBtn, 0, wx.ALIGN_RIGHT | wx.ADJUST_MINSIZE, 0)
+        mainSizer.Add(self.jobList, 3, wx.EXPAND, 0)
+        mainSizer.Add(self.jobDetailBox, 1, wx.EXPAND, 0)
+        self.SetSizer(mainSizer)
         self.Layout()
         # end wxGlade
 
-    def onGetData(self, event):
+    def onGetJobs(self, event):
         """Event handler to fetch data from server"""
         global jobRows
         global serverStatus
@@ -631,7 +630,7 @@ class MainWindow(wx.Frame):
                                 onError(error)
                     if tempJobRows != []:
                         jobRows = tempJobRows[:]
-                    self.myOlv.SetObjects(jobRows)
+                    self.jobList.SetObjects(jobRows)
                     timingMsg = 'Updated in: %0.2f ms' % (((clock() - t) * 1000))
                 else:
                     onError('Please open Config to enter a valid API key')
@@ -644,7 +643,7 @@ class MainWindow(wx.Frame):
                     else:
                         jobRows[r].timeRemaining = jobRows[r].endProductionTime - serverTime
                         jobRows[r].state = 'Ready'
-                self.myOlv.RefreshObjects(jobRows)
+                self.jobList.RefreshObjects(jobRows)
                 # print('Not Contacting Server, Cache Not Expired')
 
             self.statusbar.SetStatusText(serverStatus[0] + ' - ' + serverStatus[1]
@@ -656,7 +655,7 @@ class MainWindow(wx.Frame):
 
     def onItemSelected(self, event):
         """Handle showing details for item select from list"""
-        currentItem = self.myOlv[event.GetIndex()]
+        currentItem = self.jobList[event.GetIndex()]
 
         details = ''
         if currentItem.timeRemaining < datetime.timedelta(0):
@@ -689,7 +688,7 @@ class MainWindow(wx.Frame):
         else:  # Fall back unknown activity
             details = ('TTC: %s\n%s runs of %s\n' % (details, currentItem.runs, currentItem.outputTypeID))
 
-        self.detailBox.SetValue(details)
+        self.jobDetailBox.SetValue(details)
 
     def onConfig(self, event):
         # Open the config frame for user.
