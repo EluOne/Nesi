@@ -4,7 +4,7 @@ A work in progress single window application to display the status of science an
 At present it is taking data from the CCP API server using the credentials provided by the user, to download an xml file from the industry jobs API.
 
 The API key the user provides can be a personal key with at least Industry access or a corporation key with the role 'Factory Manager' or above access
-otherwise you will get HTTP 403 errors - Access Denied.
+otherwise the API server will return HTTP 403 errors - Access Denied.
 Initial support for the use of multiple API keys, all returning data to a single list of current jobs.
 
 The application generates a set of local cache files within its directory to reduce network data, and saves the user details in nesi.ini file.
