@@ -7,6 +7,8 @@ The API key the user provides can be a personal key with at least Industry acces
 otherwise the API server will return HTTP 403 errors - Access Denied.
 Initial support for the use of multiple API keys, all returning data to a single list of current jobs.
 
+Early stages of POS (Player Owned Structures) status details from API, showing fuel and state of listed towers.
+
 The application generates a set of local cache files within its directory to reduce network data, and saves the user details in nesi.ini file.
 
 This project uses wxPython and ObjectListView modules.
