@@ -29,6 +29,7 @@ import pickle
 import wx
 import datetime
 import time
+import traceback
 
 
 # Establish some current time data for calculations later.
@@ -38,9 +39,11 @@ serverTime = datetime.datetime.utcnow().replace(microsecond=0)
 localTime = datetime.datetime.now().replace(microsecond=0)
 # A global variable to store the returned status.
 serverStatus = ['', '0', serverTime]
-# A global variable to store the cacheUtil time.
+# A global variables to store the cacheUtil time and table rows.
 jobsCachedUntil = serverTime
 jobRows = []
+starbaseCachedUntil = serverTime
+starbaseRows = []
 # This is where we are storing our API keys for now.
 pilotRows = []
 
@@ -75,6 +78,33 @@ class Job(object):
 #materialMultiplier,charMaterialMultiplier,timeMultiplier,charTimeMultiplier,installedItemTypeID,outputTypeID,
 #containerTypeID,installedItemCopy,completed,completedSuccessfully,installedItemFlag,outputFlag,activityID,
 #completedStatus,installTime,beginProductionTime,endProductionTime,pauseProductionTime"
+
+
+class Starbase(object):
+    def __init__(self, itemID, typeID, locationID, moonID, state, stateTimestamp, onlineTimestamp,
+                 fuelBlocks, blockQty, charters, charterQty, stront, strontQty, standingOwnerID):
+        self.itemID = itemID
+        self.typeID = typeID
+        self.locationID = locationID
+        self.moonID = moonID  # if unanchored moonID will be 0
+        self.state = state
+        # If anchored but offline there will be no time data
+        if stateTimestamp == '':
+            self.stateTimestamp = 'Offline'
+        else:
+            self.stateTimestamp = datetime.datetime(*(time.strptime(stateTimestamp, '%Y-%m-%d %H:%M:%S')[0:6]))
+        # if unanchored there will be a stateTimestamp but no onlineTimestamp
+        if onlineTimestamp == '':
+            self.onlineTimestamp = 'No Data'
+        else:
+            self.onlineTimestamp = datetime.datetime(*(time.strptime(onlineTimestamp, '%Y-%m-%d %H:%M:%S')[0:6]))
+        self.fuelBlocks = fuelBlocks
+        self.blockQty = blockQty
+        self.charters = charters
+        self.charterQty = charterQty
+        self.stront = stront
+        self.strontQty = strontQty
+        self.standingOwnerID = standingOwnerID
 
 
 class Character(object):
@@ -146,7 +176,6 @@ def apiCheck(keyID, vCode):
         error = ('HTTP Exception')  # Error String
         onError(error)
     except Exception:
-        import traceback
         error = ('Generic Exception: ' + traceback.format_exc())  # Error String
         onError(error)
 
@@ -192,7 +221,6 @@ def getServerStatus(args):
             status = [('HTTP Exception'), '0', serverTime]
             onError(status[0])
         except Exception:
-            import traceback
             # Exception String, Players Online data 0 as no data, Cache Until now as no data
             status = [('Generic Exception: ' + traceback.format_exc()), '0', serverTime]
             onError(status[0])
@@ -298,7 +326,6 @@ def id2name(idType, ids):  # Takes a list of typeIDs to query the api server.
                     typeNames.update({ids[y]: ids[y]})
                 onError(error)
             except Exception:
-                import traceback
                 error = ('Generic Exception: ' + traceback.format_exc())  # Error String
                 ids = idList[x].split(',')
                 numItems = range(len(ids))
@@ -309,7 +336,7 @@ def id2name(idType, ids):  # Takes a list of typeIDs to query the api server.
     return typeNames
 
 
-def rowFormatter(listItem, row):  # Formatter for ObjectListView, will turn completed jobs green.
+def jobRowFormatter(listItem, row):  # Formatter for ObjectListView, will turn completed jobs green.
     if row.timeRemaining < datetime.timedelta(0):
         listItem.SetTextColour(wx.GREEN)
 
@@ -332,6 +359,14 @@ def activityConv(act):
         return activities[act]
     else:
         return act
+
+
+def stateConv(state):
+    states = {0: 'Unanchored', 1: 'Anchored / Offline', 2: 'Onlining', 3: 'Reinforced', 4: 'Online'}  # POS state list.
+    if state in states:
+        return states[state]
+    else:
+        return state
 
 
 class PreferencesDialog(wx.Dialog):
@@ -455,36 +490,43 @@ class MainWindow(wx.Frame):
         # begin wxGlade: MainWindow.__init__
         kwds["style"] = wx.DEFAULT_FRAME_STYLE
         wx.Frame.__init__(self, *args, **kwds)
-        self.bitmap_1 = wx.StaticBitmap(self, -1, wx.Bitmap('images/nesi.png', wx.BITMAP_TYPE_PNG))
-        self.label_1 = wx.StaticText(self, -1, 'Science and Industry')
-        self.jobList = ObjectListView(self, -1, style=wx.LC_REPORT | wx.SUNKEN_BORDER)
-        self.jobDetailBox = wx.TextCtrl(self, -1, '', style=wx.TE_MULTILINE)
-        self.jobBtn = wx.Button(self, -1, 'Get Jobs')
 
         # Menu Bar
         self.frame_menubar = wx.MenuBar()
         self.fileMenu = wx.Menu()
-        self.menuAbout = wx.MenuItem(self.fileMenu, wx.NewId(), '&About', '', wx.ITEM_NORMAL)
+        self.menuAbout = wx.MenuItem(self.fileMenu, wx.NewId(), "&About", "", wx.ITEM_NORMAL)
         self.fileMenu.AppendItem(self.menuAbout)
-        self.menuConfig = wx.MenuItem(self.fileMenu, wx.NewId(), '&Configure', '', wx.ITEM_NORMAL)
+        self.menuConfig = wx.MenuItem(self.fileMenu, wx.NewId(), "&Configure", "", wx.ITEM_NORMAL)
         self.fileMenu.AppendItem(self.menuConfig)
-        self.menuExit = wx.MenuItem(self.fileMenu, wx.NewId(), 'E&xit', '', wx.ITEM_NORMAL)
+        self.menuExit = wx.MenuItem(self.fileMenu, wx.NewId(), "E&xit", "", wx.ITEM_NORMAL)
         self.fileMenu.AppendItem(self.menuExit)
-        self.frame_menubar.Append(self.fileMenu, 'File')
+        self.frame_menubar.Append(self.fileMenu, "File")
         self.SetMenuBar(self.frame_menubar)
         # Menu Bar end
         self.statusbar = self.CreateStatusBar(1, 0)
+        self.bitmap_1 = wx.StaticBitmap(self, -1, wx.Bitmap("images/nesi.png", wx.BITMAP_TYPE_ANY))
+        self.label_1 = wx.StaticText(self, -1, "Nova Echo Science and Industry")
+        self.mainNotebook = wx.Notebook(self, -1, style=0)
+        self.notebookJobPane = wx.Panel(self.mainNotebook, -1)
+        self.jobBtn = wx.Button(self.notebookJobPane, -1, "Get Jobs")
+        self.jobList = ObjectListView(self.notebookJobPane, -1, style=wx.LC_REPORT | wx.SUNKEN_BORDER)
+        self.jobDetailBox = wx.TextCtrl(self.notebookJobPane, -1, "", style=wx.TE_MULTILINE)
+        self.mainNotebookStarbasePane = wx.Panel(self.mainNotebook, -1)
+        self.starbaseBtn = wx.Button(self.mainNotebookStarbasePane, -1, "Refresh")
+        self.starbaseList = ObjectListView(self.mainNotebookStarbasePane, -1, style=wx.LC_REPORT | wx.SUNKEN_BORDER)
+        self.starbaseDetailBox = wx.TextCtrl(self.mainNotebookStarbasePane, -1, "", style=wx.TE_MULTILINE)
 
         self.__set_properties()
         self.__do_layout()
 
-        self.Bind(wx.EVT_BUTTON, self.onGetJobs, self.jobBtn)
         self.Bind(wx.EVT_MENU, self.onAbout, self.menuAbout)
         self.Bind(wx.EVT_MENU, self.onConfig, self.menuConfig)
         self.Bind(wx.EVT_MENU, self.onExit, self.menuExit)
+        self.Bind(wx.EVT_BUTTON, self.onGetJobs, self.jobBtn)
+        self.Bind(wx.EVT_LIST_ITEM_SELECTED, self.onJobSelect, self.jobList)
+        self.Bind(wx.EVT_BUTTON, self.onGetStarbases, self.starbaseBtn)
+        self.Bind(wx.EVT_LIST_ITEM_SELECTED, self.onStarbaseSelect, self.starbaseList)
         # end wxGlade
-
-        self.jobList.Bind(wx.EVT_LIST_ITEM_SELECTED, self.onItemSelected)
 
     def __set_properties(self):
         # begin wxGlade: MainWindow.__set_properties
@@ -500,32 +542,55 @@ class MainWindow(wx.Frame):
         # In game: Click "Get Jobs" to fetch jobs with current filters
         self.jobList.SetEmptyListMsg('Click \"Get Jobs\" to fetch jobs')
 
-        self.jobList.rowFormatter = rowFormatter
+        self.jobList.rowFormatter = jobRowFormatter
         self.jobList.SetColumns([
             ColumnDefn('State', 'left', 100, 'state'),
             ColumnDefn('Activity', 'left', 180, 'activityID', stringConverter=activityConv),
             ColumnDefn('Type', 'center', 300, 'installedItemTypeID'),
-            ColumnDefn('Installer', 'center', 120, 'installerID'),
+            ColumnDefn('Installer', 'center', 140, 'installerID'),
             ColumnDefn('Install Date', 'left', 145, 'installTime'),
             ColumnDefn('End Date', 'left', 145, 'endProductionTime')
+        ])
+
+        self.starbaseList.SetEmptyListMsg('Click \"Refresh\" to get POS status\nThis requires a corporation API Key\n(Still In Development)')
+
+        self.starbaseList.SetColumns([
+            ColumnDefn('itemID', 'left', 150, 'itemID'),
+            ColumnDefn('typeID', 'left', 150, 'typeID'),
+            ColumnDefn('locationID', 'center', 100, 'locationID'),
+            ColumnDefn('moonID', 'center', 100, 'moonID'),
+            ColumnDefn('state', 'left', 100, 'state', stringConverter=stateConv),
+            ColumnDefn('stateTimestamp', 'left', 145, 'stateTimestamp'),
+            ColumnDefn('onlineTimestamp', 'left', 145, 'onlineTimestamp'),
+            ColumnDefn('standingOwnerID', 'left', 120, 'standingOwnerID')
         ])
 
     def __do_layout(self):
         # begin wxGlade: MainWindow.__do_layout
         mainSizer = wx.BoxSizer(wx.VERTICAL)
+        starbaseSizer = wx.BoxSizer(wx.VERTICAL)
+        jobSizer = wx.BoxSizer(wx.VERTICAL)
         headerSizer = wx.BoxSizer(wx.HORIZONTAL)
         headerSizer.Add(self.bitmap_1, 0, wx.FIXED_MINSIZE, 0)
         headerSizer.Add(self.label_1, 0, wx.ALIGN_CENTER_VERTICAL | wx.FIXED_MINSIZE, 0)
         mainSizer.Add(headerSizer, 0, 0, 0)
-        mainSizer.Add(self.jobBtn, 0, wx.ALIGN_RIGHT | wx.ADJUST_MINSIZE, 0)
-        mainSizer.Add(self.jobList, 3, wx.EXPAND, 0)
-        mainSizer.Add(self.jobDetailBox, 1, wx.EXPAND, 0)
+        jobSizer.Add(self.jobBtn, 0, wx.ALIGN_RIGHT | wx.ADJUST_MINSIZE, 0)
+        jobSizer.Add(self.jobList, 3, wx.EXPAND, 0)
+        jobSizer.Add(self.jobDetailBox, 1, wx.EXPAND, 0)
+        self.notebookJobPane.SetSizer(jobSizer)
+        starbaseSizer.Add(self.starbaseBtn, 0, wx.ALIGN_RIGHT | wx.ADJUST_MINSIZE, 0)
+        starbaseSizer.Add(self.starbaseList, 3, wx.EXPAND, 0)
+        starbaseSizer.Add(self.starbaseDetailBox, 1, wx.EXPAND, 0)
+        self.mainNotebookStarbasePane.SetSizer(starbaseSizer)
+        self.mainNotebook.AddPage(self.notebookJobPane, "Jobs")
+        self.mainNotebook.AddPage(self.mainNotebookStarbasePane, "Starbases")
+        mainSizer.Add(self.mainNotebook, 1, wx.EXPAND, 0)
         self.SetSizer(mainSizer)
         self.Layout()
         # end wxGlade
 
     def onGetJobs(self, event):
-        """Event handler to fetch data from server"""
+        """Event handler to fetch job data from server"""
         global jobRows
         global serverStatus
         global jobsCachedUntil
@@ -624,7 +689,6 @@ class MainWindow(wx.Frame):
                                 self.statusbar.SetStatusText(error)
                                 onError(error)
                             except Exception:
-                                import traceback
                                 error = ('Generic Exception: ' + traceback.format_exc())  # Server Status String
                                 self.statusbar.SetStatusText(error)
                                 onError(error)
@@ -653,7 +717,7 @@ class MainWindow(wx.Frame):
         else:
             self.statusbar.SetStatusText('Welcome to Nesi - ' + serverStatus[0])
 
-    def onItemSelected(self, event):
+    def onJobSelect(self, event):
         """Handle showing details for item select from list"""
         currentItem = self.jobList[event.GetIndex()]
 
@@ -689,6 +753,158 @@ class MainWindow(wx.Frame):
             details = ('TTC: %s\n%s runs of %s\n' % (details, currentItem.runs, currentItem.outputTypeID))
 
         self.jobDetailBox.SetValue(details)
+
+    def onGetStarbases(self, event):  # wxGlade: MainWindow.<event_handler>
+        """Event handler to fetch starbase data from server"""
+        global starbaseRows
+        global serverStatus
+        global starbaseCachedUntil
+        global serverTime
+
+        timingMsg = 'Using Local Cache'
+        serverTime = datetime.datetime.utcnow().replace(microsecond=0)  # Update Server Time.
+        # Inform the user what we are doing.
+        self.statusbar.SetStatusText('Welcome to Nesi - ' + 'Connecting to Tranquility...')
+        serverStatus = getServerStatus(serverStatus)  # Try the API server for current server status.
+
+        if serverStatus[0] == 'Tranquility Online':  # Status has returned a value other than online, so why continue?
+            if serverTime >= starbaseCachedUntil:
+                # Start the clock.
+                t = clock()
+                tempStarbaseRows = []
+                if pilotRows != []:  # Make sure we have keys in the config
+                    # keyID, vCode, characterID, characterName, corporationID, corporationName, keyType, keyExpires, isActive
+                    numPilotRows = list(range(len(pilotRows)))
+                    for x in numPilotRows:  # Iterate over all of the keys and character ids in config
+                        #Download the Account Starbase Data
+                        keyOK = 1  # Set key check to OK test below changes if expired
+                        if pilotRows[x].keyExpires != 'Never':
+                            if pilotRows[x].keyExpires < serverTime:
+                                keyOK = 0
+                                error = ('KeyID' + pilotRows[x].keyID + 'has Expired')
+                                onError(error)
+
+                        if keyOK == 1 and pilotRows[x].keyType == 'Corporation':
+                            baseUrl = 'https://api.eveonline.com/corp/StarbaseList.xml.aspx?keyID=%s&vCode=%s'
+                            apiURL = baseUrl % (pilotRows[x].keyID, pilotRows[x].vCode)
+                            # print(apiURL)  # Console debug
+
+                            try:  # Try to connect to the API server
+                                target = urllib2.urlopen(apiURL)  # download the file
+                                downloadedData = target.read()  # convert to string
+                                target.close()  # close file because we don't need it anymore:
+
+                                XMLData = parseString(downloadedData)
+                                starbaseNodes = XMLData.getElementsByTagName("row")
+
+                                cacheuntil = XMLData.getElementsByTagName('cachedUntil')
+                                cacheExpire = datetime.datetime(*(time.strptime((cacheuntil[0].firstChild.nodeValue), "%Y-%m-%d %H:%M:%S")[0:6]))
+                                starbaseCachedUntil = cacheExpire
+
+                                for row in starbaseNodes:
+                                    itemIDs = []
+
+                                    if int(row.getAttribute('typeID')) not in itemIDs:
+                                        itemIDs.append(int(row.getAttribute('typeID')))
+
+                                    baseUrl = 'https://api.eveonline.com/corp/StarbaseDetail.xml.aspx?keyID=%s&vCode=%s&itemID=%s'
+                                    apiURL = baseUrl % (pilotRows[x].keyID, pilotRows[x].vCode, row.getAttribute('itemID'))
+                                    # print(apiURL)  # Console debug
+
+                                    try:  # Try to connect to the API server
+                                        target = urllib2.urlopen(apiURL)  # download the file
+                                        downloadedData = target.read()  # convert to string
+                                        target.close()  # close file because we don't need it anymore:
+
+                                        XMLData = parseString(downloadedData)
+                                        starbaseDetailNodes = XMLData.getElementsByTagName("row")
+
+                                        fuel = []
+                                        for entry in starbaseDetailNodes:
+                                            if int(entry.getAttribute('typeID')) not in itemIDs:
+                                                itemIDs.append(int(entry.getAttribute('typeID')))
+                                            fuel.append(int(entry.getAttribute('typeID')))
+                                            fuel.append(int(entry.getAttribute('quantity')))
+
+                                        itemNames = id2name('item', itemIDs)
+
+                                        print(fuel)  # I am uncertain if this will always contain 6 elements returned from the api.
+
+                                        tempStarbaseRows.append(Starbase(row.getAttribute('itemID'),
+                                                        itemNames[int(row.getAttribute('typeID'))],
+                                                        row.getAttribute('locationID'),
+                                                        row.getAttribute('moonID'),
+                                                        int(row.getAttribute('state')),
+                                                        row.getAttribute('stateTimestamp'),
+                                                        row.getAttribute('onlineTimestamp'),
+                                                        itemNames[int(fuel[0])],  # Fuel Blocks
+                                                        int(fuel[1]),
+                                                        itemNames[int(fuel[2])],  # Charters
+                                                        int(fuel[3]),
+                                                        itemNames[int(fuel[4])],  # Strontium
+                                                        int(fuel[5]),
+                                                        row.getAttribute('standingOwnerID')))
+
+                                    # itemID,typeID,locationID,moonID,state,stateTimestamp,onlineTimestamp,standingOwnerID
+
+                                    except urllib2.HTTPError as err:
+                                        error = ('HTTP Error: ' + str(err.code))  # Server Status String
+                                        self.statusbar.SetStatusText(error)
+                                        onError(error)
+                                    except urllib2.URLError as err:
+                                        error = ('Error Connecting to Tranquility: ' + str(err.reason))  # Server Status String
+                                        self.statusbar.SetStatusText(error)
+                                        onError(error)
+                                    except httplib.HTTPException as err:
+                                        error = ('HTTP Exception')  # Server Status String
+                                        self.statusbar.SetStatusText(error)
+                                        onError(error)
+                                    except Exception:
+                                        error = ('Generic Exception: ' + traceback.format_exc())  # Server Status String
+                                        self.statusbar.SetStatusText(error)
+                                        onError(error)
+
+                            except urllib2.HTTPError as err:
+                                error = ('HTTP Error: ' + str(err.code))  # Server Status String
+                                self.statusbar.SetStatusText(error)
+                                onError(error)
+                            except urllib2.URLError as err:
+                                error = ('Error Connecting to Tranquility: ' + str(err.reason))  # Server Status String
+                                self.statusbar.SetStatusText(error)
+                                onError(error)
+                            except httplib.HTTPException as err:
+                                error = ('HTTP Exception')  # Server Status String
+                                self.statusbar.SetStatusText(error)
+                                onError(error)
+                            except Exception:
+                                error = ('Generic Exception: ' + traceback.format_exc())  # Server Status String
+                                self.statusbar.SetStatusText(error)
+                                onError(error)
+                    if tempStarbaseRows != []:
+                        starbaseRows = tempStarbaseRows[:]
+                    self.starbaseList.SetObjects(starbaseRows)
+                    timingMsg = 'Updated in: %0.2f ms' % (((clock() - t) * 1000))
+                else:
+                    onError('Please open Config to enter a valid API key')
+            else:
+                self.starbaseList.RefreshObjects(jobRows)
+                # print('Not Contacting Server, Cache Not Expired')
+
+            self.statusbar.SetStatusText(serverStatus[0] + ' - ' + serverStatus[1]
+                                         + ' Players Online - EvE Time: ' + str(serverTime)
+                                         + ' - API Cached Until: ' + str(jobsCachedUntil)
+                                         + ' - ' + timingMsg)
+        else:
+            self.statusbar.SetStatusText('Welcome to Nesi - ' + serverStatus[0])
+
+    def onStarbaseSelect(self, event):  # wxGlade: MainWindow.<event_handler>
+        """Handle showing details for item select from list"""
+        currentItem = self.starbaseList[event.GetIndex()]
+
+        details = ('%ss: %s\n%ss: %s\n%s: %s' % (currentItem.fuelBlocks, currentItem.blockQty, currentItem.charters,
+                                                 currentItem.charterQty, currentItem.stront, currentItem.strontQty))
+
+        self.starbaseDetailBox.SetValue(details)
 
     def onConfig(self, event):
         # Open the config frame for user.
