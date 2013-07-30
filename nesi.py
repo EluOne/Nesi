@@ -555,14 +555,13 @@ class MainWindow(wx.Frame):
         self.starbaseList.SetEmptyListMsg('Click \"Refresh\" to get POS status\nThis requires a corporation API Key\n(Still In Development)')
 
         self.starbaseList.SetColumns([
-            ColumnDefn('itemID', 'left', 150, 'itemID'),
-            ColumnDefn('typeID', 'left', 150, 'typeID'),
-            ColumnDefn('locationID', 'center', 100, 'locationID'),
-            ColumnDefn('moonID', 'center', 100, 'moonID'),
-            ColumnDefn('state', 'left', 100, 'state', stringConverter=stateConv),
-            ColumnDefn('stateTimestamp', 'left', 145, 'stateTimestamp'),
-            ColumnDefn('onlineTimestamp', 'left', 145, 'onlineTimestamp'),
-            ColumnDefn('standingOwnerID', 'left', 120, 'standingOwnerID')
+            ColumnDefn('Type', 'left', 180, 'typeID'),
+            ColumnDefn('location ID', 'center', 120, 'locationID'),
+            ColumnDefn('Moon ID', 'center', 120, 'moonID'),
+            ColumnDefn('State', 'left', 100, 'state', stringConverter=stateConv),
+            ColumnDefn('State From', 'left', 145, 'stateTimestamp'),
+            ColumnDefn('Online Since / AT', 'left', 145, 'onlineTimestamp'),
+            ColumnDefn('Standing Owner ID', 'left', 140, 'standingOwnerID')
         ])
 
     def __do_layout(self):
