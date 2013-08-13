@@ -22,6 +22,7 @@ from xml.dom.minidom import parseString
 from ObjectListView import ObjectListView, ColumnDefn, GroupListView
 from time import clock
 
+import sqlite3 as lite
 import urllib2
 import httplib
 import os.path
@@ -50,14 +51,16 @@ pilotRows = []
 
 class Job(object):
     def __init__(self, jobID, completedStatus, activityID, installedItemTypeID,
-                 installedItemProductivityLevel, installedItemMaterialLevel,
-                 installerID, runs, outputTypeID, installTime, endProductionTime):
+                 installedItemProductivityLevel, installedItemMaterialLevel, outputLocationID,
+                 installedInSolarSystemID, installerID, runs, outputTypeID, installTime, endProductionTime):
         self.jobID = jobID
         self.completedStatus = completedStatus
         self.activityID = activityID
         self.installedItemTypeID = installedItemTypeID
         self.installedItemProductivityLevel = installedItemProductivityLevel
         self.installedItemMaterialLevel = installedItemMaterialLevel
+        self.outputLocationID = outputLocationID
+        self.installedInSolarSystemID = installedInSolarSystemID
         self.installerID = installerID
         self.runs = runs
         self.outputTypeID = outputTypeID
@@ -309,31 +312,230 @@ def id2name(idType, ids):  # Takes a list of typeIDs to query the api server.
                 ids = idList[x].split(',')
                 numItems = range(len(ids))
                 for y in numItems:
-                    typeNames.update({ids[y]: ids[y]})
+                    typeNames.update({int(ids[y]): str(ids[y])})
                 onError(error)
             except urllib2.URLError as err:
                 error = ('Error Connecting to Tranquility: ' + str(err.reason))  # Error String
                 ids = idList[x].split(',')
                 numItems = range(len(ids))
                 for y in numItems:
-                    typeNames.update({ids[y]: ids[y]})
+                    typeNames.update({int(ids[y]): str(ids[y])})
                 onError(error)
             except httplib.HTTPException as err:
                 error = ('HTTP Exception')  # Error String
                 ids = idList[x].split(',')
                 numItems = range(len(ids))
                 for y in numItems:
-                    typeNames.update({ids[y]: ids[y]})
+                    typeNames.update({int(ids[y]): str(ids[y])})
                 onError(error)
             except Exception:
                 error = ('Generic Exception: ' + traceback.format_exc())  # Error String
                 ids = idList[x].split(',')
                 numItems = range(len(ids))
                 for y in numItems:
-                    typeNames.update({ids[y]: ids[y]})
+                    typeNames.update({int(ids[y]): str(ids[y])})
                 onError(error)
 
     return typeNames
+
+
+def is32(n):
+    try:
+        bitstring = bin(n)
+    except (TypeError, ValueError):
+        return False
+
+    if len(bin(n)[2:]) <= 32:
+        return True
+    else:
+        return False
+
+
+def id2location(pilotRowID, ids):  # Take location IDs from API and use against local copy of the static data dump
+    locationNames = {0: 'Unanchored'}
+    locationIDs = []
+    privateLocationIDs = []
+    conquerableIDs = []
+
+    numItems = list(range(len(ids)))
+    # print(ids)  # Console debug
+
+    for x in numItems:
+        if is32(ids[x]) == False:
+            # 32 bit value: Only known to Pilot or Corp via API
+            privateLocationIDs.append(ids[x])
+        elif 66000000 < ids[x] < 66014933:
+            # Office in Station needs conversion
+            officeID = ids[x] - 6000001
+            if officeID not in locationIDs:
+                locationIDs.append(officeID)
+        elif 66014934 < ids[x] < 67999999:
+            # Office in Conquerable Station needs conversion
+            officeID = ids[x] - 6000000
+            if officeID not in locationIDs:
+                locationIDs.append(officeID)
+        elif 60014861 < ids[x] < 60014928:
+            # Conquerable Station
+            if ids[x] not in conquerableIDs:
+                conquerableIDs.append(ids[x])
+        elif 60000000 < ids[x] < 61000000:
+            # Station
+            if ids[x] not in locationIDs:
+                locationIDs.append(ids[x])
+        elif ids[x] >= 61000000:
+            # Conquerable Outpost
+            if ids[x] not in conquerableIDs:
+                conquerableIDs.append(ids[x])
+        else:  # locationID < 60000000 then the asset is somewhere in space
+            if ids[x] not in locationIDs:
+                locationIDs.append(ids[x])
+
+    if locationIDs != []:  # We still have some ids we don't know
+        try:
+            idList = ("', '".join(map(str, locationIDs[:])))
+            con = lite.connect('static.db')
+
+            with con:
+                cur = con.cursor()
+                statement = "SELECT itemID, itemName FROM invnames WHERE itemID IN ('" + idList + "')"
+                cur.execute(statement)
+
+                rows = cur.fetchall()
+
+                # print((len(rows)))
+                for row in rows:
+                    # print(row)
+                    locationNames.update({int(row[0]): str(row[1])})
+
+        except lite.Error as err:
+            error = ('SQL Lite Error: ' + str(err.args[0]) + str(err.args[1:]))  # Error String
+            ids = idList.split("', '")
+            numItems = range(len(ids))
+            for y in numItems:
+                locationNames.update({int(ids[y]): str(ids[y])})
+            onError(error)
+        finally:
+            if con:
+                con.close()
+
+    if privateLocationIDs != []:  # We have some Pilot or Corp locations we don't know
+        if pilotRows[pilotRowID].keyType == 'Corporation':
+            baseUrl = 'https://api.eveonline.com/corp/locations.xml.aspx?keyID=%s&vCode=%s&characterID=%s&IDs=%s'
+        else:  # Should be an account key
+            baseUrl = 'https://api.eveonline.com/char/locations.xml.aspx?keyID=%s&vCode=%s&characterID=%s&IDs=%s'
+
+        # Calculate the number of ids we have left. Server has hard maximum of 250 IDs per query.
+        # So we'll need to split this into multiple queries.
+        numIDs = len(privateLocationIDs)
+        idList = []
+
+        if numIDs > 250:
+            startID = 0
+            endID = 250
+            while startID < numIDs:
+                idList.append(','.join(map(str, privateLocationIDs[startID:endID])))
+                startID = startID + 250
+                if ((numIDs - endID)) > 250:
+                    endID = endID + 250
+                else:
+                    endID = numIDs
+
+        else:
+            idList.append(','.join(map(str, privateLocationIDs[0:numIDs])))
+
+        numIdLists = list(range(len(idList)))
+        for x in numIdLists:  # Iterate over all of the id lists generated above.
+
+            #Download the TypeName Data from API server
+            apiURL = baseUrl % (pilotRows[pilotRowID].keyID, pilotRows[pilotRowID].vCode, pilotRows[pilotRowID].characterID, idList[x])
+            # print(apiURL)  # Console debug
+
+            try:  # Try to connect to the API server
+                target = urllib2.urlopen(apiURL)  # download the file
+                downloadedData = target.read()  # convert to string
+                target.close()  # close file because we don't need it anymore
+
+                XMLData = parseString(downloadedData)
+                dataNodes = XMLData.getElementsByTagName('row')
+
+                for row in dataNodes:
+                    locationNames.update({int(row.getAttribute('itemID')): str(row.getAttribute('itemName'))})
+            except urllib2.HTTPError as err:
+                error = ('HTTP Error: ' + str(err.code) + str(err.reason))  # Error String
+                ids = idList[x].split(',')
+                numItems = range(len(ids))
+                for y in numItems:
+                    locationNames.update({int(ids[y]): str(ids[y])})
+                onError(error)
+            except urllib2.URLError as err:
+                error = ('Error Connecting to Tranquility: ' + str(err.reason))  # Error String
+                ids = idList[x].split(',')
+                numItems = range(len(ids))
+                for y in numItems:
+                    locationNames.update({int(ids[y]): str(ids[y])})
+                onError(error)
+            except httplib.HTTPException as err:
+                error = ('HTTP Exception')  # Error String
+                ids = idList[x].split(',')
+                numItems = range(len(ids))
+                for y in numItems:
+                    locationNames.update({int(ids[y]): str(ids[y])})
+                onError(error)
+            except Exception:
+                error = ('Generic Exception: ' + traceback.format_exc())  # Error String
+                ids = idList[x].split(',')
+                numItems = range(len(ids))
+                for y in numItems:
+                    locationNames.update({int(ids[y]): str(ids[y])})
+                onError(error)
+
+    if conquerableIDs != []:  # We have some conquerableIDs we don't know
+        idList = []
+
+        apiURL = 'https://api.eveonline.com/eve/ConquerableStationList.xml.aspx'
+
+        try:  # Try to connect to the API server
+            target = urllib2.urlopen(apiURL)  # download the file
+            downloadedData = target.read()  # convert to string
+            target.close()  # close file because we don't need it anymore
+
+            XMLData = parseString(downloadedData)
+            dataNodes = XMLData.getElementsByTagName('row')
+
+            for row in dataNodes:
+                if int(row.getAttribute('stationID')) in idList:
+                    locationNames.update({int(row.getAttribute('stationID')): str(row.getAttribute('stationName'))})
+
+        except urllib2.HTTPError as err:
+            error = ('HTTP Error: ' + str(err.code) + str(err.reason))  # Error String
+            ids = idList[x].split(',')
+            numItems = range(len(ids))
+            for y in numItems:
+                locationNames.update({int(ids[y]): str(ids[y])})
+            onError(error)
+        except urllib2.URLError as err:
+            error = ('Error Connecting to Tranquility: ' + str(err.reason))  # Error String
+            ids = idList[x].split(',')
+            numItems = range(len(ids))
+            for y in numItems:
+                locationNames.update({int(ids[y]): str(ids[y])})
+            onError(error)
+        except httplib.HTTPException as err:
+            error = ('HTTP Exception')  # Error String
+            ids = idList[x].split(',')
+            numItems = range(len(ids))
+            for y in numItems:
+                locationNames.update({int(ids[y]): str(ids[y])})
+            onError(error)
+        except Exception:
+            error = ('Generic Exception: ' + traceback.format_exc())  # Error String
+            ids = idList[x].split(',')
+            numItems = range(len(ids))
+            for y in numItems:
+                locationNames.update({int(ids[y]): str(ids[y])})
+            onError(error)
+
+    return locationNames
 
 
 def jobRowFormatter(listItem, row):  # Formatter for ObjectListView, will turn completed jobs green.
@@ -402,9 +604,11 @@ class PreferencesDialog(wx.Dialog):
         # end wxGlade
         self.charList.SetEmptyListMsg('Fill in boxes above and\n click + to add pilots')
 
+        self.charList.SetFont(wx.Font(9, wx.DEFAULT, wx.NORMAL, wx.NORMAL, 0, ""))
+
         self.charList.rowFormatter = apiRowFormatter
         self.charList.SetColumns([
-            ColumnDefn('Character Name', 'left', 200, 'characterName'),
+            ColumnDefn('Character Name', 'left', 170, 'characterName'),
             ColumnDefn('Corporation', 'left', 225, 'corporationName'),
             ColumnDefn('API Key', 'left', 80, 'keyID', groupKeyConverter=apiGroupKeyConverter),
             ColumnDefn('Key Type', 'left', 90, 'keyType'),
@@ -511,10 +715,10 @@ class MainWindow(wx.Frame):
         self.jobBtn = wx.Button(self.notebookJobPane, -1, "Get Jobs")
         self.jobList = ObjectListView(self.notebookJobPane, -1, style=wx.LC_REPORT | wx.SUNKEN_BORDER)
         self.jobDetailBox = wx.TextCtrl(self.notebookJobPane, -1, "", style=wx.TE_MULTILINE)
-        self.mainNotebookStarbasePane = wx.Panel(self.mainNotebook, -1)
-        self.starbaseBtn = wx.Button(self.mainNotebookStarbasePane, -1, "Refresh")
-        self.starbaseList = ObjectListView(self.mainNotebookStarbasePane, -1, style=wx.LC_REPORT | wx.SUNKEN_BORDER)
-        self.starbaseDetailBox = wx.TextCtrl(self.mainNotebookStarbasePane, -1, "", style=wx.TE_MULTILINE)
+        self.notebookStarbasePane = wx.Panel(self.mainNotebook, -1)
+        self.starbaseBtn = wx.Button(self.notebookStarbasePane, -1, "Refresh")
+        self.starbaseList = ObjectListView(self.notebookStarbasePane, -1, style=wx.LC_REPORT | wx.SUNKEN_BORDER)
+        self.starbaseDetailBox = wx.TextCtrl(self.notebookStarbasePane, -1, "", style=wx.TE_MULTILINE)
 
         self.__set_properties()
         self.__do_layout()
@@ -541,27 +745,33 @@ class MainWindow(wx.Frame):
 
         # In game: Click "Get Jobs" to fetch jobs with current filters
         self.jobList.SetEmptyListMsg('Click \"Get Jobs\" to fetch jobs')
+        self.jobList.SetFont(wx.Font(9, wx.DEFAULT, wx.NORMAL, wx.NORMAL, 0, ""))
+        self.jobDetailBox.SetFont(wx.Font(9, wx.DEFAULT, wx.NORMAL, wx.NORMAL, 0, ""))
 
         self.jobList.rowFormatter = jobRowFormatter
         self.jobList.SetColumns([
-            ColumnDefn('State', 'left', 100, 'state'),
-            ColumnDefn('Activity', 'left', 180, 'activityID', stringConverter=activityConv),
-            ColumnDefn('Type', 'center', 300, 'installedItemTypeID'),
-            ColumnDefn('Installer', 'center', 140, 'installerID'),
-            ColumnDefn('Install Date', 'left', 145, 'installTime'),
-            ColumnDefn('End Date', 'left', 145, 'endProductionTime')
+            ColumnDefn('State', 'left', 75, 'state'),
+            ColumnDefn('Activity', 'left', 145, 'activityID', stringConverter=activityConv),
+            ColumnDefn('Type', 'left', 300, 'installedItemTypeID'),
+            ColumnDefn('Location', 'center', 170, 'outputLocationID'),
+            ColumnDefn('System', 'center', 170, 'installedInSolarSystemID'),
+            ColumnDefn('Installer', 'center', 170, 'installerID'),
+            ColumnDefn('Install Date', 'center', 140, 'installTime'),
+            ColumnDefn('End Date', 'center', 140, 'endProductionTime')
         ])
 
         self.starbaseList.SetEmptyListMsg('Click \"Refresh\" to get POS status\nThis requires a corporation API Key\n(Still In Development)')
+        self.starbaseList.SetFont(wx.Font(9, wx.DEFAULT, wx.NORMAL, wx.NORMAL, 0, ""))
+        self.starbaseDetailBox.SetFont(wx.Font(9, wx.DEFAULT, wx.NORMAL, wx.NORMAL, 0, ""))
 
         self.starbaseList.SetColumns([
-            ColumnDefn('Type', 'left', 180, 'typeID'),
-            ColumnDefn('location ID', 'center', 120, 'locationID'),
-            ColumnDefn('Moon ID', 'center', 120, 'moonID'),
-            ColumnDefn('State', 'left', 100, 'state', stringConverter=stateConv),
-            ColumnDefn('State From', 'left', 145, 'stateTimestamp'),
-            ColumnDefn('Online Since / AT', 'left', 145, 'onlineTimestamp'),
-            ColumnDefn('Standing Owner ID', 'left', 140, 'standingOwnerID')
+            ColumnDefn('System', 'center', 210, 'locationID'),
+            ColumnDefn('Moon', 'center', 210, 'moonID'),
+            ColumnDefn('Type', 'left', 200, 'typeID'),
+            ColumnDefn('State', 'center', 100, 'state', stringConverter=stateConv),
+            ColumnDefn('State From', 'center', 140, 'stateTimestamp'),
+            ColumnDefn('Online Since / At', 'center', 140, 'onlineTimestamp')
+            #ColumnDefn('Standing Owner ID', 'left', 140, 'standingOwnerID')
         ])
 
     def __do_layout(self):
@@ -580,9 +790,9 @@ class MainWindow(wx.Frame):
         starbaseSizer.Add(self.starbaseBtn, 0, wx.ALIGN_RIGHT | wx.ADJUST_MINSIZE, 0)
         starbaseSizer.Add(self.starbaseList, 3, wx.EXPAND, 0)
         starbaseSizer.Add(self.starbaseDetailBox, 1, wx.EXPAND, 0)
-        self.mainNotebookStarbasePane.SetSizer(starbaseSizer)
+        self.notebookStarbasePane.SetSizer(starbaseSizer)
         self.mainNotebook.AddPage(self.notebookJobPane, "Jobs")
-        self.mainNotebook.AddPage(self.mainNotebookStarbasePane, "Starbases")
+        self.mainNotebook.AddPage(self.notebookStarbasePane, "Starbases")
         mainSizer.Add(self.mainNotebook, 1, wx.EXPAND, 0)
         self.SetSizer(mainSizer)
         self.Layout()
@@ -641,6 +851,7 @@ class MainWindow(wx.Frame):
 
                                 itemIDs = []
                                 installerIDs = []
+                                locationIDs = []
                                 for row in dataNodes:
                                     if row.getAttribute('completed') == '0':  # Ignore Delivered Jobs
                                         if int(row.getAttribute('installedItemTypeID')) not in itemIDs:
@@ -649,9 +860,14 @@ class MainWindow(wx.Frame):
                                             itemIDs.append(int(row.getAttribute('outputTypeID')))
                                         if int(row.getAttribute('installerID')) not in installerIDs:
                                             installerIDs.append(int(row.getAttribute('installerID')))
+                                        if int(row.getAttribute('outputLocationID')) not in locationIDs:
+                                            locationIDs.append(int(row.getAttribute('outputLocationID')))
+                                        if int(row.getAttribute('installedInSolarSystemID')) not in locationIDs:
+                                            locationIDs.append(int(row.getAttribute('installedInSolarSystemID')))
 
                                 itemNames = id2name('item', itemIDs)
                                 pilotNames = id2name('character', installerIDs)
+                                locationNames = id2location(x, locationIDs)
 
                                 for row in dataNodes:
                                     if row.getAttribute('completed') == '0':  # Ignore Delivered Jobs
@@ -661,6 +877,8 @@ class MainWindow(wx.Frame):
                                                         itemNames[int(row.getAttribute('installedItemTypeID'))],
                                                         int(row.getAttribute('installedItemProductivityLevel')),
                                                         int(row.getAttribute('installedItemMaterialLevel')),
+                                                        locationNames[int(row.getAttribute('outputLocationID'))],
+                                                        locationNames[int(row.getAttribute('installedInSolarSystemID'))],
                                                         pilotNames[int(row.getAttribute('installerID'))],
                                                         int(row.getAttribute('runs')),
                                                         itemNames[int(row.getAttribute('outputTypeID'))],
@@ -802,6 +1020,7 @@ class MainWindow(wx.Frame):
 
                                 for row in starbaseNodes:
                                     itemIDs = []
+                                    locationIDs = []
 
                                     if int(row.getAttribute('typeID')) not in itemIDs:
                                         itemIDs.append(int(row.getAttribute('typeID')))
@@ -825,14 +1044,20 @@ class MainWindow(wx.Frame):
                                             fuel.append(int(entry.getAttribute('typeID')))
                                             fuel.append(int(entry.getAttribute('quantity')))
 
+                                        if int(row.getAttribute('locationID')) not in locationIDs:
+                                            locationIDs.append(int(row.getAttribute('locationID')))
+                                        if int(row.getAttribute('moonID')) not in locationIDs:
+                                            locationIDs.append(int(row.getAttribute('moonID')))
+
                                         itemNames = id2name('item', itemIDs)
+                                        locationNames = id2location(x, locationIDs)
 
                                         print(fuel)  # I am uncertain if this will always contain 6 elements returned from the api.
 
                                         tempStarbaseRows.append(Starbase(row.getAttribute('itemID'),
                                                         itemNames[int(row.getAttribute('typeID'))],
-                                                        row.getAttribute('locationID'),
-                                                        row.getAttribute('moonID'),
+                                                        locationNames[int(row.getAttribute('locationID'))],
+                                                        locationNames[int(row.getAttribute('moonID'))],
                                                         int(row.getAttribute('state')),
                                                         row.getAttribute('stateTimestamp'),
                                                         row.getAttribute('onlineTimestamp'),
@@ -930,7 +1155,7 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>."""
 
         info.SetIcon(wx.Icon('images/nesi.png', wx.BITMAP_TYPE_PNG))
         info.SetName('Nova Echo Science & Industry')
-        info.SetVersion('1.0.1')
+        info.SetVersion('1.1.0')
         info.SetDescription(description)
         info.SetCopyright('(C) 2013 Tim Cumming')
         info.SetWebSite('https://github.com/EluOne/Nesi')
