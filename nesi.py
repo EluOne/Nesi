@@ -234,107 +234,133 @@ def getServerStatus(args):
         return args
 
 
-def id2name(idType, ids):  # Takes a list of typeIDs to query the api server.
+def id2name(idType, ids):  # Takes a list of IDs to query the local db or api server.
     typeNames = {}
     if idType == 'item':
-        cacheFile = 'items.cache'
-        baseUrl = 'https://api.eveonline.com/eve/TypeName.xml.aspx?ids=%s'
-        key = 'typeID'
-        value = 'typeName'
+        # We'll use the local static DB for items as they don't change.
+        if ids != []:  # We have some ids we don't know.
+            try:
+                idList = ("', '".join(map(str, ids[:])))
+                con = lite.connect('static.db')
+
+                with con:
+                    cur = con.cursor()
+                    statement = "SELECT typeID, typeName FROM invtypes WHERE typeID IN ('" + idList + "')"
+                    cur.execute(statement)
+
+                    rows = cur.fetchall()
+
+                    # print((len(rows)))
+                    for row in rows:
+                        # print(row)
+                        typeNames.update({int(row[0]): str(row[1])})
+
+            except lite.Error as err:
+                error = ('SQL Lite Error: ' + str(err.args[0]) + str(err.args[1:]))  # Error String
+                ids = idList.split("', '")
+                numItems = range(len(ids))
+                for y in numItems:
+                    typeNames.update({int(ids[y]): str(ids[y])})
+                onError(error)
+            finally:
+                if con:
+                    con.close()
+
     elif idType == 'character':
+        # We'll have to talk to the API server for Pilot names as this can't be in the static dump.
         cacheFile = 'character.cache'
         baseUrl = 'https://api.eveonline.com/eve/CharacterName.xml.aspx?ids=%s'
         key = 'characterID'
         value = 'name'
 
-    if (os.path.isfile(cacheFile)):
-        typeFile = open(cacheFile, 'r')
-        typeNames = pickle.load(typeFile)
-        typeFile.close()
+        if (os.path.isfile(cacheFile)):
+            typeFile = open(cacheFile, 'r')
+            typeNames = pickle.load(typeFile)
+            typeFile.close()
 
-    numItems = list(range(len(ids)))
-    # print(ids)  # Console debug
+        numItems = list(range(len(ids)))
+        # print(ids)  # Console debug
 
-    for x in numItems:
-        if ids[x] in typeNames:
-            ids[x] = 'deleted'
+        for x in numItems:
+            if ids[x] in typeNames:
+                ids[x] = 'deleted'
 
-    for y in ids[:]:
-        if y == 'deleted':
-            ids.remove(y)
+        for y in ids[:]:
+            if y == 'deleted':
+                ids.remove(y)
 
-    # print(ids)  # Console debug
+        # print(ids)  # Console debug
 
-    if ids != []:  # We still have some ids we don't know
-        # Calculate the number of ids we have left. Server has hard maximum of 250 IDs per query.
-        # So we'll need to split this into multiple queries.
-        numIDs = len(ids)
-        idList = []
+        if ids != []:  # We still have some ids we don't know
+            # Calculate the number of ids we have left. Server has hard maximum of 250 IDs per query.
+            # So we'll need to split this into multiple queries.
+            numIDs = len(ids)
+            idList = []
 
-        if numIDs > 250:
-            startID = 0
-            endID = 250
-            while startID < numIDs:
-                idList.append(','.join(map(str, ids[startID:endID])))
-                startID = startID + 250
-                if ((numIDs - endID)) > 250:
-                    endID = endID + 250
-                else:
-                    endID = numIDs
+            if numIDs > 250:
+                startID = 0
+                endID = 250
+                while startID < numIDs:
+                    idList.append(','.join(map(str, ids[startID:endID])))
+                    startID = startID + 250
+                    if ((numIDs - endID)) > 250:
+                        endID = endID + 250
+                    else:
+                        endID = numIDs
 
-        else:
-            idList.append(','.join(map(str, ids[0:numIDs])))
+            else:
+                idList.append(','.join(map(str, ids[0:numIDs])))
 
-        numIdLists = list(range(len(idList)))
-        for x in numIdLists:  # Iterate over all of the id lists generated above.
+            numIdLists = list(range(len(idList)))
+            for x in numIdLists:  # Iterate over all of the id lists generated above.
 
-            #Download the TypeName Data from API server
-            apiURL = baseUrl % (idList[x])
-            # print(apiURL)  # Console debug
+                #Download the TypeName Data from API server
+                apiURL = baseUrl % (idList[x])
+                # print(apiURL)  # Console debug
 
-            try:  # Try to connect to the API server
-                target = urllib2.urlopen(apiURL)  # download the file
-                downloadedData = target.read()  # convert to string
-                target.close()  # close file because we don't need it anymore
+                try:  # Try to connect to the API server
+                    target = urllib2.urlopen(apiURL)  # download the file
+                    downloadedData = target.read()  # convert to string
+                    target.close()  # close file because we don't need it anymore
 
-                XMLData = parseString(downloadedData)
-                dataNodes = XMLData.getElementsByTagName('row')
+                    XMLData = parseString(downloadedData)
+                    dataNodes = XMLData.getElementsByTagName('row')
 
-                for row in dataNodes:
-                    typeNames.update({int(row.getAttribute(key)): str(row.getAttribute(value))})
+                    for row in dataNodes:
+                        typeNames.update({int(row.getAttribute(key)): str(row.getAttribute(value))})
 
-                # Save the data we have so we don't have to fetch it
-                typeFile = open(cacheFile, 'w')
-                pickle.dump(typeNames, typeFile)
-                typeFile.close()
-            except urllib2.HTTPError as err:
-                error = ('HTTP Error: ' + str(err.code) + str(err.reason))  # Error String
-                ids = idList[x].split(',')
-                numItems = range(len(ids))
-                for y in numItems:
-                    typeNames.update({int(ids[y]): str(ids[y])})
-                onError(error)
-            except urllib2.URLError as err:
-                error = ('Error Connecting to Tranquility: ' + str(err.reason))  # Error String
-                ids = idList[x].split(',')
-                numItems = range(len(ids))
-                for y in numItems:
-                    typeNames.update({int(ids[y]): str(ids[y])})
-                onError(error)
-            except httplib.HTTPException as err:
-                error = ('HTTP Exception')  # Error String
-                ids = idList[x].split(',')
-                numItems = range(len(ids))
-                for y in numItems:
-                    typeNames.update({int(ids[y]): str(ids[y])})
-                onError(error)
-            except Exception:
-                error = ('Generic Exception: ' + traceback.format_exc())  # Error String
-                ids = idList[x].split(',')
-                numItems = range(len(ids))
-                for y in numItems:
-                    typeNames.update({int(ids[y]): str(ids[y])})
-                onError(error)
+                    # Save the data we have so we don't have to fetch it
+                    typeFile = open(cacheFile, 'w')
+                    pickle.dump(typeNames, typeFile)
+                    typeFile.close()
+                except urllib2.HTTPError as err:
+                    error = ('HTTP Error: ' + str(err.code) + str(err.reason))  # Error String
+                    ids = idList[x].split(',')
+                    numItems = range(len(ids))
+                    for y in numItems:
+                        typeNames.update({int(ids[y]): str(ids[y])})
+                    onError(error)
+                except urllib2.URLError as err:
+                    error = ('Error Connecting to Tranquility: ' + str(err.reason))  # Error String
+                    ids = idList[x].split(',')
+                    numItems = range(len(ids))
+                    for y in numItems:
+                        typeNames.update({int(ids[y]): str(ids[y])})
+                    onError(error)
+                except httplib.HTTPException as err:
+                    error = ('HTTP Exception')  # Error String
+                    ids = idList[x].split(',')
+                    numItems = range(len(ids))
+                    for y in numItems:
+                        typeNames.update({int(ids[y]): str(ids[y])})
+                    onError(error)
+                except Exception:
+                    error = ('Generic Exception: ' + traceback.format_exc())  # Error String
+                    ids = idList[x].split(',')
+                    numItems = range(len(ids))
+                    for y in numItems:
+                        typeNames.update({int(ids[y]): str(ids[y])})
+                    onError(error)
 
     return typeNames
 
