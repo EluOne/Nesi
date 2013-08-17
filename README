@@ -7,8 +7,8 @@ The API key the user provides can be a personal key with at least Industry acces
 otherwise the API server will return HTTP 403 errors - Access Denied.
 Initial support for the use of multiple API keys, all returning data to a single list of current jobs.
 
-Implementation of sqlite access to reduced copy of CCP static data dump for conversion of API supplied values to human readable format,
-and reduced network usage due to moving away from using the API server for this function.
+Implementation of sqlite access to reduced copy of CCP static data dump for conversion of API supplied values to human readable format, and reduced network usage due to moving away from using the API server for this function.
+I am working to remove un-needed data from the static data dump for this application to reduce its footprint.
 
 Early stages of POS (Player Owned Structures) status details from API, showing fuel and state of listed towers.
 
