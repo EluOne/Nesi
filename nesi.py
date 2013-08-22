@@ -778,9 +778,9 @@ class MainWindow(wx.Frame):
         self.jobList.SetColumns([
             ColumnDefn('State', 'left', 75, 'state'),
             ColumnDefn('Activity', 'left', 145, 'activityID', stringConverter=activityConv),
-            ColumnDefn('Type', 'left', 300, 'installedItemTypeID'),
+            ColumnDefn('Type', 'left', 280, 'installedItemTypeID'),
             ColumnDefn('Location', 'center', 170, 'outputLocationID'),
-            ColumnDefn('System', 'center', 170, 'installedInSolarSystemID'),
+            ColumnDefn('System', 'center', 150, 'installedInSolarSystemID'),
             ColumnDefn('Installer', 'center', 170, 'installerID'),
             ColumnDefn('Install Date', 'center', 140, 'installTime'),
             ColumnDefn('End Date', 'center', 140, 'endProductionTime')
@@ -907,7 +907,7 @@ class MainWindow(wx.Frame):
                                                         locationNames[int(row.getAttribute('installedInSolarSystemID'))],
                                                         pilotNames[int(row.getAttribute('installerID'))],
                                                         int(row.getAttribute('runs')),
-                                                        itemNames[int(row.getAttribute('outputTypeID'))],
+                                                        row.getAttribute('outputTypeID'),
                                                         row.getAttribute('installTime'),
                                                         row.getAttribute('endProductionTime')))
 
@@ -970,30 +970,50 @@ class MainWindow(wx.Frame):
         else:
             details = str(currentItem.timeRemaining)
 
+        ids = [int(currentItem.outputTypeID)]
+        itemNames = id2name('item', ids)
+
 #       activities = {1: 'Manufacturing', 2: 'Technological research', 3: 'Time Efficiency Research', 4: 'Material Research',
 #                    5: 'Copy', 6: 'Duplicating', 7: 'Reverse Engineering', 8: 'Invention'}  # POS activities list.
         if currentItem.activityID == 1:  # Manufacturing
-            details = ('TTC: %s\n%s runs of %s\n' % (details, currentItem.runs, currentItem.outputTypeID))
+            try:
+                con = lite.connect('static.db')
+
+                with con:
+                    cur = con.cursor()
+                    statement = "SELECT portionSize FROM invtypes WHERE typeID = '" + currentItem.outputTypeID + "'"
+                    cur.execute(statement)
+
+                    row = cur.fetchone()
+                    details = ('TTC: %s\n%s x %s\n' % (details, (int(currentItem.runs) * int(row[0])), itemNames[int(currentItem.outputTypeID)]))
+
+            except lite.Error as err:
+                error = ('SQL Lite Error: ' + str(err.args[0]) + str(err.args[1:]))  # Error String
+                onError(error)
+                details = ('TTC: %s\n%s runs of %s\n' % (details, currentItem.runs, itemNames[int(currentItem.outputTypeID)]))
+            finally:
+                if con:
+                    con.close()
         elif currentItem.activityID == 2:  # Technological research
-            details = ('TTC: %s\n%s x %s\n' % (details, currentItem.runs, currentItem.outputTypeID))
+            details = ('TTC: %s\n%s x %s\n' % (details, currentItem.runs, itemNames[int(currentItem.outputTypeID)]))
         elif currentItem.activityID == 3:  # Time Efficiency Research
             details = ('TTC: %s\nInstall PE: %s\nOutput PE %s\n1 unit of %s\n' %
                 (details, currentItem.installedItemProductivityLevel,
-                (currentItem.installedItemProductivityLevel + currentItem.runs), currentItem.outputTypeID))
+                (currentItem.installedItemProductivityLevel + currentItem.runs), itemNames[int(currentItem.outputTypeID)]))
         elif currentItem.activityID == 4:  # Material Research
             details = ('TTC: %s\nInstall ME: %s\nOutput ME %s\n1 unit of %s\n' %
                 (details, currentItem.installedItemMaterialLevel,
-                (currentItem.installedItemMaterialLevel + currentItem.runs), currentItem.outputTypeID))
+                (currentItem.installedItemMaterialLevel + currentItem.runs), itemNames[int(currentItem.outputTypeID)]))
         elif currentItem.activityID == 5:  # Copy
-            details = ('TTC: %s\n%s x %s\n' % (details, currentItem.runs, currentItem.outputTypeID))
+            details = ('TTC: %s\n%s x %s\n' % (details, currentItem.runs, itemNames[int(currentItem.outputTypeID)]))
         elif currentItem.activityID == 6:  # Duplicating
-            details = ('TTC: %s\n%s x %s\n' % (details, currentItem.runs, currentItem.outputTypeID))
+            details = ('TTC: %s\n%s x %s\n' % (details, currentItem.runs, itemNames[int(currentItem.outputTypeID)]))
         elif currentItem.activityID == 7:  # Reverse Engineering
-            details = ('TTC: %s\n%s x %s\n' % (details, currentItem.runs, currentItem.outputTypeID))
+            details = ('TTC: %s\n%s x %s\n' % (details, currentItem.runs, itemNames[int(currentItem.outputTypeID)]))
         elif currentItem.activityID == 8:  # Invention
-            details = ('TTC: %s\n%s x %s\n' % (details, currentItem.runs, currentItem.outputTypeID))
+            details = ('TTC: %s\n%s x %s\n' % (details, currentItem.runs, itemNames[int(currentItem.outputTypeID)]))
         else:  # Fall back unknown activity
-            details = ('TTC: %s\n%s runs of %s\n' % (details, currentItem.runs, currentItem.outputTypeID))
+            details = ('TTC: %s\n%s runs of %s\n' % (details, currentItem.runs, itemNames[int(currentItem.outputTypeID)]))
 
         self.jobDetailBox.SetValue(details)
 
