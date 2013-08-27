@@ -84,11 +84,12 @@ class Job(object):
 
 
 class Starbase(object):
-    def __init__(self, itemID, typeID, locationID, moonID, state, stateTimestamp, onlineTimestamp,
+    def __init__(self, itemID, typeID, typeStr, locationID, moonID, state, stateTimestamp, onlineTimestamp,
                  #fuelBlocks, blockQty, charters, charterQty, stront, strontQty, standingOwnerID):
                  fuel, standingOwnerID):
         self.itemID = itemID
         self.typeID = typeID
+        self.typeStr = typeStr
         self.locationID = locationID
         self.moonID = moonID  # if unanchored moonID will be 0
         self.state = state
@@ -103,12 +104,6 @@ class Starbase(object):
         else:
             self.onlineTimestamp = datetime.datetime(*(time.strptime(onlineTimestamp, '%Y-%m-%d %H:%M:%S')[0:6]))
         self.fuel = fuel
-        #self.fuelBlocks = fuelBlocks
-        #self.blockQty = blockQty
-        #self.charters = charters
-        #self.charterQty = charterQty
-        #self.stront = stront
-        #self.strontQty = strontQty
         self.standingOwnerID = standingOwnerID
 
 
@@ -788,14 +783,14 @@ class MainWindow(wx.Frame):
             ColumnDefn('End Date', 'center', 140, 'endProductionTime')
         ])
 
-        self.starbaseList.SetEmptyListMsg('Click \"Refresh\" to get POS status\nThis requires a corporation API Key\n(Still In Development)')
+        self.starbaseList.SetEmptyListMsg('Click \"Refresh\" to get POS status\nThis requires a corporation API Key')
         self.starbaseList.SetFont(wx.Font(9, wx.DEFAULT, wx.NORMAL, wx.NORMAL, 0, ""))
         self.starbaseDetailBox.SetFont(wx.Font(9, wx.DEFAULT, wx.NORMAL, wx.NORMAL, 0, ""))
 
         self.starbaseList.SetColumns([
             ColumnDefn('System', 'center', 210, 'locationID'),
             ColumnDefn('Moon', 'center', 210, 'moonID'),
-            ColumnDefn('Type', 'left', 200, 'typeID'),
+            ColumnDefn('Type', 'left', 200, 'typeStr'),
             ColumnDefn('State', 'center', 100, 'state', stringConverter=stateConv),
             ColumnDefn('State From', 'center', 140, 'stateTimestamp'),
             ColumnDefn('Online Since / At', 'center', 140, 'onlineTimestamp')
@@ -1101,6 +1096,7 @@ class MainWindow(wx.Frame):
                                         locationNames = id2location(x, locationIDs)
 
                                         tempStarbaseRows.append(Starbase(row.getAttribute('itemID'),
+                                                        int(row.getAttribute('typeID')),
                                                         itemNames[int(row.getAttribute('typeID'))],
                                                         locationNames[int(row.getAttribute('locationID'))],
                                                         locationNames[int(row.getAttribute('moonID'))],
@@ -1169,9 +1165,31 @@ class MainWindow(wx.Frame):
         details = ''
         fuelTypes = list(currentItem.fuel[::2])
         fuelQtys = list(currentItem.fuel[1::2])
-        # print(fuelTypes)
-        # print(fuelQtys)
+
         itemIDs = []
+        fuelConsumption = {}
+
+        if currentItem.typeID != '':  # We have a control tower id to work with
+            try:
+                con = lite.connect('static.db')
+
+                with con:
+                    cur = con.cursor()
+                    #invcontroltowerresources (controlTowerTypeID,resourceTypeID,purpose,quantity,minSecurityLevel,factionID)
+                    statement = "SELECT resourceTypeID, quantity FROM invcontroltowerresources WHERE controlTowerTypeID = ('" + str(currentItem.typeID) + "')"
+                    cur.execute(statement)
+
+                    rows = cur.fetchall()
+
+                    for row in rows:
+                        fuelConsumption.update({int(row[0]): int(row[1])})
+
+            except lite.Error as err:
+                error = ('SQL Lite Error: ' + str(err.args[0]) + str(err.args[1:]))  # Error String
+                onError(error)
+            finally:
+                if con:
+                    con.close()
 
         for x in fuelTypes:
             itemIDs.append(x)
@@ -1179,7 +1197,11 @@ class MainWindow(wx.Frame):
         itemNames = id2name('item', itemIDs)
 
         for x in range(len(fuelTypes)):
-            details = ('%s%s x %s\n' % (details, itemNames[int(fuelTypes[x])], fuelQtys[x]))
+            fuelTime = float(fuelQtys[x]) / float(fuelConsumption[int(fuelTypes[x])])
+            fuelDays = int(fuelTime) / 24
+            fuelHours = int(fuelTime) % 24
+
+            details = ('%s%s x %s - %s Days %s Hours\n' % (details, itemNames[int(fuelTypes[x])], fuelQtys[x], fuelDays, fuelHours))
 
         self.starbaseDetailBox.SetValue(details)
 
