@@ -85,7 +85,8 @@ class Job(object):
 
 class Starbase(object):
     def __init__(self, itemID, typeID, locationID, moonID, state, stateTimestamp, onlineTimestamp,
-                 fuelBlocks, blockQty, charters, charterQty, stront, strontQty, standingOwnerID):
+                 #fuelBlocks, blockQty, charters, charterQty, stront, strontQty, standingOwnerID):
+                 fuel, standingOwnerID):
         self.itemID = itemID
         self.typeID = typeID
         self.locationID = locationID
@@ -101,12 +102,13 @@ class Starbase(object):
             self.onlineTimestamp = 'No Data'
         else:
             self.onlineTimestamp = datetime.datetime(*(time.strptime(onlineTimestamp, '%Y-%m-%d %H:%M:%S')[0:6]))
-        self.fuelBlocks = fuelBlocks
-        self.blockQty = blockQty
-        self.charters = charters
-        self.charterQty = charterQty
-        self.stront = stront
-        self.strontQty = strontQty
+        self.fuel = fuel
+        #self.fuelBlocks = fuelBlocks
+        #self.blockQty = blockQty
+        #self.charters = charters
+        #self.charterQty = charterQty
+        #self.stront = stront
+        #self.strontQty = strontQty
         self.standingOwnerID = standingOwnerID
 
 
@@ -1098,8 +1100,6 @@ class MainWindow(wx.Frame):
                                         itemNames = id2name('item', itemIDs)
                                         locationNames = id2location(x, locationIDs)
 
-                                        print(fuel)  # I am uncertain if this will always contain 6 elements returned from the api.
-
                                         tempStarbaseRows.append(Starbase(row.getAttribute('itemID'),
                                                         itemNames[int(row.getAttribute('typeID'))],
                                                         locationNames[int(row.getAttribute('locationID'))],
@@ -1107,12 +1107,7 @@ class MainWindow(wx.Frame):
                                                         int(row.getAttribute('state')),
                                                         row.getAttribute('stateTimestamp'),
                                                         row.getAttribute('onlineTimestamp'),
-                                                        itemNames[int(fuel[0])],  # Fuel Blocks
-                                                        int(fuel[1]),
-                                                        itemNames[int(fuel[2])],  # Charters
-                                                        int(fuel[3]),
-                                                        itemNames[int(fuel[4])],  # Strontium
-                                                        int(fuel[5]),
+                                                        fuel,
                                                         row.getAttribute('standingOwnerID')))
 
                                     # itemID,typeID,locationID,moonID,state,stateTimestamp,onlineTimestamp,standingOwnerID
@@ -1171,8 +1166,20 @@ class MainWindow(wx.Frame):
         """Handle showing details for item select from list"""
         currentItem = self.starbaseList[event.GetIndex()]
 
-        details = ('%ss: %s\n%ss: %s\n%s: %s' % (currentItem.fuelBlocks, currentItem.blockQty, currentItem.charters,
-                                                 currentItem.charterQty, currentItem.stront, currentItem.strontQty))
+        details = ''
+        fuelTypes = list(currentItem.fuel[::2])
+        fuelQtys = list(currentItem.fuel[1::2])
+        # print(fuelTypes)
+        # print(fuelQtys)
+        itemIDs = []
+
+        for x in fuelTypes:
+            itemIDs.append(x)
+
+        itemNames = id2name('item', itemIDs)
+
+        for x in range(len(fuelTypes)):
+            details = ('%s%s x %s\n' % (details, itemNames[int(fuelTypes[x])], fuelQtys[x]))
 
         self.starbaseDetailBox.SetValue(details)
 
