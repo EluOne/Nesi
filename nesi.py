@@ -405,13 +405,16 @@ def id2location(pilotRowID, ids):  # Take location IDs from API and use against 
             # Station
             if ids[x] not in locationIDs:
                 locationIDs.append(ids[x])
-        elif ids[x] >= 61000000:
+        elif 61000000 <= ids[x] < 66000000:
             # Conquerable Outpost
             if ids[x] not in conquerableIDs:
                 conquerableIDs.append(ids[x])
-        else:  # locationID < 60000000 then the asset is somewhere in space
+        elif ids[x] < 60000000:  # locationID < 60000000 then the asset is somewhere in space
             if ids[x] not in locationIDs:
                 locationIDs.append(ids[x])
+        else:  # I am currently unsure how to translate this value
+            if ids[x] not in locationIDs:
+                locationNames.update({int(ids[x]): str(ids[x])})
 
     if locationIDs != []:  # We still have some ids we don't know
         try:
@@ -563,7 +566,7 @@ def id2location(pilotRowID, ids):  # Take location IDs from API and use against 
 
 def jobRowFormatter(listItem, row):  # Formatter for ObjectListView, will turn completed jobs green.
     if row.timeRemaining < datetime.timedelta(0):
-        listItem.SetTextColour(wx.GREEN)
+        listItem.SetTextColour((0, 192, 0))
 
 
 def apiRowFormatter(listItem, row):  # Formatter for GroupListView, will turn expired api keys red.
@@ -592,6 +595,11 @@ def stateConv(state):
         return states[state]
     else:
         return state
+
+
+def datetimeConv(timeStr):
+    # Trim the seconds off the display date time same as client. As we want to store the exact time for calcs.
+    return str(timeStr)[:-3]
 
 
 class PreferencesDialog(wx.Dialog):
@@ -777,10 +785,9 @@ class MainWindow(wx.Frame):
             ColumnDefn('Activity', 'left', 145, 'activityID', stringConverter=activityConv),
             ColumnDefn('Type', 'left', 280, 'installedItemTypeID'),
             ColumnDefn('Location', 'center', 170, 'outputLocationID'),
-            ColumnDefn('System', 'center', 150, 'installedInSolarSystemID'),
             ColumnDefn('Installer', 'center', 170, 'installerID'),
-            ColumnDefn('Install Date', 'center', 140, 'installTime'),
-            ColumnDefn('End Date', 'center', 140, 'endProductionTime')
+            ColumnDefn('Install Date', 'center', 120, 'installTime', stringConverter=datetimeConv),
+            ColumnDefn('End Date', 'center', 120, 'endProductionTime', stringConverter=datetimeConv)
         ])
 
         self.starbaseList.SetEmptyListMsg('Click \"Refresh\" to get POS status\nThis requires a corporation API Key')
@@ -961,14 +968,14 @@ class MainWindow(wx.Frame):
         """Handle showing details for item select from list"""
         currentItem = self.jobList[event.GetIndex()]
 
-        details = ''
         if currentItem.timeRemaining < datetime.timedelta(0):
-            details = 'Ready'
+            details = 'TTC: Ready\n'
         else:
-            details = str(currentItem.timeRemaining)
+            details = ('TTC: %s\n' % (str(currentItem.timeRemaining)))
 
         ids = [int(currentItem.outputTypeID)]
         itemNames = id2name('item', ids)
+        location = ('Output Location: %s - %s' % (currentItem.outputLocationID, currentItem.installedInSolarSystemID))
 
 #       activities = {1: 'Manufacturing', 2: 'Technological research', 3: 'Time Efficiency Research', 4: 'Material Research',
 #                    5: 'Copy', 6: 'Duplicating', 7: 'Reverse Engineering', 8: 'Invention'}  # POS activities list.
@@ -982,35 +989,37 @@ class MainWindow(wx.Frame):
                     cur.execute(statement)
 
                     row = cur.fetchone()
-                    details = ('TTC: %s\n%s x %s\n' % (details, (int(currentItem.runs) * int(row[0])), itemNames[int(currentItem.outputTypeID)]))
+                    details = ('%s%s\nOutput Type: %s x %s\n' %
+                               (details, location, (int(currentItem.runs) * int(row[0])), itemNames[int(currentItem.outputTypeID)]))
 
             except lite.Error as err:
                 error = ('SQL Lite Error: ' + str(err.args[0]) + str(err.args[1:]))  # Error String
                 onError(error)
-                details = ('TTC: %s\n%s runs of %s\n' % (details, currentItem.runs, itemNames[int(currentItem.outputTypeID)]))
+                details = ('%s%s\nOutput Type: %s runs of %s\n' %
+                           (details, location, currentItem.runs, itemNames[int(currentItem.outputTypeID)]))
             finally:
                 if con:
                     con.close()
         elif currentItem.activityID == 2:  # Technological research
-            details = ('TTC: %s\n%s x %s\n' % (details, currentItem.runs, itemNames[int(currentItem.outputTypeID)]))
+            details = ('%s%s x %s\n' % (details, currentItem.runs, itemNames[int(currentItem.outputTypeID)]))
         elif currentItem.activityID == 3:  # Time Efficiency Research
-            details = ('TTC: %s\nInstall PE: %s\nOutput PE %s\n1 unit of %s\n' %
+            details = ('%sInstall PE: %s\nEnd PE: %s\n%s\nOutput Type: 1 unit of %s\n' %
                 (details, currentItem.installedItemProductivityLevel,
-                (currentItem.installedItemProductivityLevel + currentItem.runs), itemNames[int(currentItem.outputTypeID)]))
+                (currentItem.installedItemProductivityLevel + currentItem.runs), location, itemNames[int(currentItem.outputTypeID)]))
         elif currentItem.activityID == 4:  # Material Research
-            details = ('TTC: %s\nInstall ME: %s\nOutput ME %s\n1 unit of %s\n' %
+            details = ('%sInstall ME: %s\nEnd ME: %s\n%s\nOutput Type: 1 unit of %s\n' %
                 (details, currentItem.installedItemMaterialLevel,
-                (currentItem.installedItemMaterialLevel + currentItem.runs), itemNames[int(currentItem.outputTypeID)]))
+                (currentItem.installedItemMaterialLevel + currentItem.runs), location, itemNames[int(currentItem.outputTypeID)]))
         elif currentItem.activityID == 5:  # Copy
-            details = ('TTC: %s\n%s x %s\n' % (details, currentItem.runs, itemNames[int(currentItem.outputTypeID)]))
+            details = ('%s%s\nOutput Type: %s x %s\n' % (details, location, currentItem.runs, itemNames[int(currentItem.outputTypeID)]))
         elif currentItem.activityID == 6:  # Duplicating
-            details = ('TTC: %s\n%s x %s\n' % (details, currentItem.runs, itemNames[int(currentItem.outputTypeID)]))
+            details = ('%s%s\nOutput Type: %s x %s\n' % (details, location, currentItem.runs, itemNames[int(currentItem.outputTypeID)]))
         elif currentItem.activityID == 7:  # Reverse Engineering
-            details = ('TTC: %s\n%s x %s\n' % (details, currentItem.runs, itemNames[int(currentItem.outputTypeID)]))
+            details = ('%s%s\nOutput Type: %s x %s\n' % (details, location, currentItem.runs, itemNames[int(currentItem.outputTypeID)]))
         elif currentItem.activityID == 8:  # Invention
-            details = ('TTC: %s\n%s x %s\n' % (details, currentItem.runs, itemNames[int(currentItem.outputTypeID)]))
+            details = ('%s%s\nOutput Type: %s x %s\n' % (details, location, currentItem.runs, itemNames[int(currentItem.outputTypeID)]))
         else:  # Fall back unknown activity
-            details = ('TTC: %s\n%s runs of %s\n' % (details, currentItem.runs, itemNames[int(currentItem.outputTypeID)]))
+            details = ('%s%s\nOutput Type: %s runs of %s\n' % (details, location, currentItem.runs, itemNames[int(currentItem.outputTypeID)]))
 
         self.jobDetailBox.SetValue(details)
 
@@ -1196,12 +1205,22 @@ class MainWindow(wx.Frame):
 
         itemNames = id2name('item', itemIDs)
 
-        for x in range(len(fuelTypes)):
+        for x in range(len(fuelTypes)):  # Iterate over the returned fuel rows and format nicely. We are only really interested in days and whole hours.
             fuelTime = float(fuelQtys[x]) / float(fuelConsumption[int(fuelTypes[x])])
             fuelDays = int(fuelTime) / 24
             fuelHours = int(fuelTime) % 24
 
-            details = ('%s%s x %s - %s Days %s Hours\n' % (details, itemNames[int(fuelTypes[x])], fuelQtys[x], fuelDays, fuelHours))
+            details = ('%s%s x %s -' % (details, itemNames[int(fuelTypes[x])], fuelQtys[x]))
+
+            if fuelDays == 1:
+                details = ('%s %s Day' % (details, fuelDays))
+            else:
+                details = ('%s %s Days' % (details, fuelDays))
+
+            if fuelHours == 1:
+                details = ('%s %s Hour\n' % (details, fuelHours))
+            else:
+                details = ('%s %s Hours\n' % (details, fuelHours))
 
         self.starbaseDetailBox.SetValue(details)
 
