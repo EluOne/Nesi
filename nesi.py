@@ -412,7 +412,7 @@ def id2location(pilotRowID, ids):  # Take location IDs from API and use against 
         elif ids[x] < 60000000:  # locationID < 60000000 then the asset is somewhere in space
             if ids[x] not in locationIDs:
                 locationIDs.append(ids[x])
-        else:  # I am currently unsure how to translate this value
+        else:  # I am currently unsure how to translate this value, most likely an unexpected value.
             if ids[x] not in locationIDs:
                 locationNames.update({int(ids[x]): str(ids[x])})
 
@@ -777,30 +777,30 @@ class MainWindow(wx.Frame):
         # In game: Click "Get Jobs" to fetch jobs with current filters
         self.jobList.SetEmptyListMsg('Click \"Get Jobs\" to fetch jobs')
         self.jobList.SetFont(wx.Font(9, wx.DEFAULT, wx.NORMAL, wx.NORMAL, 0, ""))
-        self.jobDetailBox.SetFont(wx.Font(9, wx.DEFAULT, wx.NORMAL, wx.NORMAL, 0, ""))
+        self.jobDetailBox.SetFont(wx.Font(10, wx.DEFAULT, wx.NORMAL, wx.NORMAL, 0, ""))
 
         self.jobList.rowFormatter = jobRowFormatter
         self.jobList.SetColumns([
             ColumnDefn('State', 'left', 75, 'state'),
             ColumnDefn('Activity', 'left', 145, 'activityID', stringConverter=activityConv),
-            ColumnDefn('Type', 'left', 280, 'installedItemTypeID'),
-            ColumnDefn('Location', 'center', 170, 'outputLocationID'),
-            ColumnDefn('Installer', 'center', 170, 'installerID'),
-            ColumnDefn('Install Date', 'center', 120, 'installTime', stringConverter=datetimeConv),
-            ColumnDefn('End Date', 'center', 120, 'endProductionTime', stringConverter=datetimeConv)
+            ColumnDefn('Type', 'left', 250, 'installedItemTypeID'),
+            ColumnDefn('Location', 'left', 150, 'outputLocationID'),
+            ColumnDefn('Installer', 'left', 150, 'installerID'),
+            ColumnDefn('Install Date', 'center', 110, 'installTime', stringConverter=datetimeConv),
+            ColumnDefn('End Date', 'center', 110, 'endProductionTime', stringConverter=datetimeConv)
         ])
 
         self.starbaseList.SetEmptyListMsg('Click \"Refresh\" to get POS status\nThis requires a corporation API Key')
         self.starbaseList.SetFont(wx.Font(9, wx.DEFAULT, wx.NORMAL, wx.NORMAL, 0, ""))
-        self.starbaseDetailBox.SetFont(wx.Font(9, wx.DEFAULT, wx.NORMAL, wx.NORMAL, 0, ""))
+        self.starbaseDetailBox.SetFont(wx.Font(10, wx.DEFAULT, wx.NORMAL, wx.NORMAL, 0, ""))
 
         self.starbaseList.SetColumns([
-            ColumnDefn('System', 'center', 210, 'locationID'),
-            ColumnDefn('Moon', 'center', 210, 'moonID'),
+            ColumnDefn('System', 'center', 220, 'locationID'),
+            ColumnDefn('Moon', 'center', 220, 'moonID'),
             ColumnDefn('Type', 'left', 200, 'typeStr'),
-            ColumnDefn('State', 'center', 100, 'state', stringConverter=stateConv),
-            ColumnDefn('State From', 'center', 140, 'stateTimestamp'),
-            ColumnDefn('Online Since / At', 'center', 140, 'onlineTimestamp')
+            ColumnDefn('State', 'center', 130, 'state', stringConverter=stateConv),
+            ColumnDefn('State From', 'center', 110, 'stateTimestamp', stringConverter=datetimeConv),
+            ColumnDefn('Online Since / At', 'center', 110, 'onlineTimestamp', stringConverter=datetimeConv)
             #ColumnDefn('Standing Owner ID', 'left', 140, 'standingOwnerID')
         ])
 
