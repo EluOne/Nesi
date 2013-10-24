@@ -971,7 +971,8 @@ class MainWindow(wx.Frame):
         if currentItem.timeRemaining < datetime.timedelta(0):
             details = 'TTC: Ready\n'
         else:
-            details = ('TTC: %s\n' % (str(currentItem.timeRemaining)))
+            human = str(currentItem.timeRemaining).split(':')  # Lets split the delta into a nice list for formatting.
+            details = ('TTC: %s Hours %s Minutes %s Seconds\n' % (human[0], human[1], human[2]))
 
         ids = [int(currentItem.outputTypeID)]
         itemNames = id2name('item', ids)
