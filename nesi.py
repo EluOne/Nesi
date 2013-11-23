@@ -247,10 +247,17 @@ def id2name(idType, ids):  # Takes a list of IDs to query the local db or api se
 
                     rows = cur.fetchall()
 
-                    # print((len(rows)))
+                    # Use the item strings returned to populate the typeNames dictionary.
                     for row in rows:
-                        # print(row)
                         typeNames.update({int(row[0]): str(row[1])})
+                        ids.remove(row[0])
+
+                if ids != []:  # We have some ids we don't know.
+                    numItems = range(len(ids))
+                    for y in numItems:
+                        typeNames.update({int(ids[y]): str(ids[y])})
+                    error = ('ids not found in database: ' + str(ids))  # Error String
+                    onError(error)
 
             except lite.Error as err:
                 error = ('SQL Lite Error: ' + str(err.args[0]) + str(err.args[1:]))  # Error String
