@@ -621,8 +621,8 @@ class PreferencesDialog(wx.Dialog):
         self.addBtn = wx.Button(self, wx.ID_ADD, "")
         self.charList = GroupListView(self, -1, style=wx.LC_REPORT | wx.SUNKEN_BORDER)
         self.cancelBtn = wx.Button(self, wx.ID_CANCEL)
-        self.deleteBtn = wx.Button(self, -1, "Delete")
-        self.saveBtn = wx.Button(self, -1, "Save")
+        self.deleteBtn = wx.Button(self, wx.ID_DELETE)
+        self.saveBtn = wx.Button(self, wx.ID_SAVE)
 
         self.__set_properties()
         self.__do_layout()
@@ -736,11 +736,11 @@ class MainWindow(wx.Frame):
         # Menu Bar
         self.frame_menubar = wx.MenuBar()
         self.fileMenu = wx.Menu()
-        self.menuAbout = wx.MenuItem(self.fileMenu, wx.NewId(), "&About", "", wx.ITEM_NORMAL)
+        self.menuAbout = wx.MenuItem(self.fileMenu, wx.ID_ABOUT, "&About", "", wx.ITEM_NORMAL)
         self.fileMenu.AppendItem(self.menuAbout)
-        self.menuConfig = wx.MenuItem(self.fileMenu, wx.NewId(), "&Configure", "", wx.ITEM_NORMAL)
+        self.menuConfig = wx.MenuItem(self.fileMenu, wx.ID_PREFERENCES, "&Configure", "", wx.ITEM_NORMAL)
         self.fileMenu.AppendItem(self.menuConfig)
-        self.menuExit = wx.MenuItem(self.fileMenu, wx.NewId(), "E&xit", "", wx.ITEM_NORMAL)
+        self.menuExit = wx.MenuItem(self.fileMenu, wx.ID_EXIT, "E&xit", "", wx.ITEM_NORMAL)
         self.fileMenu.AppendItem(self.menuExit)
         self.frame_menubar.Append(self.fileMenu, "File")
         self.SetMenuBar(self.frame_menubar)
@@ -1283,6 +1283,7 @@ class MyApp(wx.App):
         wx.InitAllImageHandlers()
         frame = MainWindow(None, -1, '')
         self.SetTopWindow(frame)
+        frame.Center()
         frame.Show()
         return 1
 
