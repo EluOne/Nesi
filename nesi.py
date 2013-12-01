@@ -47,6 +47,7 @@ starbaseCachedUntil = serverTime
 starbaseRows = []
 # This is where we are storing our API keys for now.
 pilotRows = []
+bpoList = []
 
 
 class Job(object):
@@ -122,6 +123,12 @@ class Character(object):
             self.keyExpires = datetime.datetime(*(time.strptime(keyExpires, '%Y-%m-%d %H:%M:%S')[0:6]))
         self.isActive = isActive
 
+
+class Materials(object):
+    def __init__(self, item, quantity, category):
+        self.item = item
+        self.quantity = quantity
+        self.category = category
 
 # Lets try to load up our API keys from the config file.
 # This requires the above classes to work.
@@ -749,14 +756,46 @@ class MainWindow(wx.Frame):
         self.bitmap_1 = wx.StaticBitmap(self, -1, wx.Bitmap("images/nesi.png", wx.BITMAP_TYPE_ANY))
         self.label_1 = wx.StaticText(self, -1, "Nova Echo Science and Industry")
         self.mainNotebook = wx.Notebook(self, -1, style=0)
+
         self.notebookJobPane = wx.Panel(self.mainNotebook, -1)
         self.jobBtn = wx.Button(self.notebookJobPane, -1, "Get Jobs")
         self.jobList = ObjectListView(self.notebookJobPane, -1, style=wx.LC_REPORT | wx.SUNKEN_BORDER)
         self.jobDetailBox = wx.TextCtrl(self.notebookJobPane, -1, "", style=wx.TE_MULTILINE)
+
         self.notebookStarbasePane = wx.Panel(self.mainNotebook, -1)
         self.starbaseBtn = wx.Button(self.notebookStarbasePane, -1, "Refresh")
         self.starbaseList = ObjectListView(self.notebookStarbasePane, -1, style=wx.LC_REPORT | wx.SUNKEN_BORDER)
         self.starbaseDetailBox = wx.TextCtrl(self.notebookStarbasePane, -1, "", style=wx.TE_MULTILINE)
+
+        if bpoList == []:  # We still have some ids we don't know
+            try:
+                #idList = ("', '".join(map(str, locationIDs[:])))
+                con = lite.connect('rub100-sqlite3-v1.db')
+
+                with con:
+                    cur = con.cursor()
+                    statement = """SELECT r.blueprintTypeID, r.productTypeID, t.typeName FROM invblueprinttypes AS r INNER JOIN invTypes AS t ON r.blueprintTypeID = t.typeID ORDER BY t.typeName;"""
+                    cur.execute(statement)
+
+                    rows = cur.fetchall()
+
+                    #print((len(rows)))
+                    for row in rows:
+                        #print(row)
+                        bpoList.append([int(row[0]), int(row[1]), str(row[2])])
+
+            except lite.Error as err:
+                error = ('SQL Lite Error: ' + str(err.args[0]) + str(err.args[1:]))  # Error String
+                onError(error)
+            finally:
+                if con:
+                    con.close()
+
+        self.notebookManufacturingPane = wx.Panel(self.mainNotebook, wx.ID_ANY)
+        self.bpoSelector = wx.ComboBox(self.notebookManufacturingPane, wx.ID_ANY, choices=[("Select BPO...")], style=wx.CB_DROPDOWN)
+        self.manufactureList = GroupListView(self.notebookManufacturingPane, wx.ID_ANY, style=wx.LC_REPORT | wx.SUNKEN_BORDER)
+        for i in range(len(bpoList)):
+            self.bpoSelector.Append(str(bpoList[i][2]))
 
         self.__set_properties()
         self.__do_layout()
@@ -764,10 +803,14 @@ class MainWindow(wx.Frame):
         self.Bind(wx.EVT_MENU, self.onAbout, self.menuAbout)
         self.Bind(wx.EVT_MENU, self.onConfig, self.menuConfig)
         self.Bind(wx.EVT_MENU, self.onExit, self.menuExit)
+
         self.Bind(wx.EVT_BUTTON, self.onGetJobs, self.jobBtn)
         self.Bind(wx.EVT_LIST_ITEM_SELECTED, self.onJobSelect, self.jobList)
+
         self.Bind(wx.EVT_BUTTON, self.onGetStarbases, self.starbaseBtn)
         self.Bind(wx.EVT_LIST_ITEM_SELECTED, self.onStarbaseSelect, self.starbaseList)
+
+        self.Bind(wx.EVT_COMBOBOX, self.onBpoSelect)
         # end wxGlade
 
     def __set_properties(self):
@@ -781,6 +824,7 @@ class MainWindow(wx.Frame):
 
         self.statusbar.SetStatusText('Welcome to Nesi - Idle')
 
+        # Jobs Notebook page
         # In game: Click "Get Jobs" to fetch jobs with current filters
         self.jobList.SetEmptyListMsg('Click \"Get Jobs\" to fetch jobs')
         self.jobList.SetFont(wx.Font(9, wx.DEFAULT, wx.NORMAL, wx.NORMAL, 0, ""))
@@ -797,6 +841,7 @@ class MainWindow(wx.Frame):
             ColumnDefn('End Date', 'center', 110, 'endProductionTime', stringConverter=datetimeConv)
         ])
 
+        # Starbase Notebook page
         self.starbaseList.SetEmptyListMsg('Click \"Refresh\" to get POS status\nThis requires a corporation API Key')
         self.starbaseList.SetFont(wx.Font(9, wx.DEFAULT, wx.NORMAL, wx.NORMAL, 0, ""))
         self.starbaseDetailBox.SetFont(wx.Font(10, wx.DEFAULT, wx.NORMAL, wx.NORMAL, 0, ""))
@@ -811,9 +856,23 @@ class MainWindow(wx.Frame):
             #ColumnDefn('Standing Owner ID', 'left', 140, 'standingOwnerID')
         ])
 
+        # Manufacturing Notebook page
+        self.bpoSelector.SetSelection(0)
+        self.manufactureList.SetEmptyListMsg('Select a BPO from the\ndrop down on left to start')
+        self.manufactureList.SetFont(wx.Font(9, wx.DEFAULT, wx.NORMAL, wx.NORMAL, 0, ""))
+
+        self.manufactureList.SetColumns([
+            ColumnDefn('Item', 'left', 290, 'item'),
+            ColumnDefn('Quantity', 'center', 200, 'quantity'),
+            ColumnDefn('Category', 'left', 150, 'category')
+        ])
+        self.manufactureList.SetSortColumn(self.manufactureList.columns[3])
+
     def __do_layout(self):
         # begin wxGlade: MainWindow.__do_layout
         mainSizer = wx.BoxSizer(wx.VERTICAL)
+        manufactureSizer = wx.BoxSizer(wx.HORIZONTAL)
+        manufactureSelectionSizer = wx.BoxSizer(wx.VERTICAL)
         starbaseSizer = wx.BoxSizer(wx.VERTICAL)
         jobSizer = wx.BoxSizer(wx.VERTICAL)
         headerSizer = wx.BoxSizer(wx.HORIZONTAL)
@@ -828,8 +887,13 @@ class MainWindow(wx.Frame):
         starbaseSizer.Add(self.starbaseList, 3, wx.EXPAND, 0)
         starbaseSizer.Add(self.starbaseDetailBox, 1, wx.EXPAND, 0)
         self.notebookStarbasePane.SetSizer(starbaseSizer)
-        self.mainNotebook.AddPage(self.notebookJobPane, "Jobs")
-        self.mainNotebook.AddPage(self.notebookStarbasePane, "Starbases")
+        manufactureSelectionSizer.Add(self.bpoSelector, 0, wx.ADJUST_MINSIZE, 0)
+        manufactureSizer.Add(manufactureSelectionSizer, 1, wx.EXPAND, 0)
+        manufactureSizer.Add(self.manufactureList, 1, wx.EXPAND, 0)
+        self.notebookManufacturingPane.SetSizer(manufactureSizer)
+        self.mainNotebook.AddPage(self.notebookJobPane, ("Jobs"))
+        self.mainNotebook.AddPage(self.notebookStarbasePane, ("Starbases"))
+        self.mainNotebook.AddPage(self.notebookManufacturingPane, ("Manufacturing"))
         mainSizer.Add(self.mainNotebook, 1, wx.EXPAND, 0)
         self.SetSizer(mainSizer)
         self.Layout()
@@ -1231,6 +1295,72 @@ class MainWindow(wx.Frame):
                 details = ('%s %s Hours\n' % (details, fuelHours))
 
         self.starbaseDetailBox.SetValue(details)
+
+    def onBpoSelect(self, event):
+        """Handle showing details for item select from list"""
+        tempManufacterRows = []
+        t = clock()
+        currentItem = event.GetSelection() - 1
+        print(currentItem)
+        print(bpoList[currentItem][:])
+
+        if currentItem >= 0:
+            # Base materials from item in db
+            baseQuery = """SELECT t.typeName, m.quantity FROM invTypeMaterials AS m
+                        INNER JOIN invTypes AS t ON m.materialTypeID = t.typeID WHERE m.typeID = """ + str(bpoList[currentItem][1])
+
+            # Extra materials from bpo in db excluding skills
+            extraQuery = """SELECT t.typeName, r.quantity, r.damagePerJob FROM ramTypeRequirements AS r
+                        INNER JOIN invTypes AS t ON r.requiredTypeID = t.typeID
+                        INNER JOIN invGroups AS g ON t.groupID = g.groupID
+                        WHERE r.typeID = """ + str(bpoList[currentItem][0]) + """-- Blueprint ID
+                        AND r.activityID = 1 -- Manufacturing
+                        AND g.categoryID != 16"""
+
+            # Skills from bpo in db
+            skillsQuery = """SELECT t.typeName, r.quantity, r.damagePerJob FROM ramTypeRequirements AS r
+                        INNER JOIN invTypes AS t ON r.requiredTypeID = t.typeID
+                        INNER JOIN invGroups AS g ON t.groupID = g.groupID
+                        WHERE r.typeID = """ + str(bpoList[currentItem][0]) + """ -- Electromechanical Interface Nexus Blueprint
+                        AND r.activityID = 1 -- Manufacturing
+                        AND g.categoryID = 16"""
+
+            try:
+                con = lite.connect('rub100-sqlite3-v1.db')
+
+                with con:
+                    cur = con.cursor()
+                    cur.execute(baseQuery)
+
+                    rows = cur.fetchall()
+                    #print((len(rows)))
+                    for row in rows:
+                        tempManufacterRows.append(Materials(str(row[0]), int(row[1]), 'Raw Materials'))
+
+                    cur.execute(extraQuery)
+
+                    rows = cur.fetchall()
+                    #print((len(rows)))
+                    for row in rows:
+                        tempManufacterRows.append(Materials(str(row[0]), int(row[1]), 'Extra Materials'))
+
+                    cur.execute(skillsQuery)
+
+                    rows = cur.fetchall()
+                    #print((len(rows)))
+                    for row in rows:
+                        tempManufacterRows.append(Materials(str(row[0]), int(row[1]), 'Skills'))
+
+            except lite.Error as err:
+                error = ('SQL Lite Error: ' + str(err.args[0]) + str(err.args[1:]))  # Error String
+                onError(error)
+            finally:
+                if con:
+                    con.close()
+
+            if tempManufacterRows != []:
+                manufactureRows = tempManufacterRows[:]
+            self.manufactureList.SetObjects(manufactureRows)
 
     def onConfig(self, event):
         # Open the config frame for user.
