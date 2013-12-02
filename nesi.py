@@ -130,6 +130,43 @@ class Materials(object):
         self.quantity = quantity
         self.category = category
 
+
+class AutoComboBox(wx.ComboBox) :
+    def __init__(self, parent, value, choices=[], style=0, **par):
+        wx.ComboBox.__init__(self, parent, wx.ID_ANY, value, style=style|wx.CB_DROPDOWN, choices=choices, **par)
+        self.choices = choices
+        self.Bind(wx.EVT_TEXT, self.EvtText)
+        self.Bind(wx.EVT_CHAR, self.EvtChar)
+        self.Bind(wx.EVT_COMBOBOX, self.EvtCombobox)
+        self.ignoreEvtText = False
+
+    def EvtCombobox(self, event):
+        self.ignoreEvtText = True
+        event.Skip()
+
+    def EvtChar(self, event):
+        if event.GetKeyCode() == 8:
+            self.ignoreEvtText = True
+        event.Skip()
+
+    def EvtText(self, event):
+        if self.ignoreEvtText:
+            self.ignoreEvtText = False
+            return
+        currentText = event.GetString()
+        found = False
+        for choice in self.choices :
+            if choice.startswith(currentText):
+                self.ignoreEvtText = True
+                self.SetValue(choice)
+                self.SetInsertionPoint(len(currentText))
+                self.SetMark(len(currentText), len(choice))
+                found = True
+                break
+        if not found:
+            event.Skip()
+
+
 # Lets try to load up our API keys from the config file.
 # This requires the above classes to work.
 if (os.path.isfile('nesi.ini')):
@@ -792,7 +829,7 @@ class MainWindow(wx.Frame):
                     con.close()
 
         self.notebookManufacturingPane = wx.Panel(self.mainNotebook, wx.ID_ANY)
-        self.bpoSelector = wx.ComboBox(self.notebookManufacturingPane, wx.ID_ANY, choices=[("Select BPO...")], style=wx.CB_DROPDOWN)
+        self.bpoSelector = AutoComboBox(self.notebookManufacturingPane, wx.ID_ANY, choices=[("Select BPO...")], style=wx.CB_DROPDOWN)
         self.manufactureList = GroupListView(self.notebookManufacturingPane, wx.ID_ANY, style=wx.LC_REPORT | wx.SUNKEN_BORDER)
         for i in range(len(bpoList)):
             self.bpoSelector.Append(str(bpoList[i][2]))
@@ -810,7 +847,6 @@ class MainWindow(wx.Frame):
         self.Bind(wx.EVT_BUTTON, self.onGetStarbases, self.starbaseBtn)
         self.Bind(wx.EVT_LIST_ITEM_SELECTED, self.onStarbaseSelect, self.starbaseList)
 
-        self.Bind(wx.EVT_TEXT, self.onBpoTextChange)
         self.Bind(wx.EVT_COMBOBOX, self.onBpoSelect)
         # end wxGlade
 
