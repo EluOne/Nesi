@@ -131,9 +131,9 @@ class Materials(object):
         self.category = category
 
 
-class AutoComboBox(wx.ComboBox) :
+class AutoComboBox(wx.ComboBox):
     def __init__(self, parent, value, choices=[], style=0, **par):
-        wx.ComboBox.__init__(self, parent, wx.ID_ANY, value, style=style|wx.CB_DROPDOWN, choices=choices, **par)
+        wx.ComboBox.__init__(self, parent, wx.ID_ANY, value, style=style | wx.CB_DROPDOWN, choices=choices, **par)
         self.choices = choices
         self.Bind(wx.EVT_TEXT, self.EvtText)
         self.Bind(wx.EVT_CHAR, self.EvtChar)
@@ -155,14 +155,19 @@ class AutoComboBox(wx.ComboBox) :
             return
         currentText = event.GetString()
         found = False
-        for choice in self.choices :
+        choices = 0
+        for choice in self.choices:
             if choice.startswith(currentText):
                 self.ignoreEvtText = True
-                self.SetValue(choice)
-                self.SetInsertionPoint(len(currentText))
-                self.SetMark(len(currentText), len(choice))
+                #self.SetValue(choice)
+                #self.SetInsertionPoint(len(currentText))
+                #self.SetMark(len(currentText), len(choice))
+                if choices == 0:
+                    self.Clear()
+                    choices = choices + 1
+                self.Append(choice)
                 found = True
-                break
+                #break
         if not found:
             event.Skip()
 
@@ -828,11 +833,13 @@ class MainWindow(wx.Frame):
                 if con:
                     con.close()
 
-        self.notebookManufacturingPane = wx.Panel(self.mainNotebook, wx.ID_ANY)
-        self.bpoSelector = AutoComboBox(self.notebookManufacturingPane, wx.ID_ANY, choices=[("Select BPO...")], style=wx.CB_DROPDOWN)
-        self.manufactureList = GroupListView(self.notebookManufacturingPane, wx.ID_ANY, style=wx.LC_REPORT | wx.SUNKEN_BORDER)
+        choices = ["Select BPO..."]
         for i in range(len(bpoList)):
-            self.bpoSelector.Append(str(bpoList[i][2]))
+            choices.append(str(bpoList[i][2]))
+
+        self.notebookManufacturingPane = wx.Panel(self.mainNotebook, wx.ID_ANY)
+        self.bpoSelector = AutoComboBox(self.notebookManufacturingPane, "Select BPO...", choices, style=wx.CB_DROPDOWN)
+        self.manufactureList = GroupListView(self.notebookManufacturingPane, wx.ID_ANY, style=wx.LC_REPORT | wx.SUNKEN_BORDER)
 
         self.__set_properties()
         self.__do_layout()
@@ -1333,47 +1340,28 @@ class MainWindow(wx.Frame):
 
         self.starbaseDetailBox.SetValue(details)
 
-    def onBpoTextChange(self, event):
-        print("onBpoTextChange", event.String, self.bpoSelector.GetValue())
-#        def refresh():
-#            wnd = self.bpoSelector
-#            while wnd:
-#                wnd.Refresh()
-#                wnd = wnd.GetParent()
-#            self.bpoSelector.Refresh()
-#        refresh()
-#        event.Skip()
-        currentText = event.GetString()
-        found = False
-        for choice in bpoList :
-            if choice.startswith(currentText):
-                self.ignoreEvtText = True
-                self.bpoSelector.SetValue(choice)
-                self.bpoSelector.SetInsertionPoint(len(currentText))
-                self.bpoSelector.SetMark(len(currentText), len(choice))
-                found = True
-                break
-        if not found:
-            event.Skip()
-
     def onBpoSelect(self, event):
         """Handle showing details for item select from list"""
         tempManufacterRows = []
-        t = clock()
-        currentItem = event.GetSelection() - 1
-        print(currentItem)
-        print(bpoList[currentItem][:])
+        currentItem = event.GetString()
+        #print(currentItem)
+
+        for i in range(len(bpoList)):
+            if bpoList[i][2] == currentItem:
+                itemID = i
+
+        #print(bpoList[itemID][:])
 
         if currentItem >= 0:
             # Base materials from item in db
             baseQuery = """SELECT t.typeName, m.quantity FROM invTypeMaterials AS m
-                        INNER JOIN invTypes AS t ON m.materialTypeID = t.typeID WHERE m.typeID = """ + str(bpoList[currentItem][1])
+                        INNER JOIN invTypes AS t ON m.materialTypeID = t.typeID WHERE m.typeID = """ + str(bpoList[itemID][1])
 
             # Extra materials from bpo in db excluding skills
             extraQuery = """SELECT t.typeName, r.quantity, r.damagePerJob FROM ramTypeRequirements AS r
                         INNER JOIN invTypes AS t ON r.requiredTypeID = t.typeID
                         INNER JOIN invGroups AS g ON t.groupID = g.groupID
-                        WHERE r.typeID = """ + str(bpoList[currentItem][0]) + """-- Blueprint ID
+                        WHERE r.typeID = """ + str(bpoList[itemID][0]) + """-- Blueprint ID
                         AND r.activityID = 1 -- Manufacturing
                         AND g.categoryID != 16"""
 
@@ -1381,7 +1369,7 @@ class MainWindow(wx.Frame):
             skillsQuery = """SELECT t.typeName, r.quantity, r.damagePerJob FROM ramTypeRequirements AS r
                         INNER JOIN invTypes AS t ON r.requiredTypeID = t.typeID
                         INNER JOIN invGroups AS g ON t.groupID = g.groupID
-                        WHERE r.typeID = """ + str(bpoList[currentItem][0]) + """ -- Electromechanical Interface Nexus Blueprint
+                        WHERE r.typeID = """ + str(bpoList[itemID][0]) + """ -- Blueprint ID
                         AND r.activityID = 1 -- Manufacturing
                         AND g.categoryID = 16"""
 
