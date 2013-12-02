@@ -770,7 +770,7 @@ class MainWindow(wx.Frame):
         if bpoList == []:  # We still have some ids we don't know
             try:
                 #idList = ("', '".join(map(str, locationIDs[:])))
-                con = lite.connect('rub100-sqlite3-v1.db')
+                con = lite.connect('static.db')
 
                 with con:
                     cur = con.cursor()
@@ -810,6 +810,7 @@ class MainWindow(wx.Frame):
         self.Bind(wx.EVT_BUTTON, self.onGetStarbases, self.starbaseBtn)
         self.Bind(wx.EVT_LIST_ITEM_SELECTED, self.onStarbaseSelect, self.starbaseList)
 
+        self.Bind(wx.EVT_TEXT, self.onBpoTextChange)
         self.Bind(wx.EVT_COMBOBOX, self.onBpoSelect)
         # end wxGlade
 
@@ -1296,6 +1297,17 @@ class MainWindow(wx.Frame):
 
         self.starbaseDetailBox.SetValue(details)
 
+    def onBpoTextChange(self, event):
+        print("onBpoTextChange", event.String, self.bpoSelector.GetValue())
+        def refresh():
+            wnd = self.bpoSelector
+            while wnd:
+                wnd.Refresh()
+                wnd = wnd.GetParent()
+            self.bpoSelector.Refresh()
+        refresh()
+        event.Skip()
+
     def onBpoSelect(self, event):
         """Handle showing details for item select from list"""
         tempManufacterRows = []
@@ -1326,7 +1338,7 @@ class MainWindow(wx.Frame):
                         AND g.categoryID = 16"""
 
             try:
-                con = lite.connect('rub100-sqlite3-v1.db')
+                con = lite.connect('static.db')
 
                 with con:
                     cur = con.cursor()
