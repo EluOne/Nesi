@@ -1299,14 +1299,26 @@ class MainWindow(wx.Frame):
 
     def onBpoTextChange(self, event):
         print("onBpoTextChange", event.String, self.bpoSelector.GetValue())
-        def refresh():
-            wnd = self.bpoSelector
-            while wnd:
-                wnd.Refresh()
-                wnd = wnd.GetParent()
-            self.bpoSelector.Refresh()
-        refresh()
-        event.Skip()
+#        def refresh():
+#            wnd = self.bpoSelector
+#            while wnd:
+#                wnd.Refresh()
+#                wnd = wnd.GetParent()
+#            self.bpoSelector.Refresh()
+#        refresh()
+#        event.Skip()
+        currentText = event.GetString()
+        found = False
+        for choice in bpoList :
+            if choice.startswith(currentText):
+                self.ignoreEvtText = True
+                self.bpoSelector.SetValue(choice)
+                self.bpoSelector.SetInsertionPoint(len(currentText))
+                self.bpoSelector.SetMark(len(currentText), len(choice))
+                found = True
+                break
+        if not found:
+            event.Skip()
 
     def onBpoSelect(self, event):
         """Handle showing details for item select from list"""
