@@ -145,29 +145,31 @@ class AutoComboBox(wx.ComboBox):
         event.Skip()
 
     def EvtChar(self, event):
-        if event.GetKeyCode() == 8:
+        if event.GetKeyCode() == 8:  # Backspace
             self.ignoreEvtText = True
         event.Skip()
 
     def EvtText(self, event):
+        currentText = str(event.GetString())
+        found = False
+        options = 0
+
         if self.ignoreEvtText:
             self.ignoreEvtText = False
+            if len(currentText) == 0:
+                self.Clear()
+                self.AppendItems(self.choices)
             return
-        currentText = event.GetString()
-        found = False
-        choices = 0
+
         for choice in self.choices:
-            if choice.startswith(currentText):
+            if choice.startswith(currentText.capitalize()):
                 self.ignoreEvtText = True
-                #self.SetValue(choice)
-                #self.SetInsertionPoint(len(currentText))
-                #self.SetMark(len(currentText), len(choice))
-                if choices == 0:
+                if options == 0:
                     self.Clear()
-                    choices = choices + 1
+                    options = options + 1
                 self.Append(choice)
                 found = True
-                #break
+
         if not found:
             event.Skip()
 
@@ -833,12 +835,12 @@ class MainWindow(wx.Frame):
                 if con:
                     con.close()
 
-        choices = ["Select BPO..."]
+        choices = [""]
         for i in range(len(bpoList)):
             choices.append(str(bpoList[i][2]))
 
         self.notebookManufacturingPane = wx.Panel(self.mainNotebook, wx.ID_ANY)
-        self.bpoSelector = AutoComboBox(self.notebookManufacturingPane, "Select BPO...", choices, style=wx.CB_DROPDOWN)
+        self.bpoSelector = AutoComboBox(self.notebookManufacturingPane, "", choices, style=wx.CB_DROPDOWN)
         self.manufactureList = GroupListView(self.notebookManufacturingPane, wx.ID_ANY, style=wx.LC_REPORT | wx.SUNKEN_BORDER)
 
         self.__set_properties()
