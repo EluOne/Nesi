@@ -1352,7 +1352,8 @@ class MainWindow(wx.Frame):
             if bpoList[i][2] == currentItem:
                 itemID = i
 
-        #print(bpoList[itemID][:])
+        #print(bpoList[itemID][1])
+        #print(bpoList[itemID][0])
 
         if currentItem >= 0:
             # Base materials from item in db
@@ -1360,12 +1361,20 @@ class MainWindow(wx.Frame):
                         INNER JOIN invTypes AS t ON m.materialTypeID = t.typeID WHERE m.typeID = """ + str(bpoList[itemID][1])
 
             # Extra materials from bpo in db excluding skills
-            extraQuery = """SELECT t.typeName, r.quantity, r.damagePerJob FROM ramTypeRequirements AS r
+            extraQuery = """SELECT t.typeName, r.quantity, r.damagePerJob, recycle FROM ramTypeRequirements AS r
                         INNER JOIN invTypes AS t ON r.requiredTypeID = t.typeID
                         INNER JOIN invGroups AS g ON t.groupID = g.groupID
                         WHERE r.typeID = """ + str(bpoList[itemID][0]) + """-- Blueprint ID
                         AND r.activityID = 1 -- Manufacturing
                         AND g.categoryID != 16"""
+
+            # Recycled materials from bpo in db excluding skills
+            recycleQuery = """SELECT t.typeName, r.quantity, r.damagePerJob, recycle FROM ramTypeRequirements AS r
+                        INNER JOIN invTypes AS t ON r.requiredTypeID = t.typeID
+                        INNER JOIN invGroups AS g ON t.groupID = g.groupID
+                        WHERE r.typeID = """ + str(bpoList[itemID][0]) + """-- Blueprint ID
+                        AND r.activityID = 1 -- Manufacturing
+                        AND recycle = 1"""
 
             # Skills from bpo in db
             skillsQuery = """SELECT t.typeName, r.quantity, r.damagePerJob FROM ramTypeRequirements AS r
@@ -1380,26 +1389,43 @@ class MainWindow(wx.Frame):
 
                 with con:
                     cur = con.cursor()
-                    cur.execute(baseQuery)
+
+                    rawMaterials = {}
+                    extraMaterials = {}
+                    recycleItems = {}
+                    skills = {}
+
+                    cur.execute(baseQuery)  # Fetch Base Materials
 
                     rows = cur.fetchall()
                     #print((len(rows)))
                     for row in rows:
-                        tempManufacterRows.append(Materials(str(row[0]), int(row[1]), 'Raw Materials'))
+                        rawMaterials[str(row[0])] = int(row[1])
 
-                    cur.execute(extraQuery)
-
-                    rows = cur.fetchall()
-                    #print((len(rows)))
-                    for row in rows:
-                        tempManufacterRows.append(Materials(str(row[0]), int(row[1]), 'Extra Materials'))
-
-                    cur.execute(skillsQuery)
+                    cur.execute(extraQuery)  # Fetch Extra Items
 
                     rows = cur.fetchall()
                     #print((len(rows)))
                     for row in rows:
-                        tempManufacterRows.append(Materials(str(row[0]), int(row[1]), 'Skills'))
+                        extraMaterials[str(row[0])] = int(row[1])
+
+                        # TODO: We need to deduct the items marked as recycled from the base materials somewhere near here.
+
+                    cur.execute(skillsQuery)  # Fetch Skills
+
+                    rows = cur.fetchall()
+                    #print((len(rows)))
+                    for row in rows:
+                        skills[str(row[0])] = int(row[1])
+
+                for key in rawMaterials.keys():
+                    tempManufacterRows.append(Materials(str(key), int(rawMaterials[key]), 'Raw Materials'))
+
+                for key in extraMaterials.keys():
+                    tempManufacterRows.append(Materials(str(key), int(extraMaterials[key]), 'Extra Materials'))
+
+                for key in skills.keys():
+                    tempManufacterRows.append(Materials(str(key), int(skills[key]), 'Skills'))
 
             except lite.Error as err:
                 error = ('SQL Lite Error: ' + str(err.args[0]) + str(err.args[1:]))  # Error String
