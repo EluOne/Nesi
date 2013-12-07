@@ -849,6 +849,7 @@ class MainWindow(wx.Frame):
         self.manufactPESpinCtrl = wx.SpinCtrl(self.notebookManufacturingPane, wx.ID_ANY, "0", min=0, max=5)
         self.qtyLabel = wx.StaticText(self.notebookManufacturingPane, wx.ID_ANY, ("Runs"))
         self.manufactQtySpinCtrl = wx.SpinCtrl(self.notebookManufacturingPane, wx.ID_ANY, "1", min=0, max=100)
+        self.bpoBtn = wx.Button(self.notebookManufacturingPane, wx.ID_REFRESH, ("Recalculate"))
         self.manufactureList = GroupListView(self.notebookManufacturingPane, wx.ID_ANY, style=wx.LC_REPORT | wx.SUNKEN_BORDER)
 
         self.__set_properties()
@@ -864,6 +865,7 @@ class MainWindow(wx.Frame):
         self.Bind(wx.EVT_BUTTON, self.onGetStarbases, self.starbaseBtn)
         self.Bind(wx.EVT_LIST_ITEM_SELECTED, self.onStarbaseSelect, self.starbaseList)
 
+        self.Bind(wx.EVT_BUTTON, self.onBpoSelect, self.bpoBtn)
         self.Bind(wx.EVT_COMBOBOX, self.onBpoSelect)
         # end wxGlade
 
@@ -953,6 +955,7 @@ class MainWindow(wx.Frame):
         bpoStatsSizer.Add(self.qtyLabel, 0, wx.ADJUST_MINSIZE, 0)
         bpoStatsSizer.Add(self.manufactQtySpinCtrl, 0, wx.ADJUST_MINSIZE, 0)
         manufactureSelectionSizer.Add(bpoStatsSizer, 1, wx.EXPAND, 0)
+        manufactureSelectionSizer.Add(self.bpoBtn, 0, wx.ALIGN_RIGHT | wx.ADJUST_MINSIZE, 0)
         manufactureSizer.Add(manufactureSelectionSizer, 1, wx.EXPAND, 0)
         manufactureSizer.Add(self.manufactureList, 1, wx.EXPAND, 0)
         self.notebookManufacturingPane.SetSizer(manufactureSizer)
@@ -991,7 +994,7 @@ class MainWindow(wx.Frame):
                         if pilotRows[x].keyExpires != 'Never':
                             if pilotRows[x].keyExpires < serverTime:
                                 keyOK = 0
-                                error = ('KeyID' + pilotRows[x].keyID + 'has Expired')
+                                error = ('KeyID ' + pilotRows[x].keyID + ' has Expired')
                                 onError(error)
 
                         if keyOK == 1:
@@ -1364,8 +1367,8 @@ class MainWindow(wx.Frame):
     def onBpoSelect(self, event):
         """Handle showing details for item select from list"""
         tempManufacterRows = []
-        currentItem = event.GetString()
-        manufactureQty = 1
+        currentItem = self.bpoSelector.GetValue()
+        manufactureQty = self.manufactQtySpinCtrl.GetValue()
         maxME = 0
         #print(currentItem)
 
@@ -1452,8 +1455,8 @@ class MainWindow(wx.Frame):
                 for key in rawMaterials.keys():
                     if int(rawMaterials[key]) > 0:
                         materialAmount = float(rawMaterials[key])
-                        productionEfficiency = float(0)
-                        materialEfficiency = float(0)
+                        productionEfficiency = float(self.manufactPESpinCtrl.GetValue())
+                        materialEfficiency = float(self.manufactMESpinCtrl.GetValue())
 
                         # ME waste:
                         if materialEfficiency >= 0:
@@ -1461,7 +1464,7 @@ class MainWindow(wx.Frame):
                         else:
                             waste = round((materialAmount * (baseWasteFactor / 100) * (1 - materialEfficiency)), 2)
 
-                        perfectME = math.floor(0.02 * baseWasteFactor * materialAmount)
+                        perfectME = math.floor(0.02 * baseWasteFactor * (materialAmount / manufactureQty))
 
                         if perfectME > maxME:
                             maxME = int(perfectME)
