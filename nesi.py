@@ -1352,31 +1352,22 @@ class MainWindow(wx.Frame):
             if bpoList[i][2] == currentItem:
                 itemID = i
 
-        #print(bpoList[itemID][1])
-        #print(bpoList[itemID][0])
+        #bloList[itemID][0 - Blueprint ID, 1 - Produced Item ID, 3 - Blueprint Name]
 
         if currentItem >= 0:
-            # Base materials from item in db
+            # Base materials from item in db using output item ID
             baseQuery = """SELECT t.typeName, m.quantity FROM invTypeMaterials AS m
                         INNER JOIN invTypes AS t ON m.materialTypeID = t.typeID WHERE m.typeID = """ + str(bpoList[itemID][1])
 
-            # Extra materials from bpo in db excluding skills
-            extraQuery = """SELECT t.typeName, r.quantity, r.damagePerJob, recycle FROM ramTypeRequirements AS r
+            # Extra materials from blueprint in db excluding skills using blueprint ID
+            extraQuery = """SELECT t.typeName, r.quantity, r.damagePerJob, recycle, r.requiredTypeID FROM ramTypeRequirements AS r
                         INNER JOIN invTypes AS t ON r.requiredTypeID = t.typeID
                         INNER JOIN invGroups AS g ON t.groupID = g.groupID
                         WHERE r.typeID = """ + str(bpoList[itemID][0]) + """-- Blueprint ID
                         AND r.activityID = 1 -- Manufacturing
                         AND g.categoryID != 16"""
 
-            # Recycled materials from bpo in db excluding skills
-            recycleQuery = """SELECT t.typeName, r.quantity, r.damagePerJob, recycle FROM ramTypeRequirements AS r
-                        INNER JOIN invTypes AS t ON r.requiredTypeID = t.typeID
-                        INNER JOIN invGroups AS g ON t.groupID = g.groupID
-                        WHERE r.typeID = """ + str(bpoList[itemID][0]) + """-- Blueprint ID
-                        AND r.activityID = 1 -- Manufacturing
-                        AND recycle = 1"""
-
-            # Skills from bpo in db
+            # Skills from blueprint ID in db
             skillsQuery = """SELECT t.typeName, r.quantity, r.damagePerJob FROM ramTypeRequirements AS r
                         INNER JOIN invTypes AS t ON r.requiredTypeID = t.typeID
                         INNER JOIN invGroups AS g ON t.groupID = g.groupID
@@ -1397,29 +1388,45 @@ class MainWindow(wx.Frame):
 
                     cur.execute(baseQuery)  # Fetch Base Materials
 
-                    rows = cur.fetchall()
+                    baseRows = cur.fetchall()
                     #print((len(rows)))
-                    for row in rows:
+                    for row in baseRows:
                         rawMaterials[str(row[0])] = int(row[1])
 
                     cur.execute(extraQuery)  # Fetch Extra Items
 
-                    rows = cur.fetchall()
+                    extarRows = cur.fetchall()
                     #print((len(rows)))
-                    for row in rows:
+                    for row in extarRows:
                         extraMaterials[str(row[0])] = int(row[1])
+                        # Bluid a list of materials recovered from the items marked as recycled.
+                        if row[3] == 1:  # Item to be recycled
+                            # Recycled materials from ID of item to be reprocessed.
+                            recycleQuery = """SELECT t.typeName, m.quantity FROM invTypeMaterials AS m INNER JOIN invTypes AS t
+                                        ON m.materialTypeID = t.typeID WHERE m.typeID = """ + str(row[4])
 
-                        # TODO: We need to deduct the items marked as recycled from the base materials somewhere near here.
+                            cur.execute(recycleQuery)  # Fetch Skills
+
+                            reccycleRows = cur.fetchall()
+                            #print((len(rows)))
+                            for row in reccycleRows:
+                                recycleItems[str(row[0])] = int(row[1])
 
                     cur.execute(skillsQuery)  # Fetch Skills
 
-                    rows = cur.fetchall()
+                    skillRows = cur.fetchall()
                     #print((len(rows)))
-                    for row in rows:
+                    for row in skillRows:
                         skills[str(row[0])] = int(row[1])
 
+                # We need to deduct the items marked as recycled from the base materials.
+                for key in recycleItems.keys():
+                    if key in rawMaterials:
+                        rawMaterials[key] = max(0, (rawMaterials[key] - recycleItems[key]))
+
                 for key in rawMaterials.keys():
-                    tempManufacterRows.append(Materials(str(key), int(rawMaterials[key]), 'Raw Materials'))
+                    if int(rawMaterials[key]) > 0:
+                        tempManufacterRows.append(Materials(str(key), int(rawMaterials[key]), 'Raw Materials'))
 
                 for key in extraMaterials.keys():
                     tempManufacterRows.append(Materials(str(key), int(extraMaterials[key]), 'Extra Materials'))
