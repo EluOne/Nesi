@@ -31,6 +31,7 @@ import wx
 import datetime
 import time
 import traceback
+import math
 
 
 # Establish some current time data for calculations later.
@@ -125,10 +126,12 @@ class Character(object):
 
 
 class Materials(object):
-    def __init__(self, item, quantity, category):
+    def __init__(self, item, quantity, category, damage, waste):
         self.item = item
         self.quantity = quantity
         self.category = category
+        self.damage = damage
+        self.waste = waste
 
 
 class AutoComboBox(wx.ComboBox):
@@ -811,22 +814,20 @@ class MainWindow(wx.Frame):
         self.starbaseList = ObjectListView(self.notebookStarbasePane, -1, style=wx.LC_REPORT | wx.SUNKEN_BORDER)
         self.starbaseDetailBox = wx.TextCtrl(self.notebookStarbasePane, -1, "", style=wx.TE_MULTILINE)
 
-        if bpoList == []:  # We still have some ids we don't know
+        if bpoList == []:  # Build a list of all blueprints from the static data dump.
             try:
-                #idList = ("', '".join(map(str, locationIDs[:])))
                 con = lite.connect('static.db')
 
                 with con:
                     cur = con.cursor()
-                    statement = """SELECT r.blueprintTypeID, r.productTypeID, t.typeName FROM invblueprinttypes AS r INNER JOIN invTypes AS t ON r.blueprintTypeID = t.typeID ORDER BY t.typeName;"""
+                    statement = """SELECT r.blueprintTypeID, r.productTypeID, t.typeName, r.wasteFactor FROM invblueprinttypes AS r INNER JOIN invTypes AS t ON r.blueprintTypeID = t.typeID ORDER BY t.typeName;"""
                     cur.execute(statement)
 
                     rows = cur.fetchall()
 
-                    #print((len(rows)))
                     for row in rows:
-                        #print(row)
-                        bpoList.append([int(row[0]), int(row[1]), str(row[2])])
+                        # blueprintTypeID, productTypeID, typeName, wasteFactor
+                        bpoList.append([int(row[0]), int(row[1]), str(row[2]), int(row[3])])
 
             except lite.Error as err:
                 error = ('SQL Lite Error: ' + str(err.args[0]) + str(err.args[1:]))  # Error String
@@ -840,7 +841,14 @@ class MainWindow(wx.Frame):
             choices.append(str(bpoList[i][2]))
 
         self.notebookManufacturingPane = wx.Panel(self.mainNotebook, wx.ID_ANY)
+        self.selectBpoLabel = wx.StaticText(self.notebookManufacturingPane, wx.ID_ANY, ("Select Blueprint"))
         self.bpoSelector = AutoComboBox(self.notebookManufacturingPane, "", choices, style=wx.CB_DROPDOWN)
+        self.meLabel = wx.StaticText(self.notebookManufacturingPane, wx.ID_ANY, ("ME"))
+        self.manufactMESpinCtrl = wx.SpinCtrl(self.notebookManufacturingPane, wx.ID_ANY, "", min=0, max=100)
+        self.peLabel = wx.StaticText(self.notebookManufacturingPane, wx.ID_ANY, ("PE"))
+        self.manufactPESpinCtrl = wx.SpinCtrl(self.notebookManufacturingPane, wx.ID_ANY, "0", min=0, max=5)
+        self.qtyLabel = wx.StaticText(self.notebookManufacturingPane, wx.ID_ANY, ("Runs"))
+        self.manufactQtySpinCtrl = wx.SpinCtrl(self.notebookManufacturingPane, wx.ID_ANY, "1", min=0, max=100)
         self.manufactureList = GroupListView(self.notebookManufacturingPane, wx.ID_ANY, style=wx.LC_REPORT | wx.SUNKEN_BORDER)
 
         self.__set_properties()
@@ -908,17 +916,20 @@ class MainWindow(wx.Frame):
         self.manufactureList.SetFont(wx.Font(9, wx.DEFAULT, wx.NORMAL, wx.NORMAL, 0, ""))
 
         self.manufactureList.SetColumns([
-            ColumnDefn('Item', 'left', 290, 'item'),
-            ColumnDefn('Quantity', 'center', 200, 'quantity'),
-            ColumnDefn('Category', 'left', 150, 'category')
+            ColumnDefn('Item', 'left', 200, 'item'),
+            ColumnDefn('Quantity', 'center', 100, 'quantity'),
+            ColumnDefn('Dmg/Job', 'center', 80, 'damage'),
+            ColumnDefn('Waste', 'center', 100, 'waste'),
+            ColumnDefn('Category', 'left', 100, 'category')
         ])
-        self.manufactureList.SetSortColumn(self.manufactureList.columns[3])
+        self.manufactureList.SetSortColumn(self.manufactureList.columns[5])
 
     def __do_layout(self):
         # begin wxGlade: MainWindow.__do_layout
         mainSizer = wx.BoxSizer(wx.VERTICAL)
         manufactureSizer = wx.BoxSizer(wx.HORIZONTAL)
         manufactureSelectionSizer = wx.BoxSizer(wx.VERTICAL)
+        bpoStatsSizer = wx.BoxSizer(wx.HORIZONTAL)
         starbaseSizer = wx.BoxSizer(wx.VERTICAL)
         jobSizer = wx.BoxSizer(wx.VERTICAL)
         headerSizer = wx.BoxSizer(wx.HORIZONTAL)
@@ -933,7 +944,15 @@ class MainWindow(wx.Frame):
         starbaseSizer.Add(self.starbaseList, 3, wx.EXPAND, 0)
         starbaseSizer.Add(self.starbaseDetailBox, 1, wx.EXPAND, 0)
         self.notebookStarbasePane.SetSizer(starbaseSizer)
+        manufactureSelectionSizer.Add(self.selectBpoLabel, 0, wx.ADJUST_MINSIZE, 0)
         manufactureSelectionSizer.Add(self.bpoSelector, 0, wx.ADJUST_MINSIZE, 0)
+        bpoStatsSizer.Add(self.meLabel, 0, wx.ADJUST_MINSIZE, 0)
+        bpoStatsSizer.Add(self.manufactMESpinCtrl, 0, wx.ADJUST_MINSIZE, 0)
+        bpoStatsSizer.Add(self.peLabel, 0, wx.ADJUST_MINSIZE, 0)
+        bpoStatsSizer.Add(self.manufactPESpinCtrl, 0, wx.ADJUST_MINSIZE, 0)
+        bpoStatsSizer.Add(self.qtyLabel, 0, wx.ADJUST_MINSIZE, 0)
+        bpoStatsSizer.Add(self.manufactQtySpinCtrl, 0, wx.ADJUST_MINSIZE, 0)
+        manufactureSelectionSizer.Add(bpoStatsSizer, 1, wx.EXPAND, 0)
         manufactureSizer.Add(manufactureSelectionSizer, 1, wx.EXPAND, 0)
         manufactureSizer.Add(self.manufactureList, 1, wx.EXPAND, 0)
         self.notebookManufacturingPane.SetSizer(manufactureSizer)
@@ -1346,13 +1365,16 @@ class MainWindow(wx.Frame):
         """Handle showing details for item select from list"""
         tempManufacterRows = []
         currentItem = event.GetString()
+        manufactureQty = 1
+        maxME = 0
         #print(currentItem)
 
         for i in range(len(bpoList)):
             if bpoList[i][2] == currentItem:
                 itemID = i
 
-        #bloList[itemID][0 - Blueprint ID, 1 - Produced Item ID, 3 - Blueprint Name]
+        #bpoList[itemID][0 - Blueprint ID, 1 - Produced Item ID, 2 - Blueprint Name, 3 - Base Waste Factor]
+        #print(bpoList[itemID][:])
 
         if currentItem >= 0:
             # Base materials from item in db using output item ID
@@ -1368,7 +1390,7 @@ class MainWindow(wx.Frame):
                         AND g.categoryID != 16"""
 
             # Skills from blueprint ID in db
-            skillsQuery = """SELECT t.typeName, r.quantity, r.damagePerJob FROM ramTypeRequirements AS r
+            skillsQuery = """SELECT t.typeName, r.quantity FROM ramTypeRequirements AS r
                         INNER JOIN invTypes AS t ON r.requiredTypeID = t.typeID
                         INNER JOIN invGroups AS g ON t.groupID = g.groupID
                         WHERE r.typeID = """ + str(bpoList[itemID][0]) + """ -- Blueprint ID
@@ -1391,15 +1413,15 @@ class MainWindow(wx.Frame):
                     baseRows = cur.fetchall()
                     #print((len(rows)))
                     for row in baseRows:
-                        rawMaterials[str(row[0])] = int(row[1])
+                        rawMaterials[str(row[0])] = (int(row[1]) * manufactureQty)
 
                     cur.execute(extraQuery)  # Fetch Extra Items
 
                     extarRows = cur.fetchall()
                     #print((len(rows)))
                     for row in extarRows:
-                        extraMaterials[str(row[0])] = int(row[1])
-                        # Bluid a list of materials recovered from the items marked as recycled.
+                        extraMaterials[str(row[0])] = (int(row[1]) * manufactureQty)
+                        # Build a list of materials recovered from the items marked as recycled.
                         if row[3] == 1:  # Item to be recycled
                             # Recycled materials from ID of item to be reprocessed.
                             recycleQuery = """SELECT t.typeName, m.quantity FROM invTypeMaterials AS m INNER JOIN invTypes AS t
@@ -1407,10 +1429,10 @@ class MainWindow(wx.Frame):
 
                             cur.execute(recycleQuery)  # Fetch Skills
 
-                            reccycleRows = cur.fetchall()
+                            recycleRows = cur.fetchall()
                             #print((len(rows)))
-                            for row in reccycleRows:
-                                recycleItems[str(row[0])] = int(row[1])
+                            for row in recycleRows:
+                                recycleItems[str(row[0])] = (int(row[1]) * manufactureQty)
 
                     cur.execute(skillsQuery)  # Fetch Skills
 
@@ -1424,15 +1446,46 @@ class MainWindow(wx.Frame):
                     if key in rawMaterials:
                         rawMaterials[key] = max(0, (rawMaterials[key] - recycleItems[key]))
 
+                # We apply ME waste (by the percentage mentioned in invBlueprintTypes) and Production Efficiency waste.
+                baseWasteFactor = float(bpoList[itemID][3])
+
                 for key in rawMaterials.keys():
                     if int(rawMaterials[key]) > 0:
-                        tempManufacterRows.append(Materials(str(key), int(rawMaterials[key]), 'Raw Materials'))
+                        materialAmount = float(rawMaterials[key])
+                        productionEfficiency = float(0)
+                        materialEfficiency = float(0)
+
+                        # ME waste:
+                        if materialEfficiency >= 0:
+                            waste = round((materialAmount * (baseWasteFactor / 100) * (1 / (materialEfficiency + 1))), 2)
+                        else:
+                            waste = round((materialAmount * (baseWasteFactor / 100) * (1 - materialEfficiency)), 2)
+
+                        perfectME = math.floor(0.02 * baseWasteFactor * materialAmount)
+
+                        if perfectME > maxME:
+                            maxME = int(perfectME)
+
+                        # Production efficiency waste:
+                        peWaste = round((((25 - (5 * productionEfficiency)) * materialAmount) / 100), 2)
+
+                        #print(key, perfectME, waste, peWaste, materialAmount, (materialAmount + waste), (materialAmount + waste + peWaste))
+
+                        totalWaste = waste + peWaste
+                        totalMaterials = round((int(rawMaterials[key]) + totalWaste), 0)
+                        if totalWaste > 0:
+                            percentWaste = totalWaste * (100 / float(rawMaterials[key]))
+                        else:
+                            percentWaste = 0
+
+                        # Build the list to be displayed.
+                        tempManufacterRows.append(Materials(str(key), int(totalMaterials), ' Raw Materials', '100%', str(round(percentWaste, 1)) + '%'))
 
                 for key in extraMaterials.keys():
-                    tempManufacterRows.append(Materials(str(key), int(extraMaterials[key]), 'Extra Materials'))
+                    tempManufacterRows.append(Materials(str(key), int(extraMaterials[key]), 'Extra Materials', '', ''))
 
                 for key in skills.keys():
-                    tempManufacterRows.append(Materials(str(key), int(skills[key]), 'Skills'))
+                    tempManufacterRows.append(Materials(str(key), int(skills[key]), 'Skills', '', ''))
 
             except lite.Error as err:
                 error = ('SQL Lite Error: ' + str(err.args[0]) + str(err.args[1:]))  # Error String
@@ -1444,6 +1497,8 @@ class MainWindow(wx.Frame):
             if tempManufacterRows != []:
                 manufactureRows = tempManufacterRows[:]
             self.manufactureList.SetObjects(manufactureRows)
+
+            self.statusbar.SetStatusText('Welcome to Nesi - ' + 'Perfect ME - ' + str(maxME))
 
     def onConfig(self, event):
         # Open the config frame for user.
