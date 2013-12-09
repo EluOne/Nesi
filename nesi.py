@@ -1510,8 +1510,18 @@ class MainWindow(wx.Frame):
         dlg.Destroy()  # finally destroy it when finished.
 
     def onAbout(self, event):
-        description = """A tool to let you see your EvE Online science and industry job queues while out of game."""
-        licence = """This program is free software: you can redistribute it and/or modify
+        description = """A tool designed initially for our corporate industrialists to
+enable them to see their EvE Online Science and Industry job queues while out of game.
+
+Later expanded upon to cover POS status and manufacturing job calculations.
+
+ISK donations to Elusive One
+
+All EVE-Online related materials are property of CCP hf."""
+
+        licence = """NESI is released under GNU GPLv3:
+
+This program is free software: you can redistribute it and/or modify
 it under the terms of the GNU General Public License as published by
 the Free Software Foundation, either version 3 of the License, or
 (at your option) any later version.
@@ -1528,9 +1538,9 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>."""
 
         info.SetIcon(wx.Icon('images/nesi.png', wx.BITMAP_TYPE_PNG))
         info.SetName('Nova Echo Science & Industry')
-        info.SetVersion('1.1.0')
+        info.SetVersion('1.2.0')
         info.SetDescription(description)
-        info.SetCopyright('(C) 2013 Tim Cumming')
+        #info.SetCopyright('(C) 2013 Tim Cumming')
         info.SetWebSite('https://github.com/EluOne/Nesi')
         info.SetLicence(licence)
         info.AddDeveloper('Tim Cumming aka Elusive One')
