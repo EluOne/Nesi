@@ -844,11 +844,11 @@ class MainWindow(wx.Frame):
         self.selectBpoLabel = wx.StaticText(self.notebookManufacturingPane, wx.ID_ANY, ("Select Blueprint"))
         self.bpoSelector = AutoComboBox(self.notebookManufacturingPane, "", choices, style=wx.CB_DROPDOWN)
         self.meLabel = wx.StaticText(self.notebookManufacturingPane, wx.ID_ANY, ("ME"))
-        self.manufactMESpinCtrl = wx.SpinCtrl(self.notebookManufacturingPane, wx.ID_ANY, "", min=0, max=100)
+        self.manufactMESpinCtrl = wx.SpinCtrl(self.notebookManufacturingPane, wx.ID_ANY, "", min=-10, max=100)
         self.peLabel = wx.StaticText(self.notebookManufacturingPane, wx.ID_ANY, ("PE"))
         self.manufactPESpinCtrl = wx.SpinCtrl(self.notebookManufacturingPane, wx.ID_ANY, "0", min=0, max=5)
         self.qtyLabel = wx.StaticText(self.notebookManufacturingPane, wx.ID_ANY, ("Runs"))
-        self.manufactQtySpinCtrl = wx.SpinCtrl(self.notebookManufacturingPane, wx.ID_ANY, "1", min=0, max=100)
+        self.manufactQtySpinCtrl = wx.SpinCtrl(self.notebookManufacturingPane, wx.ID_ANY, "1", min=0, max=1000)
         self.bpoBtn = wx.Button(self.notebookManufacturingPane, wx.ID_REFRESH, ("Recalculate"))
         self.manufactureList = GroupListView(self.notebookManufacturingPane, wx.ID_ANY, style=wx.LC_REPORT | wx.SUNKEN_BORDER)
 
@@ -1501,7 +1501,7 @@ class MainWindow(wx.Frame):
                 manufactureRows = tempManufacterRows[:]
             self.manufactureList.SetObjects(manufactureRows)
 
-            self.statusbar.SetStatusText('Welcome to Nesi - ' + 'Perfect ME - ' + str(maxME))
+            self.statusbar.SetStatusText('Welcome to Nesi - ' + 'Perfect ME: ' + str(maxME))
 
     def onConfig(self, event):
         # Open the config frame for user.
