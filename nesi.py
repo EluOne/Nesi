@@ -841,15 +841,21 @@ class MainWindow(wx.Frame):
             choices.append(str(bpoList[i][2]))
 
         self.notebookManufacturingPane = wx.Panel(self.mainNotebook, wx.ID_ANY)
-        self.selectBpoLabel = wx.StaticText(self.notebookManufacturingPane, wx.ID_ANY, ("Select Blueprint"))
+        self.pilotChoice = wx.Choice(self.notebookManufacturingPane, wx.ID_ANY, choices=[])
+        self.peLabel = wx.StaticText(self.notebookManufacturingPane, wx.ID_ANY, ("Production Efficiency"))
+        self.manufactPESpinCtrl = wx.SpinCtrl(self.notebookManufacturingPane, wx.ID_ANY, "0", min=0, max=5)  # Pilot Production Efficency Skill
+        self.indLabel = wx.StaticText(self.notebookManufacturingPane, wx.ID_ANY, ("Industry"))
+        self.manufactIndSpinCtrl = wx.SpinCtrl(self.notebookManufacturingPane, wx.ID_ANY, "0", min=0, max=5)  # Pilot Industry Skill
+        self.pilotSizer_staticbox = wx.StaticBox(self.notebookManufacturingPane, wx.ID_ANY, ("Pilot"))
         self.bpoSelector = AutoComboBox(self.notebookManufacturingPane, "", choices, style=wx.CB_DROPDOWN)
-        self.meLabel = wx.StaticText(self.notebookManufacturingPane, wx.ID_ANY, ("ME"))
-        self.manufactMESpinCtrl = wx.SpinCtrl(self.notebookManufacturingPane, wx.ID_ANY, "", min=-10, max=100)
-        self.peLabel = wx.StaticText(self.notebookManufacturingPane, wx.ID_ANY, ("PE"))
-        self.manufactPESpinCtrl = wx.SpinCtrl(self.notebookManufacturingPane, wx.ID_ANY, "0", min=0, max=5)
+        self.mlLabel = wx.StaticText(self.notebookManufacturingPane, wx.ID_ANY, ("ML"))
+        self.manufactMLSpinCtrl = wx.SpinCtrl(self.notebookManufacturingPane, wx.ID_ANY, "", min=-10, max=1000)
+        self.plLabel = wx.StaticText(self.notebookManufacturingPane, wx.ID_ANY, ("PL"))
+        self.manufactPLSpinCtrl = wx.SpinCtrl(self.notebookManufacturingPane, wx.ID_ANY, "", min=-10, max=1000)
         self.qtyLabel = wx.StaticText(self.notebookManufacturingPane, wx.ID_ANY, ("Runs"))
         self.manufactQtySpinCtrl = wx.SpinCtrl(self.notebookManufacturingPane, wx.ID_ANY, "1", min=0, max=1000)
-        self.bpoBtn = wx.Button(self.notebookManufacturingPane, wx.ID_REFRESH, ("Recalculate"))
+        self.bpoSizer_staticbox = wx.StaticBox(self.notebookManufacturingPane, wx.ID_ANY, ("Blueprint"))
+        self.bpoBtn = wx.Button(self.notebookManufacturingPane, wx.ID_ANY, ("Recalculate"))
         self.manufactureList = GroupListView(self.notebookManufacturingPane, wx.ID_ANY, style=wx.LC_REPORT | wx.SUNKEN_BORDER)
 
         self.__set_properties()
@@ -931,7 +937,12 @@ class MainWindow(wx.Frame):
         mainSizer = wx.BoxSizer(wx.VERTICAL)
         manufactureSizer = wx.BoxSizer(wx.HORIZONTAL)
         manufactureSelectionSizer = wx.BoxSizer(wx.VERTICAL)
+        self.bpoSizer_staticbox.Lower()
+        bpoSizer = wx.StaticBoxSizer(self.bpoSizer_staticbox, wx.VERTICAL)
         bpoStatsSizer = wx.BoxSizer(wx.HORIZONTAL)
+        self.pilotSizer_staticbox.Lower()
+        pilotSizer = wx.StaticBoxSizer(self.pilotSizer_staticbox, wx.VERTICAL)
+        pilotSkillSizer = wx.BoxSizer(wx.HORIZONTAL)
         starbaseSizer = wx.BoxSizer(wx.VERTICAL)
         jobSizer = wx.BoxSizer(wx.VERTICAL)
         headerSizer = wx.BoxSizer(wx.HORIZONTAL)
@@ -946,15 +957,22 @@ class MainWindow(wx.Frame):
         starbaseSizer.Add(self.starbaseList, 3, wx.EXPAND, 0)
         starbaseSizer.Add(self.starbaseDetailBox, 1, wx.EXPAND, 0)
         self.notebookStarbasePane.SetSizer(starbaseSizer)
-        manufactureSelectionSizer.Add(self.selectBpoLabel, 0, wx.ADJUST_MINSIZE, 0)
-        manufactureSelectionSizer.Add(self.bpoSelector, 0, wx.ADJUST_MINSIZE, 0)
-        bpoStatsSizer.Add(self.meLabel, 0, wx.ADJUST_MINSIZE, 0)
-        bpoStatsSizer.Add(self.manufactMESpinCtrl, 0, wx.ADJUST_MINSIZE, 0)
-        bpoStatsSizer.Add(self.peLabel, 0, wx.ADJUST_MINSIZE, 0)
-        bpoStatsSizer.Add(self.manufactPESpinCtrl, 0, wx.ADJUST_MINSIZE, 0)
+        pilotSizer.Add(self.pilotChoice, 0, wx.ADJUST_MINSIZE, 0)
+        pilotSkillSizer.Add(self.peLabel, 0, wx.ADJUST_MINSIZE, 0)
+        pilotSkillSizer.Add(self.manufactPESpinCtrl, 0, wx.ADJUST_MINSIZE, 0)
+        pilotSkillSizer.Add(self.indLabel, 0, wx.ADJUST_MINSIZE, 0)
+        pilotSkillSizer.Add(self.manufactIndSpinCtrl, 0, wx.ADJUST_MINSIZE, 0)
+        pilotSizer.Add(pilotSkillSizer, 1, wx.EXPAND, 0)
+        manufactureSelectionSizer.Add(pilotSizer, 1, wx.EXPAND, 0)
+        bpoSizer.Add(self.bpoSelector, 0, wx.ADJUST_MINSIZE, 0)
+        bpoStatsSizer.Add(self.mlLabel, 0, wx.ADJUST_MINSIZE, 0)
+        bpoStatsSizer.Add(self.manufactMLSpinCtrl, 0, wx.ADJUST_MINSIZE, 0)
+        bpoStatsSizer.Add(self.plLabel, 0, wx.ADJUST_MINSIZE, 0)
+        bpoStatsSizer.Add(self.manufactPLSpinCtrl, 0, wx.ADJUST_MINSIZE, 0)
         bpoStatsSizer.Add(self.qtyLabel, 0, wx.ADJUST_MINSIZE, 0)
         bpoStatsSizer.Add(self.manufactQtySpinCtrl, 0, wx.ADJUST_MINSIZE, 0)
-        manufactureSelectionSizer.Add(bpoStatsSizer, 1, wx.EXPAND, 0)
+        bpoSizer.Add(bpoStatsSizer, 1, wx.EXPAND, 0)
+        manufactureSelectionSizer.Add(bpoSizer, 1, wx.EXPAND, 0)
         manufactureSelectionSizer.Add(self.bpoBtn, 0, wx.ALIGN_RIGHT | wx.ADJUST_MINSIZE, 0)
         manufactureSizer.Add(manufactureSelectionSizer, 1, wx.EXPAND, 0)
         manufactureSizer.Add(self.manufactureList, 1, wx.EXPAND, 0)
@@ -1456,7 +1474,7 @@ class MainWindow(wx.Frame):
                     if int(rawMaterials[key]) > 0:
                         materialAmount = float(rawMaterials[key])
                         productionEfficiency = float(self.manufactPESpinCtrl.GetValue())
-                        materialEfficiency = float(self.manufactMESpinCtrl.GetValue())
+                        materialEfficiency = float(self.manufactMLSpinCtrl.GetValue())
 
                         # ME waste:
                         if materialEfficiency >= 0:
@@ -1481,7 +1499,7 @@ class MainWindow(wx.Frame):
                         else:
                             percentWaste = 0
 
-                        # Build the list to be displayed.
+                        # Build the list to be displayed. This is where we round to the nearest interger so the calcs all work.
                         tempManufacterRows.append(Materials(str(key), int(totalMaterials), ' Raw Materials', '100%', str(round(percentWaste, 1)) + '%'))
 
                 for key in extraMaterials.keys():
