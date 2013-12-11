@@ -820,14 +820,14 @@ class MainWindow(wx.Frame):
 
                 with con:
                     cur = con.cursor()
-                    statement = """SELECT r.blueprintTypeID, r.productTypeID, t.typeName, r.wasteFactor FROM invblueprinttypes AS r INNER JOIN invTypes AS t ON r.blueprintTypeID = t.typeID ORDER BY t.typeName;"""
+                    statement = """SELECT r.blueprintTypeID, r.productTypeID, t.typeName, r.wasteFactor, r.productionTime, r.productivityModifier FROM invblueprinttypes AS r INNER JOIN invTypes AS t ON r.blueprintTypeID = t.typeID ORDER BY t.typeName;"""
                     cur.execute(statement)
 
                     rows = cur.fetchall()
 
                     for row in rows:
                         # blueprintTypeID, productTypeID, typeName, wasteFactor
-                        bpoList.append([int(row[0]), int(row[1]), str(row[2]), int(row[3])])
+                        bpoList.append([int(row[0]), int(row[1]), str(row[2]), int(row[3]), int(row[4]), int(row[5])])
 
             except lite.Error as err:
                 error = ('SQL Lite Error: ' + str(err.args[0]) + str(err.args[1:]))  # Error String
@@ -1469,18 +1469,18 @@ class MainWindow(wx.Frame):
 
                 # We apply ME waste (by the percentage mentioned in invBlueprintTypes) and Production Efficiency waste.
                 baseWasteFactor = float(bpoList[itemID][3])
+                productionEfficiency = float(self.manufactPESpinCtrl.GetValue())  # The production efficiency skill of the pilot.
 
                 for key in rawMaterials.keys():
                     if int(rawMaterials[key]) > 0:
                         materialAmount = float(rawMaterials[key])
-                        productionEfficiency = float(self.manufactPESpinCtrl.GetValue())
-                        materialEfficiency = float(self.manufactMLSpinCtrl.GetValue())
+                        materialLevel = float(self.manufactMLSpinCtrl.GetValue())  # The ME/ML of the researched blueprint.
 
                         # ME waste:
-                        if materialEfficiency >= 0:
-                            waste = round((materialAmount * (baseWasteFactor / 100) * (1 / (materialEfficiency + 1))), 2)
+                        if materialLevel >= 0:
+                            waste = round((materialAmount * (baseWasteFactor / 100) * (1 / (materialLevel + 1))), 2)
                         else:
-                            waste = round((materialAmount * (baseWasteFactor / 100) * (1 - materialEfficiency)), 2)
+                            waste = round((materialAmount * (baseWasteFactor / 100) * (1 - materialLevel)), 2)
 
                         perfectME = math.floor(0.02 * baseWasteFactor * (materialAmount / manufactureQty))
 
@@ -1518,6 +1518,23 @@ class MainWindow(wx.Frame):
             if tempManufacterRows != []:
                 manufactureRows = tempManufacterRows[:]
             self.manufactureList.SetObjects(manufactureRows)
+
+            # Production time calculations
+            baseProductionTime = float(bpoList[itemID][4])
+            productivityModifier = float(bpoList[itemID][5])
+            industrySkill = self.manufactIndSpinCtrl.GetValue()  # The industial skill of the pilot.
+            productionLevel = float(self.manufactPLSpinCtrl.GetValue())  # The PE/PL of the researched blueprint.
+            implantModifier = 1
+            productionSlotModifier = 1
+
+            produtionTimeModifier = ((1 - (0.04 * industrySkill)) * implantModifier * productionSlotModifier)
+
+            if productionEfficiency >= 0:
+                productionTime = (baseProductionTime * (1 - (productivityModifier / baseProductionTime) * (productionLevel / (1 + productionLevel))) * produtionTimeModifier)
+            else:
+                productionTime = (baseProductionTime * (1 - (productivityModifier / baseProductionTime) * (productionLevel - 1)) * produtionTimeModifier)
+
+            #print(productionTime)
 
             self.statusbar.SetStatusText('Welcome to Nesi - ' + 'Perfect ME: ' + str(maxME))
 
