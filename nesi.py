@@ -134,6 +134,12 @@ class Materials(object):
         self.waste = waste
 
 
+class MlAnalysis(object):
+    def __init__(self, item, perfect):
+        self.item = item
+        self.perfect = perfect
+
+
 class AutoComboBox(wx.ComboBox):
     def __init__(self, parent, value, choices=[], style=0, **par):
         wx.ComboBox.__init__(self, parent, wx.ID_ANY, value, style=style | wx.CB_DROPDOWN, choices=choices, **par)
@@ -849,12 +855,17 @@ class MainWindow(wx.Frame):
         self.pilotSizer_staticbox = wx.StaticBox(self.notebookManufacturingPane, wx.ID_ANY, ("Pilot"))
         self.bpoSelector = AutoComboBox(self.notebookManufacturingPane, "", choices, style=wx.CB_DROPDOWN)
         self.mlLabel = wx.StaticText(self.notebookManufacturingPane, wx.ID_ANY, ("ML"))
-        self.manufactMLSpinCtrl = wx.SpinCtrl(self.notebookManufacturingPane, wx.ID_ANY, "", min=-10, max=1000)
+        self.manufactMLSpinCtrl = wx.SpinCtrl(self.notebookManufacturingPane, wx.ID_ANY, "", min=-10, max=5000)
         self.plLabel = wx.StaticText(self.notebookManufacturingPane, wx.ID_ANY, ("PL"))
-        self.manufactPLSpinCtrl = wx.SpinCtrl(self.notebookManufacturingPane, wx.ID_ANY, "", min=-10, max=1000)
+        self.manufactPLSpinCtrl = wx.SpinCtrl(self.notebookManufacturingPane, wx.ID_ANY, "", min=-10, max=5000)
         self.qtyLabel = wx.StaticText(self.notebookManufacturingPane, wx.ID_ANY, ("Runs"))
-        self.manufactQtySpinCtrl = wx.SpinCtrl(self.notebookManufacturingPane, wx.ID_ANY, "1", min=0, max=1000)
+        self.manufactQtySpinCtrl = wx.SpinCtrl(self.notebookManufacturingPane, wx.ID_ANY, "1", min=1, max=10000)
         self.bpoSizer_staticbox = wx.StaticBox(self.notebookManufacturingPane, wx.ID_ANY, ("Blueprint"))
+        self.outputLabel = wx.StaticText(self.notebookManufacturingPane, wx.ID_ANY, ("Production Time"))
+        self.outputTimeTextCtrl = wx.TextCtrl(self.notebookManufacturingPane, wx.ID_ANY, "")
+        self.outputSizer_staticbox = wx.StaticBox(self.notebookManufacturingPane, wx.ID_ANY, ("Output"))
+        self.mlAnalysisList = ObjectListView(self.notebookManufacturingPane, wx.ID_ANY, style=wx.LC_REPORT | wx.SUNKEN_BORDER)
+        self.meAnalysisSizer_staticbox = wx.StaticBox(self.notebookManufacturingPane, wx.ID_ANY, ("Material Level Analysis"))
         self.bpoBtn = wx.Button(self.notebookManufacturingPane, wx.ID_ANY, ("Recalculate"))
         self.manufactureList = GroupListView(self.notebookManufacturingPane, wx.ID_ANY, style=wx.LC_REPORT | wx.SUNKEN_BORDER)
 
@@ -920,6 +931,16 @@ class MainWindow(wx.Frame):
 
         # Manufacturing Notebook page
         self.bpoSelector.SetSelection(0)
+
+        self.mlAnalysisList.SetEmptyListMsg('Select a BPO from the\ndrop down above start')
+        self.mlAnalysisList.SetFont(wx.Font(9, wx.DEFAULT, wx.NORMAL, wx.NORMAL, 0, ""))
+
+        self.mlAnalysisList.SetColumns([
+            ColumnDefn('Item', 'left', 245, 'item'),
+            ColumnDefn('Waste Eliminated at ML:', 'center', 245, 'perfect'),
+        ])
+#        self.mlAnalysisList.SetSortColumn(self.mlAnalysisList.columns[1])
+
         self.manufactureList.SetEmptyListMsg('Select a BPO from the\ndrop down on left to start')
         self.manufactureList.SetFont(wx.Font(9, wx.DEFAULT, wx.NORMAL, wx.NORMAL, 0, ""))
 
@@ -937,6 +958,10 @@ class MainWindow(wx.Frame):
         mainSizer = wx.BoxSizer(wx.VERTICAL)
         manufactureSizer = wx.BoxSizer(wx.HORIZONTAL)
         manufactureSelectionSizer = wx.BoxSizer(wx.VERTICAL)
+        self.meAnalysisSizer_staticbox.Lower()
+        meAnalysisSizer = wx.StaticBoxSizer(self.meAnalysisSizer_staticbox, wx.VERTICAL)
+        self.outputSizer_staticbox.Lower()
+        outputSizer = wx.StaticBoxSizer(self.outputSizer_staticbox, wx.HORIZONTAL)
         self.bpoSizer_staticbox.Lower()
         bpoSizer = wx.StaticBoxSizer(self.bpoSizer_staticbox, wx.VERTICAL)
         bpoStatsSizer = wx.BoxSizer(wx.HORIZONTAL)
@@ -958,21 +983,26 @@ class MainWindow(wx.Frame):
         starbaseSizer.Add(self.starbaseDetailBox, 1, wx.EXPAND, 0)
         self.notebookStarbasePane.SetSizer(starbaseSizer)
         pilotSizer.Add(self.pilotChoice, 0, wx.ADJUST_MINSIZE, 0)
-        pilotSkillSizer.Add(self.peLabel, 0, wx.ADJUST_MINSIZE, 0)
+        pilotSkillSizer.Add(self.peLabel, 0, wx.ALIGN_CENTER_VERTICAL | wx.ADJUST_MINSIZE, 0)
         pilotSkillSizer.Add(self.manufactPESpinCtrl, 0, wx.ADJUST_MINSIZE, 0)
-        pilotSkillSizer.Add(self.indLabel, 0, wx.ADJUST_MINSIZE, 0)
+        pilotSkillSizer.Add(self.indLabel, 0, wx.ALIGN_CENTER_VERTICAL | wx.ADJUST_MINSIZE, 0)
         pilotSkillSizer.Add(self.manufactIndSpinCtrl, 0, wx.ADJUST_MINSIZE, 0)
         pilotSizer.Add(pilotSkillSizer, 1, wx.EXPAND, 0)
         manufactureSelectionSizer.Add(pilotSizer, 1, wx.EXPAND, 0)
         bpoSizer.Add(self.bpoSelector, 0, wx.ADJUST_MINSIZE, 0)
-        bpoStatsSizer.Add(self.mlLabel, 0, wx.ADJUST_MINSIZE, 0)
+        bpoStatsSizer.Add(self.mlLabel, 0, wx.ALIGN_CENTER_VERTICAL | wx.ADJUST_MINSIZE, 0)
         bpoStatsSizer.Add(self.manufactMLSpinCtrl, 0, wx.ADJUST_MINSIZE, 0)
-        bpoStatsSizer.Add(self.plLabel, 0, wx.ADJUST_MINSIZE, 0)
+        bpoStatsSizer.Add(self.plLabel, 0, wx.ALIGN_CENTER_VERTICAL | wx.ADJUST_MINSIZE, 0)
         bpoStatsSizer.Add(self.manufactPLSpinCtrl, 0, wx.ADJUST_MINSIZE, 0)
-        bpoStatsSizer.Add(self.qtyLabel, 0, wx.ADJUST_MINSIZE, 0)
+        bpoStatsSizer.Add(self.qtyLabel, 0, wx.ALIGN_CENTER_VERTICAL | wx.ADJUST_MINSIZE, 0)
         bpoStatsSizer.Add(self.manufactQtySpinCtrl, 0, wx.ADJUST_MINSIZE, 0)
         bpoSizer.Add(bpoStatsSizer, 1, wx.EXPAND, 0)
         manufactureSelectionSizer.Add(bpoSizer, 1, wx.EXPAND, 0)
+        outputSizer.Add(self.outputLabel, 0, wx.ADJUST_MINSIZE, 0)
+        outputSizer.Add(self.outputTimeTextCtrl, 0, wx.ADJUST_MINSIZE, 0)
+        manufactureSelectionSizer.Add(outputSizer, 1, wx.EXPAND, 0)
+        meAnalysisSizer.Add(self.mlAnalysisList, 3, wx.EXPAND, 0)
+        manufactureSelectionSizer.Add(meAnalysisSizer, 3, wx.EXPAND, 0)
         manufactureSelectionSizer.Add(self.bpoBtn, 0, wx.ALIGN_RIGHT | wx.ADJUST_MINSIZE, 0)
         manufactureSizer.Add(manufactureSelectionSizer, 1, wx.EXPAND, 0)
         manufactureSizer.Add(self.manufactureList, 1, wx.EXPAND, 0)
@@ -1385,6 +1415,7 @@ class MainWindow(wx.Frame):
     def onBpoSelect(self, event):
         """Handle showing details for item select from list"""
         tempManufacterRows = []
+        tempMaterialLevelRows = []
         currentItem = self.bpoSelector.GetValue()
         manufactureQty = self.manufactQtySpinCtrl.GetValue()
         maxME = 0
@@ -1434,13 +1465,13 @@ class MainWindow(wx.Frame):
                     baseRows = cur.fetchall()
                     #print((len(rows)))
                     for row in baseRows:
-                        rawMaterials[str(row[0])] = (int(row[1]) * manufactureQty)
+                        rawMaterials[str(row[0])] = int(row[1])
 
                     cur.execute(extraQuery)  # Fetch Extra Items
 
-                    extarRows = cur.fetchall()
+                    extraRows = cur.fetchall()
                     #print((len(rows)))
-                    for row in extarRows:
+                    for row in extraRows:
                         extraMaterials[str(row[0])] = (int(row[1]) * manufactureQty)
                         # Build a list of materials recovered from the items marked as recycled.
                         if row[3] == 1:  # Item to be recycled
@@ -1453,7 +1484,7 @@ class MainWindow(wx.Frame):
                             recycleRows = cur.fetchall()
                             #print((len(rows)))
                             for row in recycleRows:
-                                recycleItems[str(row[0])] = (int(row[1]) * manufactureQty)
+                                recycleItems[str(row[0])] = int(row[1])
 
                     cur.execute(skillsQuery)  # Fetch Skills
 
@@ -1482,7 +1513,9 @@ class MainWindow(wx.Frame):
                         else:
                             waste = round((materialAmount * (baseWasteFactor / 100) * (1 - materialLevel)), 2)
 
-                        perfectME = math.floor(0.02 * baseWasteFactor * (materialAmount / manufactureQty))
+                        perfectME = math.floor(0.02 * baseWasteFactor * materialAmount)
+
+                        tempMaterialLevelRows.append(MlAnalysis(str(key), int(perfectME)))
 
                         if perfectME > maxME:
                             maxME = int(perfectME)
@@ -1490,17 +1523,17 @@ class MainWindow(wx.Frame):
                         # Production efficiency waste:
                         peWaste = round((((25 - (5 * productionEfficiency)) * materialAmount) / 100), 2)
 
-                        #print(key, perfectME, waste, peWaste, materialAmount, (materialAmount + waste), (materialAmount + waste + peWaste))
-
                         totalWaste = waste + peWaste
-                        totalMaterials = round((int(rawMaterials[key]) + totalWaste), 0)
-                        if totalWaste > 0:
-                            percentWaste = totalWaste * (100 / float(rawMaterials[key]))
+                        totalMaterials = materialAmount + totalWaste
+                        if (perfectME > materialLevel) and (totalWaste > 0):
+                            percentWaste = totalWaste * (100 / float(materialAmount))
                         else:
                             percentWaste = 0
 
+                        #print(key, perfectME, waste, peWaste, materialAmount, (materialAmount + waste + peWaste), percentWaste, baseWasteFactor)
+
                         # Build the list to be displayed. This is where we round to the nearest interger so the calcs all work.
-                        tempManufacterRows.append(Materials(str(key), int(totalMaterials), ' Raw Materials', '100%', str(round(percentWaste, 1)) + '%'))
+                        tempManufacterRows.append(Materials(str(key), (int(totalMaterials) * manufactureQty), ' Raw Materials', '100%', str(round(percentWaste, 3)) + '%'))
 
                 for key in extraMaterials.keys():
                     tempManufacterRows.append(Materials(str(key), int(extraMaterials[key]), 'Extra Materials', '', ''))
@@ -1514,6 +1547,10 @@ class MainWindow(wx.Frame):
             finally:
                 if con:
                     con.close()
+
+            if tempMaterialLevelRows != []:
+                materialLevelRows = tempMaterialLevelRows[:]
+            self.mlAnalysisList.SetObjects(materialLevelRows)
 
             if tempManufacterRows != []:
                 manufactureRows = tempManufacterRows[:]
@@ -1530,13 +1567,14 @@ class MainWindow(wx.Frame):
             produtionTimeModifier = ((1 - (0.04 * industrySkill)) * implantModifier * productionSlotModifier)
 
             if productionEfficiency >= 0:
-                productionTime = (baseProductionTime * (1 - (productivityModifier / baseProductionTime) * (productionLevel / (1 + productionLevel))) * produtionTimeModifier)
+                productionTime = (baseProductionTime * (1 - (productivityModifier / baseProductionTime) * (productionLevel / (1 + productionLevel))) * produtionTimeModifier) * manufactureQty
             else:
-                productionTime = (baseProductionTime * (1 - (productivityModifier / baseProductionTime) * (productionLevel - 1)) * produtionTimeModifier)
+                productionTime = (baseProductionTime * (1 - (productivityModifier / baseProductionTime) * (productionLevel - 1)) * produtionTimeModifier) * manufactureQty
 
             #print(productionTime)
+            self.outputTimeTextCtrl.SetValue(str(productionTime))
 
-            self.statusbar.SetStatusText('Welcome to Nesi - ' + 'Perfect ME: ' + str(maxME))
+            self.statusbar.SetStatusText('Welcome to Nesi - ' + 'Perfect ME: ' + str(maxME))  # I'll find a better home for this number soon.
 
     def onConfig(self, event):
         # Open the config frame for user.
