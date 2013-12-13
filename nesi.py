@@ -953,6 +953,8 @@ class MainWindow(wx.Frame):
         ])
         self.manufactureList.SetSortColumn(self.manufactureList.columns[5])
 
+        self.outputTimeTextCtrl.SetMinSize((200, 21))
+
     def __do_layout(self):
         # begin wxGlade: MainWindow.__do_layout
         mainSizer = wx.BoxSizer(wx.VERTICAL)
@@ -974,32 +976,35 @@ class MainWindow(wx.Frame):
         headerSizer.Add(self.bitmap_1, 0, wx.FIXED_MINSIZE, 0)
         headerSizer.Add(self.label_1, 0, wx.ALIGN_CENTER_VERTICAL | wx.FIXED_MINSIZE, 0)
         mainSizer.Add(headerSizer, 0, 0, 0)
+
         jobSizer.Add(self.jobBtn, 0, wx.ALIGN_RIGHT | wx.ADJUST_MINSIZE, 0)
         jobSizer.Add(self.jobList, 3, wx.EXPAND, 0)
         jobSizer.Add(self.jobDetailBox, 1, wx.EXPAND, 0)
         self.notebookJobPane.SetSizer(jobSizer)
+
         starbaseSizer.Add(self.starbaseBtn, 0, wx.ALIGN_RIGHT | wx.ADJUST_MINSIZE, 0)
         starbaseSizer.Add(self.starbaseList, 3, wx.EXPAND, 0)
         starbaseSizer.Add(self.starbaseDetailBox, 1, wx.EXPAND, 0)
         self.notebookStarbasePane.SetSizer(starbaseSizer)
+
         pilotSizer.Add(self.pilotChoice, 0, wx.ADJUST_MINSIZE, 0)
         pilotSkillSizer.Add(self.peLabel, 0, wx.ALIGN_CENTER_VERTICAL | wx.ADJUST_MINSIZE, 0)
-        pilotSkillSizer.Add(self.manufactPESpinCtrl, 0, wx.ADJUST_MINSIZE, 0)
+        pilotSkillSizer.Add(self.manufactPESpinCtrl, 0, wx.ALIGN_CENTER_VERTICAL | wx.ADJUST_MINSIZE, 0)
         pilotSkillSizer.Add(self.indLabel, 0, wx.ALIGN_CENTER_VERTICAL | wx.ADJUST_MINSIZE, 0)
-        pilotSkillSizer.Add(self.manufactIndSpinCtrl, 0, wx.ADJUST_MINSIZE, 0)
-        pilotSizer.Add(pilotSkillSizer, 1, wx.EXPAND, 0)
+        pilotSkillSizer.Add(self.manufactIndSpinCtrl, 0, wx.ALIGN_CENTER_VERTICAL | wx.ADJUST_MINSIZE, 0)
+        pilotSizer.Add(pilotSkillSizer, 1, wx.ALIGN_CENTER_HORIZONTAL, 0)
         manufactureSelectionSizer.Add(pilotSizer, 1, wx.EXPAND, 0)
         bpoSizer.Add(self.bpoSelector, 0, wx.ADJUST_MINSIZE, 0)
         bpoStatsSizer.Add(self.mlLabel, 0, wx.ALIGN_CENTER_VERTICAL | wx.ADJUST_MINSIZE, 0)
-        bpoStatsSizer.Add(self.manufactMLSpinCtrl, 0, wx.ADJUST_MINSIZE, 0)
+        bpoStatsSizer.Add(self.manufactMLSpinCtrl, 0, wx.ALIGN_CENTER_VERTICAL | wx.ADJUST_MINSIZE, 0)
         bpoStatsSizer.Add(self.plLabel, 0, wx.ALIGN_CENTER_VERTICAL | wx.ADJUST_MINSIZE, 0)
-        bpoStatsSizer.Add(self.manufactPLSpinCtrl, 0, wx.ADJUST_MINSIZE, 0)
+        bpoStatsSizer.Add(self.manufactPLSpinCtrl, 0, wx.ALIGN_CENTER_VERTICAL | wx.ADJUST_MINSIZE, 0)
         bpoStatsSizer.Add(self.qtyLabel, 0, wx.ALIGN_CENTER_VERTICAL | wx.ADJUST_MINSIZE, 0)
-        bpoStatsSizer.Add(self.manufactQtySpinCtrl, 0, wx.ADJUST_MINSIZE, 0)
-        bpoSizer.Add(bpoStatsSizer, 1, wx.EXPAND, 0)
+        bpoStatsSizer.Add(self.manufactQtySpinCtrl, 0, wx.ALIGN_CENTER_VERTICAL | wx.ADJUST_MINSIZE, 0)
+        bpoSizer.Add(bpoStatsSizer, 1, wx.ALIGN_CENTER_HORIZONTAL, 0)
         manufactureSelectionSizer.Add(bpoSizer, 1, wx.EXPAND, 0)
-        outputSizer.Add(self.outputLabel, 0, wx.ADJUST_MINSIZE, 0)
-        outputSizer.Add(self.outputTimeTextCtrl, 0, wx.ADJUST_MINSIZE, 0)
+        outputSizer.Add(self.outputLabel, 0, wx.ALIGN_CENTER_VERTICAL | wx.ADJUST_MINSIZE, 0)
+        outputSizer.Add(self.outputTimeTextCtrl, 0, wx.ALIGN_CENTER_VERTICAL | wx.ADJUST_MINSIZE, 0)
         manufactureSelectionSizer.Add(outputSizer, 1, wx.EXPAND, 0)
         meAnalysisSizer.Add(self.mlAnalysisList, 3, wx.EXPAND, 0)
         manufactureSelectionSizer.Add(meAnalysisSizer, 3, wx.EXPAND, 0)
@@ -1007,6 +1012,7 @@ class MainWindow(wx.Frame):
         manufactureSizer.Add(manufactureSelectionSizer, 1, wx.EXPAND, 0)
         manufactureSizer.Add(self.manufactureList, 1, wx.EXPAND, 0)
         self.notebookManufacturingPane.SetSizer(manufactureSizer)
+
         self.mainNotebook.AddPage(self.notebookJobPane, ("Jobs"))
         self.mainNotebook.AddPage(self.notebookStarbasePane, ("Starbases"))
         self.mainNotebook.AddPage(self.notebookManufacturingPane, ("Manufacturing"))
@@ -1572,7 +1578,7 @@ class MainWindow(wx.Frame):
                 productionTime = (baseProductionTime * (1 - (productivityModifier / baseProductionTime) * (productionLevel - 1)) * produtionTimeModifier) * manufactureQty
 
             #print(productionTime)
-            self.outputTimeTextCtrl.SetValue(str(productionTime))
+            self.outputTimeTextCtrl.SetValue(str(datetime.timedelta(seconds=int(productionTime))))
 
             self.statusbar.SetStatusText('Welcome to Nesi - ' + 'Perfect ME: ' + str(maxME))  # I'll find a better home for this number soon.
 
