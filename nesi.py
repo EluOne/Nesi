@@ -49,6 +49,7 @@ starbaseRows = []
 # This is where we are storing our API keys for now.
 pilotRows = []
 bpoList = []
+installList = []
 
 
 class Job(object):
@@ -820,7 +821,7 @@ class MainWindow(wx.Frame):
         self.starbaseList = ObjectListView(self.notebookStarbasePane, -1, style=wx.LC_REPORT | wx.SUNKEN_BORDER)
         self.starbaseDetailBox = wx.TextCtrl(self.notebookStarbasePane, -1, "", style=wx.TE_MULTILINE)
 
-        if bpoList == []:  # Build a list of all blueprints from the static data dump.
+        if bpoList == [] and installList == []:  # Build a list of all blueprints from the static data dump.
             try:
                 con = lite.connect('static.db')
 
@@ -832,8 +833,18 @@ class MainWindow(wx.Frame):
                     rows = cur.fetchall()
 
                     for row in rows:
-                        # blueprintTypeID, productTypeID, typeName, wasteFactor
+                        # blueprintTypeID, productTypeID, typeName, wasteFactor, productionTime, productivityModifier
                         bpoList.append([int(row[0]), int(row[1]), str(row[2]), int(row[3]), int(row[4]), int(row[5])])
+
+                    cur = con.cursor()
+                    statement = """select assemblyLineTypeID, assemblyLineTypeName, baseTimeMultiplier, baseMaterialMultiplier from ramassemblylinetypes where activityId = 1;"""
+                    cur.execute(statement)
+
+                    rows = cur.fetchall()
+
+                    for row in rows:
+                        # assemblyLineTypeID, assemblyLineTypeName, baseTimeMultiplier, baseMaterialMultiplier
+                        installList.append([int(row[0]), str(row[1]), float(row[2]), float(row[3])])
 
             except lite.Error as err:
                 error = ('SQL Lite Error: ' + str(err.args[0]) + str(err.args[1:]))  # Error String
@@ -846,8 +857,12 @@ class MainWindow(wx.Frame):
         for i in range(len(bpoList)):
             choices.append(str(bpoList[i][2]))
 
+        installChoices = []
+        for i in range(len(installList)):
+            installChoices.append(str(installList[i][1]))
+
         self.notebookManufacturingPane = wx.Panel(self.mainNotebook, wx.ID_ANY)
-        self.pilotChoice = wx.Choice(self.notebookManufacturingPane, wx.ID_ANY, choices=[])
+        self.pilotChoice = wx.Choice(self.notebookManufacturingPane, wx.ID_ANY, choices=[])  # TODO: Pull in from API
         self.peLabel = wx.StaticText(self.notebookManufacturingPane, wx.ID_ANY, ("Production Efficiency"))
         self.manufactPESpinCtrl = wx.SpinCtrl(self.notebookManufacturingPane, wx.ID_ANY, "0", min=0, max=5)  # Pilot Production Efficency Skill
         self.indLabel = wx.StaticText(self.notebookManufacturingPane, wx.ID_ANY, ("Industry"))
@@ -861,7 +876,7 @@ class MainWindow(wx.Frame):
         self.qtyLabel = wx.StaticText(self.notebookManufacturingPane, wx.ID_ANY, ("Runs"))
         self.manufactQtySpinCtrl = wx.SpinCtrl(self.notebookManufacturingPane, wx.ID_ANY, "1", min=1, max=10000)
         self.bpoSizer_staticbox = wx.StaticBox(self.notebookManufacturingPane, wx.ID_ANY, ("Blueprint"))
-        self.installChoice = wx.Choice(self.notebookManufacturingPane, wx.ID_ANY, choices=[])
+        self.installChoice = wx.Choice(self.notebookManufacturingPane, wx.ID_ANY, choices=installChoices)
         self.outputLabel = wx.StaticText(self.notebookManufacturingPane, wx.ID_ANY, ("Production Time"))
         self.outputTimeTextCtrl = wx.TextCtrl(self.notebookManufacturingPane, wx.ID_ANY, "")
         self.installSizer_staticbox = wx.StaticBox(self.notebookManufacturingPane, wx.ID_ANY, ("Installation"))
@@ -883,6 +898,7 @@ class MainWindow(wx.Frame):
         self.Bind(wx.EVT_BUTTON, self.onGetStarbases, self.starbaseBtn)
         self.Bind(wx.EVT_LIST_ITEM_SELECTED, self.onStarbaseSelect, self.starbaseList)
 
+        self.Bind(wx.EVT_CHOICE, self.onSelectPilot, self.pilotChoice)
         self.Bind(wx.EVT_BUTTON, self.onBpoSelect, self.bpoBtn)
         self.Bind(wx.EVT_COMBOBOX, self.onBpoSelect)
         # end wxGlade
@@ -940,7 +956,6 @@ class MainWindow(wx.Frame):
             ColumnDefn('Item', 'left', 245, 'item'),
             ColumnDefn('Waste Eliminated at ML:', 'center', 245, 'perfect'),
         ])
-#        self.mlAnalysisList.SetSortColumn(self.mlAnalysisList.columns[1])
 
         self.manufactureList.SetEmptyListMsg('Select a BPO from the\ndrop down on left to start')
         self.manufactureList.SetFont(wx.Font(9, wx.DEFAULT, wx.NORMAL, wx.NORMAL, 0, ""))
@@ -954,6 +969,7 @@ class MainWindow(wx.Frame):
         ])
         self.manufactureList.SetSortColumn(self.manufactureList.columns[5])
 
+        self.installChoice.SetSelection(0)
         self.outputTimeTextCtrl.SetMinSize((200, 21))
 
     def __do_layout(self):
@@ -1422,14 +1438,22 @@ class MainWindow(wx.Frame):
 
         self.starbaseDetailBox.SetValue(details)
 
+    def onSelectPilot(self, event):  # TODO: pull in data from API
+        print("Event handler 'onSelectPilot' not implemented!")
+        event.Skip()
+
     def onBpoSelect(self, event):
         """Handle showing details for item select from list"""
         tempManufacterRows = []
         tempMaterialLevelRows = []
-        currentItem = self.bpoSelector.GetValue()
         manufactureQty = self.manufactQtySpinCtrl.GetValue()
         maxME = 0
-        #print(currentItem)
+
+        # assemblyLineTypeID, assemblyLineTypeName, baseTimeMultiplier, baseMaterialMultiplier
+        currentInstall = self.installChoice.GetCurrentSelection()
+        installMaterialModifier = installList[currentInstall][3]
+
+        currentItem = self.bpoSelector.GetValue()
 
         for i in range(len(bpoList)):
             if bpoList[i][2] == currentItem:
@@ -1482,7 +1506,7 @@ class MainWindow(wx.Frame):
                     extraRows = cur.fetchall()
                     #print((len(rows)))
                     for row in extraRows:
-                        extraMaterials[str(row[0])] = (int(row[1]) * manufactureQty)
+                        extraMaterials[str(row[0])] = round((int(row[1]) * manufactureQty * installMaterialModifier), 0)
                         # Build a list of materials recovered from the items marked as recycled.
                         if row[3] == 1:  # Item to be recycled
                             # Recycled materials from ID of item to be reprocessed.
@@ -1523,9 +1547,9 @@ class MainWindow(wx.Frame):
                         else:
                             waste = round((materialAmount * (baseWasteFactor / 100) * (1 - materialLevel)), 2)
 
-                        perfectME = math.floor(0.02 * baseWasteFactor * materialAmount)
+                        perfectME = int(math.floor(0.02 * baseWasteFactor * materialAmount))
 
-                        tempMaterialLevelRows.append(MlAnalysis(str(key), int(perfectME)))
+                        tempMaterialLevelRows.append(MlAnalysis(str(key), str(perfectME)))  # Have to send as a string else a zero value won't display.
 
                         if perfectME > maxME:
                             maxME = int(perfectME)
@@ -1534,7 +1558,7 @@ class MainWindow(wx.Frame):
                         peWaste = round((((25 - (5 * productionEfficiency)) * materialAmount) / 100), 2)
 
                         totalWaste = waste + peWaste
-                        totalMaterials = materialAmount + totalWaste
+                        totalMaterials = round(((materialAmount + totalWaste) * manufactureQty * installMaterialModifier), 0)
                         if (perfectME > materialLevel) and (totalWaste > 0):
                             percentWaste = totalWaste * (100 / float(materialAmount))
                         else:
@@ -1543,7 +1567,7 @@ class MainWindow(wx.Frame):
                         #print(key, perfectME, waste, peWaste, materialAmount, (materialAmount + waste + peWaste), percentWaste, baseWasteFactor)
 
                         # Build the list to be displayed. This is where we round to the nearest interger so the calcs all work.
-                        tempManufacterRows.append(Materials(str(key), (int(totalMaterials) * manufactureQty), ' Raw Materials', '100%', str(round(percentWaste, 3)) + '%'))
+                        tempManufacterRows.append(Materials(str(key), int(totalMaterials), ' Raw Materials', '100%', str(round(percentWaste, 3)) + '%'))
 
                 for key in extraMaterials.keys():
                     tempManufacterRows.append(Materials(str(key), int(extraMaterials[key]), 'Extra Materials', '', ''))
@@ -1571,10 +1595,14 @@ class MainWindow(wx.Frame):
             productivityModifier = float(bpoList[itemID][5])
             industrySkill = self.manufactIndSpinCtrl.GetValue()  # The industial skill of the pilot.
             productionLevel = float(self.manufactPLSpinCtrl.GetValue())  # The PE/PL of the researched blueprint.
-            implantModifier = 1
-            productionSlotModifier = 1
 
-            produtionTimeModifier = ((1 - (0.04 * industrySkill)) * implantModifier * productionSlotModifier)
+            implantModifier = 1  # TODO: Will have to be pulled from the API
+
+            # assemblyLineTypeID, assemblyLineTypeName, baseTimeMultiplier, baseMaterialMultiplier
+            #currentInstall = self.installChoice.GetCurrentSelection()
+            installTimeModifier = installList[currentInstall][2]
+
+            produtionTimeModifier = ((1 - (0.04 * industrySkill)) * implantModifier * installTimeModifier)
 
             if productionEfficiency >= 0:
                 productionTime = (baseProductionTime * (1 - (productivityModifier / baseProductionTime) * (productionLevel / (1 + productionLevel))) * produtionTimeModifier) * manufactureQty
@@ -1582,7 +1610,7 @@ class MainWindow(wx.Frame):
                 productionTime = (baseProductionTime * (1 - (productivityModifier / baseProductionTime) * (productionLevel - 1)) * produtionTimeModifier) * manufactureQty
 
             #print(productionTime)
-            self.outputTimeTextCtrl.SetValue(str(datetime.timedelta(seconds=int(productionTime))))
+            self.outputTimeTextCtrl.SetValue(str(datetime.timedelta(seconds=round(productionTime, 0))))
 
             self.statusbar.SetStatusText('Welcome to Nesi - ' + 'Perfect ME: ' + str(maxME))  # I'll find a better home for this number soon.
 
