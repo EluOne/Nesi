@@ -827,7 +827,8 @@ class MainWindow(wx.Frame):
 
                 with con:
                     cur = con.cursor()
-                    statement = """SELECT r.blueprintTypeID, r.productTypeID, t.typeName, r.wasteFactor, r.productionTime, r.productivityModifier FROM invblueprinttypes AS r INNER JOIN invTypes AS t ON r.blueprintTypeID = t.typeID ORDER BY t.typeName;"""
+                    statement = """SELECT r.blueprintTypeID, r.productTypeID, t.typeName, r.wasteFactor, r.productionTime, r.productivityModifier
+                                FROM invblueprinttypes AS r INNER JOIN invTypes AS t ON r.blueprintTypeID = t.typeID ORDER BY t.typeName;"""
                     cur.execute(statement)
 
                     rows = cur.fetchall()
@@ -837,7 +838,8 @@ class MainWindow(wx.Frame):
                         bpoList.append([int(row[0]), int(row[1]), str(row[2]), int(row[3]), int(row[4]), int(row[5])])
 
                     cur = con.cursor()
-                    statement = """select assemblyLineTypeID, assemblyLineTypeName, baseTimeMultiplier, baseMaterialMultiplier from ramassemblylinetypes where activityId = 1;"""
+                    statement = """SELECT assemblyLineTypeID, assemblyLineTypeName, baseTimeMultiplier, baseMaterialMultiplier
+                                FROM ramassemblylinetypes WHERE activityId = 1;"""
                     cur.execute(statement)
 
                     rows = cur.fetchall()
