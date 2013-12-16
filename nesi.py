@@ -162,7 +162,7 @@ class AutoComboBox(wx.ComboBox):
     def EvtText(self, event):
         currentText = str(event.GetString())
         found = False
-        options = 0
+        options = 0  # We reset on every call to reduce the list according to all letters typed.
 
         if self.ignoreEvtText:
             self.ignoreEvtText = False
@@ -172,7 +172,7 @@ class AutoComboBox(wx.ComboBox):
             return
 
         for choice in self.choices:
-            if choice.startswith(currentText.capitalize()):
+            if choice.startswith(currentText.capitalize()):  # TODO: Make case insensitive.
                 self.ignoreEvtText = True
                 if options == 0:
                     self.Clear()
@@ -806,22 +806,26 @@ class MainWindow(wx.Frame):
         self.frame_menubar.Append(self.fileMenu, "File")
         self.SetMenuBar(self.frame_menubar)
         # Menu Bar end
+
         self.statusbar = self.CreateStatusBar(1, 0)
         self.bitmap_1 = wx.StaticBitmap(self, -1, wx.Bitmap("images/nesi.png", wx.BITMAP_TYPE_ANY))
         self.label_1 = wx.StaticText(self, -1, "Nova Echo Science and Industry")
         self.mainNotebook = wx.Notebook(self, -1, style=0)
 
+        # Job tab widgets
         self.notebookJobPane = wx.Panel(self.mainNotebook, -1)
         self.jobBtn = wx.Button(self.notebookJobPane, -1, "Get Jobs")
         self.jobList = ObjectListView(self.notebookJobPane, -1, style=wx.LC_REPORT | wx.SUNKEN_BORDER)
         self.jobDetailBox = wx.TextCtrl(self.notebookJobPane, -1, "", style=wx.TE_MULTILINE)
 
+        # Starbases (POS) tab widgets
         self.notebookStarbasePane = wx.Panel(self.mainNotebook, -1)
         self.starbaseBtn = wx.Button(self.notebookStarbasePane, -1, "Refresh")
         self.starbaseList = ObjectListView(self.notebookStarbasePane, -1, style=wx.LC_REPORT | wx.SUNKEN_BORDER)
         self.starbaseDetailBox = wx.TextCtrl(self.notebookStarbasePane, -1, "", style=wx.TE_MULTILINE)
 
-        if bpoList == [] and installList == []:  # Build a list of all blueprints from the static data dump.
+        # Manufacturing tab initialisation and widgets
+        if bpoList == [] and installList == []:  # Build a list of all blueprints and facilities from the static data dump.
             try:
                 con = lite.connect('static.db')
 
@@ -855,6 +859,7 @@ class MainWindow(wx.Frame):
                 if con:
                     con.close()
 
+        # Append both lists to their respective selection boxes.
         choices = [""]
         for i in range(len(bpoList)):
             choices.append(str(bpoList[i][2]))
@@ -866,7 +871,7 @@ class MainWindow(wx.Frame):
         self.notebookManufacturingPane = wx.Panel(self.mainNotebook, wx.ID_ANY)
         self.pilotChoice = wx.Choice(self.notebookManufacturingPane, wx.ID_ANY, choices=[])  # TODO: Pull in from API
         self.peLabel = wx.StaticText(self.notebookManufacturingPane, wx.ID_ANY, ("Production Efficiency"))
-        self.manufactPESpinCtrl = wx.SpinCtrl(self.notebookManufacturingPane, wx.ID_ANY, "0", min=0, max=5)  # Pilot Production Efficency Skill
+        self.manufactPESpinCtrl = wx.SpinCtrl(self.notebookManufacturingPane, wx.ID_ANY, "0", min=0, max=5)  # Pilot Production Efficiency Skill
         self.indLabel = wx.StaticText(self.notebookManufacturingPane, wx.ID_ANY, ("Industry"))
         self.manufactIndSpinCtrl = wx.SpinCtrl(self.notebookManufacturingPane, wx.ID_ANY, "0", min=0, max=5)  # Pilot Industry Skill
         self.pilotSizer_staticbox = wx.StaticBox(self.notebookManufacturingPane, wx.ID_ANY, ("Pilot"))
@@ -901,7 +906,7 @@ class MainWindow(wx.Frame):
         self.Bind(wx.EVT_LIST_ITEM_SELECTED, self.onStarbaseSelect, self.starbaseList)
 
         self.Bind(wx.EVT_CHOICE, self.onSelectPilot, self.pilotChoice)
-        self.Bind(wx.EVT_BUTTON, self.onBpoSelect, self.bpoBtn)
+        self.Bind(wx.EVT_BUTTON, self.onBpoSelect, self.bpoBtn)  # Do the same as the combo selection.
         self.Bind(wx.EVT_COMBOBOX, self.onBpoSelect)
         # end wxGlade
 
