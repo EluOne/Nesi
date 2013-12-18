@@ -145,12 +145,16 @@ class AutoComboBox(wx.ComboBox):
     def __init__(self, parent, value, choices=[], style=0, **par):
         wx.ComboBox.__init__(self, parent, wx.ID_ANY, value, style=style | wx.CB_DROPDOWN, choices=choices, **par)
         self.choices = choices
+        self.Bind(wx.EVT_CHAR, self.EvtChar)
         self.Bind(wx.EVT_TEXT, self.EvtText)
+
+    def EvtChar(self, event):
+        event.Skip()
 
     def EvtText(self, event):
         currentText = str(event.GetString()).lower()
         found = False
-        options = 0  # We reset on every call to reduce the list according to all letters typed.
+        newChoices = []
 
         if len(currentText) == 0:
             self.Clear()
@@ -158,12 +162,12 @@ class AutoComboBox(wx.ComboBox):
 
         for choice in self.choices:
             if choice.lower().startswith(currentText):
-                self.ignoreEvtText = True
-                if options == 0:
-                    self.Clear()
-                    options = options + 1
-                self.Append(choice)
+                newChoices.append(choice)
                 found = True
+
+        if found:
+            self.Clear()
+            self.AppendItems(newChoices)
 
         if not found:
             event.Skip()
@@ -874,7 +878,7 @@ class MainWindow(wx.Frame):
         self.installSizer_staticbox = wx.StaticBox(self.notebookManufacturingPane, wx.ID_ANY, ("Installation"))
         self.mlAnalysisList = ObjectListView(self.notebookManufacturingPane, wx.ID_ANY, style=wx.LC_REPORT | wx.SUNKEN_BORDER)
         self.meAnalysisSizer_staticbox = wx.StaticBox(self.notebookManufacturingPane, wx.ID_ANY, ("Material Level Analysis"))
-        self.bpoBtn = wx.Button(self.notebookManufacturingPane, wx.ID_ANY, ("Recalculate"))
+        self.bpoBtn = wx.Button(self.notebookManufacturingPane, wx.ID_ANY, ("Calculate"))
         self.manufactureList = GroupListView(self.notebookManufacturingPane, wx.ID_ANY, style=wx.LC_REPORT | wx.SUNKEN_BORDER)
 
         self.__set_properties()
@@ -892,7 +896,6 @@ class MainWindow(wx.Frame):
 
         self.Bind(wx.EVT_CHOICE, self.onSelectPilot, self.pilotChoice)
         self.Bind(wx.EVT_BUTTON, self.onBpoSelect, self.bpoBtn)  # Do the same as the combo selection.
-        self.Bind(wx.EVT_COMBOBOX, self.onBpoSelect)
         # end wxGlade
 
     def __set_properties(self):
