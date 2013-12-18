@@ -1656,7 +1656,7 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>."""
 
         info.SetIcon(wx.Icon('images/nesi.png', wx.BITMAP_TYPE_PNG))
         info.SetName('Nova Echo Science & Industry')
-        info.SetVersion('1.2.0')
+        info.SetVersion('1.2.0-alpha')
         info.SetDescription(description)
         #info.SetCopyright('(C) 2013 Tim Cumming')
         info.SetWebSite('https://github.com/EluOne/Nesi')
