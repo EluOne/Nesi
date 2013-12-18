@@ -146,33 +146,18 @@ class AutoComboBox(wx.ComboBox):
         wx.ComboBox.__init__(self, parent, wx.ID_ANY, value, style=style | wx.CB_DROPDOWN, choices=choices, **par)
         self.choices = choices
         self.Bind(wx.EVT_TEXT, self.EvtText)
-        self.Bind(wx.EVT_CHAR, self.EvtChar)
-        self.Bind(wx.EVT_COMBOBOX, self.EvtCombobox)
-        self.ignoreEvtText = False
-
-    def EvtCombobox(self, event):
-        self.ignoreEvtText = True
-        event.Skip()
-
-    def EvtChar(self, event):
-        if event.GetKeyCode() == 8:  # Backspace
-            self.ignoreEvtText = True
-        event.Skip()
 
     def EvtText(self, event):
-        currentText = str(event.GetString())
+        currentText = str(event.GetString()).lower()
         found = False
         options = 0  # We reset on every call to reduce the list according to all letters typed.
 
-        if self.ignoreEvtText:
-            self.ignoreEvtText = False
-            if len(currentText) == 0:
-                self.Clear()
-                self.AppendItems(self.choices)
-            return
+        if len(currentText) == 0:
+            self.Clear()
+            self.AppendItems(self.choices)
 
         for choice in self.choices:
-            if choice.startswith(currentText.capitalize()):  # TODO: Make case insensitive.
+            if choice.lower().startswith(currentText):
                 self.ignoreEvtText = True
                 if options == 0:
                     self.Clear()
