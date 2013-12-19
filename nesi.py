@@ -161,15 +161,14 @@ class AutoComboBox(wx.ComboBox):
             self.AppendItems(self.choices)
 
         for choice in self.choices:
-            if choice.lower().startswith(currentText):
+            if choice.lower().find(currentText) > 0:  # Find entered text in string of choices.
                 newChoices.append(choice)
                 found = True
 
         if found:
             self.Clear()
             self.AppendItems(newChoices)
-
-        if not found:
+        else:
             event.Skip()
 
 
@@ -1667,7 +1666,6 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>."""
 
 class MyApp(wx.App):
     def OnInit(self):
-        wx.InitAllImageHandlers()
         frame = MainWindow(None, -1, '')
         self.SetTopWindow(frame)
         frame.Center()
