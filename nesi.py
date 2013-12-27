@@ -162,7 +162,8 @@ class AutoComboBox(wx.ComboBox):
             self.AppendItems(self.choices)
 
         for choice in self.choices:
-            if choice.lower().find(currentText) > 0:  # Find entered text in string of choices.
+            # Check entered text at start and within string of choices.
+            if (choice.lower().find(currentText) > 0) or (choice.lower().startswith(currentText)):
                 newChoices.append(choice)
                 found = True
 
@@ -187,7 +188,7 @@ def onError(error):
     dlg.Destroy()  # finally destroy it when finished.
 
 
-def skillCheck(keyID, vCode, characterID):
+def skillCheck(keyID, vCode, characterID):  # TODO: Pull in implants from api.
     skills = {}
     skillUrl = 'https://api.eveonline.com/char/CharacterSheet.xml.aspx?keyID=%s&vCode=%s&characterID=%s' % (keyID, vCode, characterID)
 
@@ -200,8 +201,8 @@ def skillCheck(keyID, vCode, characterID):
         XMLSkillData = parseString(skillData)
         skillDataNodes = XMLSkillData.getElementsByTagName('row')
 
-        for skillRow in skillDataNodes:
-            skills[skillRow.getAttribute('typeID')] = skillRow.getAttribute('level')
+        for skillRow in skillDataNodes:  # At present this will be the full list of pilot skills.
+            skills[int(skillRow.getAttribute('typeID'))] = int(skillRow.getAttribute('level'))
 
         # print(skills)  # Console debug
 
@@ -241,6 +242,7 @@ def apiCheck(keyID, vCode):
         dataNodes = XMLData.getElementsByTagName('row')
 
         for row in dataNodes:
+            # Need to find out a way to not call this if the key has no access to this data.
             skills = skillCheck(keyID, vCode, row.getAttribute('characterID'))
 
             pilots.append([keyID, vCode,
@@ -764,7 +766,7 @@ class PreferencesDialog(wx.Dialog):
         self.Layout()
         # end wxGlade
 
-    def onAdd(self, event):  # TODO: add skills input
+    def onAdd(self, event):
         numPilotRows = list(range(len(self.tempPilotRows)))
         keyID, vCode = (self.keyIDTextCtrl.GetValue(), self.vCodeTextCtrl.GetValue())
 
@@ -785,7 +787,7 @@ class PreferencesDialog(wx.Dialog):
 
         self.charList.SetObjects(self.tempPilotRows)
 
-    def onRefresh(self, event):  # TODO: add skills input
+    def onRefresh(self, event):
         self.refreshPilotRows = []
         numPilotRows = list(range(len(self.tempPilotRows)))
 
@@ -919,8 +921,14 @@ class MainWindow(wx.Frame):
         for i in range(len(installList)):
             installChoices.append(str(installList[i][1]))
 
+        pilotChoices = []
+        for i in range(len(pilotRows)):
+            # The pilot might be in more than one api key, but not all may have skills lists.
+            if (pilotRows[i].characterName not in pilotChoices) and (pilotRows[i].skills != {}):
+                pilotChoices.append(str(pilotRows[i].characterName))
+
         self.notebookManufacturingPane = wx.Panel(self.mainNotebook, wx.ID_ANY)
-        self.pilotChoice = wx.Choice(self.notebookManufacturingPane, wx.ID_ANY, choices=[])  # TODO: Pull in from API
+        self.pilotChoice = wx.Choice(self.notebookManufacturingPane, wx.ID_ANY, choices=pilotChoices)
         self.peLabel = wx.StaticText(self.notebookManufacturingPane, wx.ID_ANY, ("Production Efficiency"))
         self.manufactPESpinCtrl = wx.SpinCtrl(self.notebookManufacturingPane, wx.ID_ANY, "0", min=0, max=5)  # Pilot Production Efficiency Skill
         self.indLabel = wx.StaticText(self.notebookManufacturingPane, wx.ID_ANY, ("Industry"))
@@ -945,6 +953,7 @@ class MainWindow(wx.Frame):
 
         self.__set_properties()
         self.__do_layout()
+        self.onSelectPilot(0)  # Call pilot selection to auto set skill based SpinCtrls
 
         self.Bind(wx.EVT_MENU, self.onAbout, self.menuAbout)
         self.Bind(wx.EVT_MENU, self.onConfig, self.menuConfig)
@@ -1495,9 +1504,24 @@ class MainWindow(wx.Frame):
 
         self.starbaseDetailBox.SetValue(details)
 
-    def onSelectPilot(self, event):  # TODO: pull in data from API
-        print("Event handler 'onSelectPilot' not implemented!")
-        event.Skip()
+    def onSelectPilot(self, event):
+        currentSelection = self.pilotChoice.GetCurrentSelection()
+        currentPilot = self.pilotChoice.GetString(currentSelection)
+        #print(currentPilot)
+        industrylvl = 0
+        productionlvl = 0
+
+        # skills 3380 = Industry, 3388 = Production Efficiency
+        for i in range(len(pilotRows)):
+            if (pilotRows[i].characterName == currentPilot) and (pilotRows[i].skills != {}):
+                if 3380 in pilotRows[i].skills:
+                    industrylvl = pilotRows[i].skills[3380]
+                if 3388 in pilotRows[i].skills:
+                    productionlvl = pilotRows[i].skills[3388]
+                #print(industrylvl, productionlvl)
+
+        self.manufactIndSpinCtrl.SetValue(industrylvl)
+        self.manufactPESpinCtrl.SetValue(productionlvl)
 
     def onBpoSelect(self, event):
         """Handle showing details for item select from list"""
@@ -1650,10 +1674,10 @@ class MainWindow(wx.Frame):
             # Production time calculations
             baseProductionTime = float(bpoList[itemID][4])
             productivityModifier = float(bpoList[itemID][5])
-            industrySkill = self.manufactIndSpinCtrl.GetValue()  # The industial skill of the pilot.
+            industrySkill = self.manufactIndSpinCtrl.GetValue()  # The industrial skill of the pilot.
             productionLevel = float(self.manufactPLSpinCtrl.GetValue())  # The PE/PL of the researched blueprint.
 
-            implantModifier = 1  # TODO: Will have to be pulled from the API
+            implantModifier = 1  # TODO: Will have to be pulled from the API see skillCheck()
 
             # assemblyLineTypeID, assemblyLineTypeName, baseTimeMultiplier, baseMaterialMultiplier
             #currentInstall = self.installChoice.GetCurrentSelection()
