@@ -111,7 +111,7 @@ class Starbase(object):
 
 
 class Character(object):
-    def __init__(self, keyID, vCode, characterID, characterName, corporationID, corporationName, keyType, keyExpires, isActive):
+    def __init__(self, keyID, vCode, characterID, characterName, corporationID, corporationName, keyType, keyExpires, skills, isActive):
         self.keyID = keyID
         self.vCode = vCode
         self.characterID = characterID
@@ -123,6 +123,7 @@ class Character(object):
             self.keyExpires = 'Never'
         else:
             self.keyExpires = datetime.datetime(*(time.strptime(keyExpires, '%Y-%m-%d %H:%M:%S')[0:6]))
+        self.skills = skills
         self.isActive = isActive
 
 
@@ -186,14 +187,48 @@ def onError(error):
     dlg.Destroy()  # finally destroy it when finished.
 
 
-def apiCheck(keyID, vCode):
-    pilots = []
-    baseUrl = 'https://api.eveonline.com/account/APIKeyInfo.xml.aspx?keyID=%s&vCode=%s'
-    apiURL = baseUrl % (keyID, vCode)
-    # print(apiURL)  # Console debug
+def skillCheck(keyID, vCode, characterID):
+    skills = {}
+    skillUrl = 'https://api.eveonline.com/char/CharacterSheet.xml.aspx?keyID=%s&vCode=%s&characterID=%s' % (keyID, vCode, characterID)
 
     try:  # Try to connect to the API server
-        target = urllib2.urlopen(apiURL)  # download the file
+
+        target = urllib2.urlopen(skillUrl)  # download the file
+        skillData = target.read()  # convert to string
+        target.close()  # close file because we don't need it anymore:
+
+        XMLSkillData = parseString(skillData)
+        skillDataNodes = XMLSkillData.getElementsByTagName('row')
+
+        for skillRow in skillDataNodes:
+            skills[skillRow.getAttribute('typeID')] = skillRow.getAttribute('level')
+
+        # print(skills)  # Console debug
+
+    except urllib2.HTTPError as err:
+        error = ('HTTP Error: %s %s\nThis key does not have access to pilot skills.' % (str(err.code), str(err.reason)))  # Error String
+        onError(error)
+    except urllib2.URLError as err:
+        error = ('Error Connecting to Tranquility: ' + str(err.reason))  # Error String
+        onError(error)
+    except httplib.HTTPException as err:
+        error = ('HTTP Exception')  # Error String
+        onError(error)
+    except Exception:
+        error = ('Generic Exception: ' + traceback.format_exc())  # Error String
+        onError(error)
+
+    return skills
+
+
+def apiCheck(keyID, vCode):
+    pilots = []
+    skills = {}
+    baseUrl = 'https://api.eveonline.com/account/APIKeyInfo.xml.aspx?keyID=%s&vCode=%s' % (keyID, vCode)
+    # print(baseUrl)  # Console debug
+
+    try:  # Try to connect to the API server
+        target = urllib2.urlopen(baseUrl)  # download the file
         downloadedData = target.read()  # convert to string
         target.close()  # close file because we don't need it anymore:
 
@@ -206,17 +241,18 @@ def apiCheck(keyID, vCode):
         dataNodes = XMLData.getElementsByTagName('row')
 
         for row in dataNodes:
+            skills = skillCheck(keyID, vCode, row.getAttribute('characterID'))
+
             pilots.append([keyID, vCode,
                             row.getAttribute('characterID'),
                             row.getAttribute('characterName'),
                             row.getAttribute('corporationID'),
                             row.getAttribute('corporationName'),
-                            keyInfo['type'], keyInfo['expires']
-                            ])
+                            keyInfo['type'], keyInfo['expires'],
+                            skills])
 
     except urllib2.HTTPError as err:
-        error = ('HTTP Error: ' + str(err.code) + str(err.reason)
-                 + '\nPlease check you key details have been entered correctly.')  # Error String
+        error = ('HTTP Error: %s %s\nPlease check your key details have been entered correctly.' % (str(err.code), str(err.reason)))  # Error String
         onError(error)
     except urllib2.URLError as err:
         error = ('Error Connecting to Tranquility: ' + str(err.reason))  # Error String
@@ -276,7 +312,7 @@ def getServerStatus(args):
 
         return status
     else:
-        # print('Not Contacting Server For Status')
+        # print('Not Contacting Server For Status')  # Console debug
         return args
 
 
@@ -387,7 +423,7 @@ def id2name(idType, ids):  # Takes a list of IDs to query the local db or api se
                     pickle.dump(typeNames, typeFile)
                     typeFile.close()
                 except urllib2.HTTPError as err:
-                    error = ('HTTP Error: ' + str(err.code) + str(err.reason))  # Error String
+                    error = ('HTTP Error: %s %s' % (str(err.code), str(err.reason)))  # Error String
                     ids = idList[x].split(',')
                     numItems = range(len(ids))
                     for y in numItems:
@@ -484,9 +520,9 @@ def id2location(pilotRowID, ids):  # Take location IDs from API and use against 
 
                 rows = cur.fetchall()
 
-                # print((len(rows)))
+                # print((len(rows)))  # Console debug
                 for row in rows:
-                    # print(row)
+                    # print(row)  # Console debug
                     locationNames.update({int(row[0]): str(row[1])})
 
         except lite.Error as err:
@@ -543,7 +579,7 @@ def id2location(pilotRowID, ids):  # Take location IDs from API and use against 
                 for row in dataNodes:
                     locationNames.update({int(row.getAttribute('itemID')): str(row.getAttribute('itemName'))})
             except urllib2.HTTPError as err:
-                error = ('HTTP Error: ' + str(err.code) + str(err.reason))  # Error String
+                error = ('HTTP Error: %s %s' % (str(err.code), str(err.reason)))  # Error String
                 ids = idList[x].split(',')
                 numItems = range(len(ids))
                 for y in numItems:
@@ -589,7 +625,7 @@ def id2location(pilotRowID, ids):  # Take location IDs from API and use against 
                     locationNames.update({int(row.getAttribute('stationID')): str(row.getAttribute('stationName'))})
 
         except urllib2.HTTPError as err:
-            error = ('HTTP Error: ' + str(err.code) + str(err.reason))  # Error String
+            error = ('HTTP Error: %s %s' % (str(err.code), str(err.reason)))  # Error String
             ids = idList[x].split(',')
             numItems = range(len(ids))
             for y in numItems:
@@ -671,6 +707,7 @@ class PreferencesDialog(wx.Dialog):
         self.charList = GroupListView(self, -1, style=wx.LC_REPORT | wx.SUNKEN_BORDER)
         self.cancelBtn = wx.Button(self, wx.ID_CANCEL)
         self.deleteBtn = wx.Button(self, wx.ID_DELETE)
+        self.refreshBtn = wx.Button(self, wx.ID_REFRESH)
         self.saveBtn = wx.Button(self, wx.ID_SAVE)
 
         self.__set_properties()
@@ -680,6 +717,7 @@ class PreferencesDialog(wx.Dialog):
         self.saveBtn.Bind(wx.EVT_BUTTON, self.onSave)
         self.addBtn.Bind(wx.EVT_BUTTON, self.onAdd)
         self.deleteBtn.Bind(wx.EVT_BUTTON, self.onDelete)
+        self.refreshBtn.Bind(wx.EVT_BUTTON, self.onRefresh)
 
     def __set_properties(self):
         # begin wxGlade: PreferenceDialog.__set_properties
@@ -719,13 +757,14 @@ class PreferencesDialog(wx.Dialog):
         prefSizer.Add(self.charList, 3, wx.EXPAND, 0)
         prefBtnSizer.Add(self.cancelBtn, 0, wx.ADJUST_MINSIZE, 0)
         prefBtnSizer.Add(self.deleteBtn, 0, wx.ADJUST_MINSIZE, 0)
+        prefBtnSizer.Add(self.refreshBtn, 0, wx.ADJUST_MINSIZE, 0)
         prefBtnSizer.Add(self.saveBtn, 0, wx.ADJUST_MINSIZE, 0)
         prefSizer.Add(prefBtnSizer, 1, wx.ALL | wx.ALIGN_CENTER_HORIZONTAL, 0)
         self.SetSizer(prefSizer)
         self.Layout()
         # end wxGlade
 
-    def onAdd(self, event):
+    def onAdd(self, event):  # TODO: add skills input
         numPilotRows = list(range(len(self.tempPilotRows)))
         keyID, vCode = (self.keyIDTextCtrl.GetValue(), self.vCodeTextCtrl.GetValue())
 
@@ -741,9 +780,33 @@ class PreferencesDialog(wx.Dialog):
 
                 if pilots != []:
                     for row in pilots:
-                        # keyID, vCode, characterID, characterName, corporationID, corporationName, keyType, keyExpires, isActive
-                        self.tempPilotRows.append(Character(row[0], row[1], row[2], row[3], row[4], row[5], row[6], row[7], 0))
+                        # keyID, vCode, characterID, characterName, corporationID, corporationName, keyType, keyExpires, skills, isActive
+                        self.tempPilotRows.append(Character(row[0], row[1], row[2], row[3], row[4], row[5], row[6], row[7], row[8], 0))
 
+        self.charList.SetObjects(self.tempPilotRows)
+
+    def onRefresh(self, event):  # TODO: add skills input
+        self.refreshPilotRows = []
+        numPilotRows = list(range(len(self.tempPilotRows)))
+
+        for x in numPilotRows:
+            if (self.tempPilotRows[x].keyID) and (self.tempPilotRows[x].vCode):
+                if x > 0 and (self.tempPilotRows[x].keyID == self.tempPilotRows[x - 1].keyID):
+                    keyID, vCode = ('', '')  # We already have this key so null it so next check fails
+                else:
+                    keyID, vCode = (self.tempPilotRows[x].keyID, self.tempPilotRows[x].vCode)
+
+            if (keyID != '') and (vCode != ''):
+                pilots = apiCheck(keyID, vCode)
+
+                print(pilots)  # Console debug
+
+                if pilots != []:
+                    for row in pilots:
+                        # keyID, vCode, characterID, characterName, corporationID, corporationName, keyType, keyExpires, skills, isActive
+                        self.refreshPilotRows.append(Character(row[0], row[1], row[2], row[3], row[4], row[5], row[6], row[7], row[8], 0))
+
+        self.tempPilotRows = self.refreshPilotRows
         self.charList.SetObjects(self.tempPilotRows)
 
     def onDelete(self, event):
@@ -1054,7 +1117,7 @@ class MainWindow(wx.Frame):
                 t = clock()
                 tempJobRows = []
                 if pilotRows != []:  # Make sure we have keys in the config
-                    # keyID, vCode, characterID, characterName, corporationID, corporationName, keyType, keyExpires, isActive
+                    # keyID, vCode, characterID, characterName, corporationID, corporationName, keyType, keyExpires, skills, isActive
                     numPilotRows = list(range(len(pilotRows)))
                     for x in numPilotRows:  # Iterate over all of the keys and character ids in config
                         #Download the Account Industry Data
@@ -1250,7 +1313,7 @@ class MainWindow(wx.Frame):
                 t = clock()
                 tempStarbaseRows = []
                 if pilotRows != []:  # Make sure we have keys in the config
-                    # keyID, vCode, characterID, characterName, corporationID, corporationName, keyType, keyExpires, isActive
+                    # keyID, vCode, characterID, characterName, corporationID, corporationName, keyType, keyExpires, skills, isActive
                     numPilotRows = list(range(len(pilotRows)))
                     for x in numPilotRows:  # Iterate over all of the keys and character ids in config
                         #Download the Account Starbase Data
@@ -1258,7 +1321,7 @@ class MainWindow(wx.Frame):
                         if pilotRows[x].keyExpires != 'Never':
                             if pilotRows[x].keyExpires < serverTime:
                                 keyOK = 0
-                                error = ('KeyID' + pilotRows[x].keyID + 'has Expired')
+                                error = ('KeyID ' + pilotRows[x].keyID + ' has Expired')
                                 onError(error)
 
                         if keyOK == 1 and pilotRows[x].keyType == 'Corporation':
@@ -1326,7 +1389,7 @@ class MainWindow(wx.Frame):
                                     # itemID,typeID,locationID,moonID,state,stateTimestamp,onlineTimestamp,standingOwnerID
 
                                     except urllib2.HTTPError as err:
-                                        error = ('HTTP Error: ' + str(err.code))  # Server Status String
+                                        error = ('HTTP Error: %s %s' % (str(err.code), str(err.reason)))  # Error String
                                         self.statusbar.SetStatusText(error)
                                         onError(error)
                                     except urllib2.URLError as err:
@@ -1343,7 +1406,7 @@ class MainWindow(wx.Frame):
                                         onError(error)
 
                             except urllib2.HTTPError as err:
-                                error = ('HTTP Error: ' + str(err.code))  # Server Status String
+                                error = ('HTTP Error: %s %s' % (str(err.code), str(err.reason)))  # Error String
                                 self.statusbar.SetStatusText(error)
                                 onError(error)
                             except urllib2.URLError as err:
