@@ -144,7 +144,7 @@ class PreferencesDialog(wx.Dialog):
             if (keyID != '') and (vCode != ''):
                 pilots = apiCheck(keyID, vCode)
 
-                print(pilots)  # Console debug
+                # print(pilots)  # Console debug
 
                 if pilots != []:
                     for row in pilots:

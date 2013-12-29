@@ -960,7 +960,7 @@ class MainWindow(wx.Frame):
             industrySkill = self.manufactIndSpinCtrl.GetValue()  # The industrial skill of the pilot.
             productionLevel = float(self.manufactPLSpinCtrl.GetValue())  # The PE/PL of the researched blueprint.
 
-            implantModifier = 1  # TODO: Will have to be pulled from the API see skillCheck()
+            implantModifier = 1  # TODO: Will have to be pulled from the API see skillCheck() in api.py
 
             # assemblyLineTypeID, assemblyLineTypeName, baseTimeMultiplier, baseMaterialMultiplier
             #currentInstall = self.installChoice.GetCurrentSelection()

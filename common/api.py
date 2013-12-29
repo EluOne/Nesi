@@ -51,7 +51,8 @@ def skillCheck(keyID, vCode, characterID):  # TODO: Pull in implants from api.
         skillDataNodes = XMLSkillData.getElementsByTagName('row')
 
         for skillRow in skillDataNodes:  # At present this will be the full list of pilot skills.
-            skills[int(skillRow.getAttribute('typeID'))] = int(skillRow.getAttribute('level'))
+            if (skillRow.getAttribute('typeID') != '') or (skillRow.getAttribute('level') != ''):  # Check for blanks.
+                skills[int(skillRow.getAttribute('typeID'))] = int(skillRow.getAttribute('level'))
 
         # print(skills)  # Console debug
 
@@ -91,7 +92,7 @@ def apiCheck(keyID, vCode):
         dataNodes = XMLData.getElementsByTagName('row')
 
         for row in dataNodes:
-            # Need to find out a way to not call this if the key has no access to this data.
+            # TODO: Need to find out a way to not call this if the key has no access to this data.
             skills = skillCheck(keyID, vCode, row.getAttribute('characterID'))
 
             pilots.append([keyID, vCode,
