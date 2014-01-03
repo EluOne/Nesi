@@ -42,12 +42,14 @@ from common.api import onError, getServerStatus, id2location, id2name
 from gui.preferencesDialog import PreferencesDialog
 
 
-# A global variable to store the returned status.
+# Defaults that will be replaced by the API returned data.
 serverStatus = ['', '0', config.serverTime]
+starbaseCachedUntil = config.serverTime  # This needs to be moved to the global module so it can be reset by the prefs dialog.
 
 jobRows = []
-starbaseCachedUntil = config.serverTime  # This needs to be moved to the global module so it can be reset by the prefs dialog.
 starbaseRows = []
+
+# These will be the lists for the ui choices on the manufacturing tab.
 bpoList = []
 installList = []
 
@@ -921,7 +923,7 @@ class MainWindow(wx.Frame):
                         # Production efficiency waste:
                         peWaste = round((((25 - (5 * productionEfficiency)) * materialAmount) / 100), 2)
 
-                        totalWaste = waste + peWaste
+                        totalWaste = round((waste + peWaste), 0)  # We don't want any partial amounts here.
                         totalMaterials = round(((materialAmount + totalWaste) * manufactureQty * installMaterialModifier), 0)
                         if (perfectME > materialLevel) and (totalWaste > 0):
                             percentWaste = totalWaste * (100 / float(materialAmount))
@@ -991,7 +993,7 @@ enable them to see their EvE Online Science and Industry job queues while out of
 
 Later expanded upon to cover POS status and manufacturing job calculations.
 
-ISK donations to Elusive One
+If you like my work please consider an ISK donation to Elusive One.
 
 All EVE-Online related materials are property of CCP hf."""
 
@@ -1020,9 +1022,9 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>."""
         info.SetWebSite('https://github.com/EluOne/Nesi')
         info.SetLicence(licence)
         info.AddDeveloper('Tim Cumming aka Elusive One')
-        #info.AddDocWriter('Tim Cumming')
-        #info.AddArtist('Tim Cumming')
-        #info.AddTranslator('Tim Cumming')
+        #info.AddDocWriter('')
+        #info.AddArtist('')
+        #info.AddTranslator('')
 
         wx.AboutBox(info)
 
