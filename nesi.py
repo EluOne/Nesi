@@ -230,7 +230,13 @@ class MainWindow(wx.Frame):
         self.qtyLabel = wx.StaticText(self.notebookManufacturingPane, wx.ID_ANY, ("Runs"))
         self.manufactQtySpinCtrl = wx.SpinCtrl(self.notebookManufacturingPane, wx.ID_ANY, "1", min=1, max=10000)
         self.bpoSizer_staticbox = wx.StaticBox(self.notebookManufacturingPane, wx.ID_ANY, ("Blueprint"))
-        self.installChoice = wx.Choice(self.notebookManufacturingPane, wx.ID_ANY, choices=installChoices)
+
+        # The AutoComboBox custom class is currently broken on the windows platform.
+        if 'wxMSW' in wx.PlatformInfo:
+            self.installChoice = wx.ComboBox(self.notebookManufacturingPane, wx.ID_ANY, choices=installChoices)
+        else:
+            self.installChoice = wx.Choice(self.notebookManufacturingPane, wx.ID_ANY, choices=installChoices)
+
         self.outputLabel = wx.StaticText(self.notebookManufacturingPane, wx.ID_ANY, ("Production Time"))
         self.outputTimeTextCtrl = wx.TextCtrl(self.notebookManufacturingPane, wx.ID_ANY, "")
         self.installSizer_staticbox = wx.StaticBox(self.notebookManufacturingPane, wx.ID_ANY, ("Installation"))
