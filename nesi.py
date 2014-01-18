@@ -93,12 +93,6 @@ class AutoComboBox(wx.ComboBox):  # FIXME: Why is this broken on Windoze?
             event.Skip()
 
 
-def onError(error):
-    dlg = wx.MessageDialog(None, 'An error has occurred:\n' + error, '', wx.OK | wx.ICON_ERROR)
-    dlg.ShowModal()  # Show it
-    dlg.Destroy()  # finally destroy it when finished.
-
-
 # The functions below are for OjectListView output formatting.
 
 
