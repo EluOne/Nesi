@@ -965,7 +965,6 @@ class MainWindow(wx.Frame):
             implantModifier = 1  # TODO: Will have to be pulled from the API see skillCheck() in api.py
 
             # assemblyLineTypeID, assemblyLineTypeName, baseTimeMultiplier, baseMaterialMultiplier
-            #currentInstall = self.installChoice.GetCurrentSelection()
             installTimeModifier = installList[currentInstall][2]
 
             produtionTimeModifier = ((1 - (0.04 * industrySkill)) * implantModifier * installTimeModifier)
@@ -982,7 +981,6 @@ class MainWindow(wx.Frame):
 
     def onConfig(self, event):
         # Open the config frame for user.
-#        dlg = PreferencesDialog(None, -1, '')
         dlg = PreferencesDialog(None)
         dlg.ShowModal()  # Show it
         dlg.Destroy()  # finally destroy it when finished.
@@ -1016,7 +1014,7 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>."""
 
         info.SetIcon(wx.Icon('images/nesi.png', wx.BITMAP_TYPE_PNG))
         info.SetName('Nova Echo Science & Industry')
-        info.SetVersion('1.2.0-alpha')
+        info.SetVersion('1.2.0-alpha2')
         info.SetDescription(description)
         #info.SetCopyright('(C) 2013 Tim Cumming')
         info.SetWebSite('https://github.com/EluOne/Nesi')
