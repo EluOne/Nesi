@@ -216,7 +216,13 @@ class MainWindow(wx.Frame):
         self.indLabel = wx.StaticText(self.notebookManufacturingPane, wx.ID_ANY, ("Industry"))
         self.manufactIndSpinCtrl = wx.SpinCtrl(self.notebookManufacturingPane, wx.ID_ANY, "0", min=0, max=5)  # Pilot Industry Skill
         self.pilotSizer_staticbox = wx.StaticBox(self.notebookManufacturingPane, wx.ID_ANY, ("Pilot"))
-        self.bpoSelector = AutoComboBox(self.notebookManufacturingPane, "", choices, style=wx.CB_DROPDOWN)
+
+        # The AutoComboBox custom class is currently broken on the windows platform.
+        if 'wxMSW' in wx.PlatformInfo:
+            self.bpoSelector = wx.ComboBox(self.notebookManufacturingPane, wx.ID_ANY, choices=choices)
+        else:
+            self.bpoSelector = AutoComboBox(self.notebookManufacturingPane, "", choices, style=wx.CB_DROPDOWN)
+
         self.mlLabel = wx.StaticText(self.notebookManufacturingPane, wx.ID_ANY, ("ML"))
         self.manufactMLSpinCtrl = wx.SpinCtrl(self.notebookManufacturingPane, wx.ID_ANY, "", min=-10, max=5000)
         self.plLabel = wx.StaticText(self.notebookManufacturingPane, wx.ID_ANY, ("PL"))
@@ -229,7 +235,7 @@ class MainWindow(wx.Frame):
         if 'wxMSW' in wx.PlatformInfo:
             self.installChoice = wx.ComboBox(self.notebookManufacturingPane, wx.ID_ANY, choices=installChoices)
         else:
-            self.installChoice = wx.Choice(self.notebookManufacturingPane, wx.ID_ANY, choices=installChoices)
+            self.installChoice = AutoComboBox(self.notebookManufacturingPane, "", installChoices, style=wx.CB_DROPDOWN)
 
         self.outputLabel = wx.StaticText(self.notebookManufacturingPane, wx.ID_ANY, ("Production Time"))
         self.outputTimeTextCtrl = wx.TextCtrl(self.notebookManufacturingPane, wx.ID_ANY, "")
