@@ -211,7 +211,7 @@ class MainWindow(wx.Frame):
 
         self.notebookManufacturingPane = wx.Panel(self.mainNotebook, wx.ID_ANY)
         self.pilotChoice = wx.Choice(self.notebookManufacturingPane, wx.ID_ANY, choices=pilotChoices)
-        self.peLabel = wx.StaticText(self.notebookManufacturingPane, wx.ID_ANY, ("Production Efficiency"))
+        self.peLabel = wx.StaticText(self.notebookManufacturingPane, wx.ID_ANY, ("Material Efficiency"))  # Renamed in Rubicon 1.1
         self.manufactPESpinCtrl = wx.SpinCtrl(self.notebookManufacturingPane, wx.ID_ANY, "0", min=0, max=5)  # Pilot Production Efficiency Skill
         self.indLabel = wx.StaticText(self.notebookManufacturingPane, wx.ID_ANY, ("Industry"))
         self.manufactIndSpinCtrl = wx.SpinCtrl(self.notebookManufacturingPane, wx.ID_ANY, "0", min=0, max=5)  # Pilot Industry Skill
