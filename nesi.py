@@ -123,6 +123,11 @@ def datetimeConv(timeStr):
     return str(timeStr)[:-3]
 
 
+def humanFriendly(value):
+    # '{:,}'.format(value) Uses the Format Specification Mini-Language to produce more human friendly output.
+    return '{:,}'.format(int(value))
+
+
 class MainWindow(wx.Frame):
     def __init__(self, *args, **kwds):
         # begin wxGlade: MainWindow.__init__
@@ -245,8 +250,6 @@ class MainWindow(wx.Frame):
         self.bpoBtn = wx.Button(self.notebookManufacturingPane, wx.ID_ANY, ("Calculate"))
         self.manufactureList = GroupListView(self.notebookManufacturingPane, wx.ID_ANY, style=wx.LC_REPORT | wx.SUNKEN_BORDER)
 
-        self.__set_properties()
-        self.__do_layout()
         self.onSelectPilot(0)  # Call pilot selection to auto set skill based SpinCtrls
 
         self.Bind(wx.EVT_MENU, self.onAbout, self.menuAbout)
@@ -261,6 +264,9 @@ class MainWindow(wx.Frame):
 
         self.Bind(wx.EVT_CHOICE, self.onSelectPilot, self.pilotChoice)
         self.Bind(wx.EVT_BUTTON, self.onBpoSelect, self.bpoBtn)  # Do the same as the combo selection.
+
+        self.__set_properties()
+        self.__do_layout()
         # end wxGlade
 
     def __set_properties(self):
@@ -314,7 +320,7 @@ class MainWindow(wx.Frame):
 
         self.mlAnalysisList.SetColumns([
             ColumnDefn('Item', 'left', 245, 'item'),
-            ColumnDefn('Waste Eliminated at ML:', 'center', 245, 'perfect'),
+            ColumnDefn('Waste Eliminated at ML:', 'center', 245, 'perfect', stringConverter=humanFriendly),
         ])
 
         self.manufactureList.SetEmptyListMsg('Select a BPO from the\ndrop down on left to start')
@@ -322,7 +328,7 @@ class MainWindow(wx.Frame):
 
         self.manufactureList.SetColumns([
             ColumnDefn('Item', 'left', 200, 'item'),
-            ColumnDefn('Quantity', 'center', 100, 'quantity'),
+            ColumnDefn('Quantity', 'center', 100, 'quantity', stringConverter=humanFriendly),
             ColumnDefn('Dmg/Job', 'center', 80, 'damage'),
             ColumnDefn('Waste', 'center', 100, 'waste'),
             ColumnDefn('Category', 'left', 100, 'category')
