@@ -103,6 +103,9 @@ class MainWindow(wx.Frame):
         kwds["style"] = wx.DEFAULT_FRAME_STYLE
         wx.Frame.__init__(self, *args, **kwds)
 
+        icon = wx.Icon("images/icon.png", wx.BITMAP_TYPE_PNG)
+        self.SetIcon(icon)
+
         # Menu Bar
         self.frame_menubar = wx.MenuBar()
         self.fileMenu = wx.Menu()
@@ -117,7 +120,7 @@ class MainWindow(wx.Frame):
         # Menu Bar end
 
         self.statusbar = self.CreateStatusBar(1, 0)
-        self.bitmap_1 = wx.StaticBitmap(self, -1, wx.Bitmap("images/nesi.png", wx.BITMAP_TYPE_ANY))
+        self.bitmap_1 = wx.StaticBitmap(self, -1, wx.Bitmap("images/nesi.png", wx.BITMAP_TYPE_PNG))
         self.label_1 = wx.StaticText(self, -1, "Nova Echo Science and Industry")
         self.mainNotebook = wx.Notebook(self, -1, style=0)
 
