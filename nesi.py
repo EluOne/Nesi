@@ -40,6 +40,7 @@ from common.classes import Character, Job, Starbase, Materials, MlAnalysis
 from common.api import onError, getServerStatus, id2location, id2name
 
 from gui.preferencesDialog import PreferencesDialog
+from gui.AutoComboBox import AutoComboBox
 
 
 # Defaults that will be replaced by the API returned data.
@@ -61,39 +62,7 @@ if (os.path.isfile('nesi.ini')):
     iniFile.close()
 
 
-class AutoComboBox(wx.ComboBox):  # FIXME: Why is this broken on Windoze?
-    def __init__(self, parent, value, choices=[], style=0, **par):
-        wx.ComboBox.__init__(self, parent, wx.ID_ANY, value, style=style | wx.CB_DROPDOWN, choices=choices, **par)
-        self.choices = choices
-        self.Bind(wx.EVT_CHAR, self.EvtChar)
-        self.Bind(wx.EVT_TEXT, self.EvtText)
-
-    def EvtChar(self, event):
-        event.Skip()
-
-    def EvtText(self, event):
-        currentText = str(event.GetString()).lower()
-        found = False
-        newChoices = []
-
-        if len(currentText) == 0:
-            self.Clear()
-            self.AppendItems(self.choices)
-
-        for choice in self.choices:
-            # Check entered text at start and within string of choices.
-            if (choice.lower().find(currentText) > 0) or (choice.lower().startswith(currentText)):
-                newChoices.append(choice)
-                found = True
-
-        if found:
-            self.Clear()
-            self.AppendItems(newChoices)
-        else:
-            event.Skip()
-
-
-# The functions below are for OjectListView output formatting.
+# These functions below are for OjectListView output formatting.
 
 
 def jobRowFormatter(listItem, row):  # Formatter for ObjectListView, will turn completed jobs green.
