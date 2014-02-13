@@ -178,3 +178,5 @@ class PreferencesDialog(wx.Dialog):
             pickle.dump(config.pilotRows, iniFile)
             iniFile.close()
         self.EndModal(0)
+
+# end of class preferencesDialog

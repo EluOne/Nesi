@@ -43,6 +43,8 @@ class Character(object):
         self.skills = skills
         self.isActive = isActive
 
+# end of class Character
+
 
 class Job(object):
     def __init__(self, jobID, completedStatus, activityID, installedItemTypeID,
@@ -77,6 +79,8 @@ class Job(object):
 #containerTypeID,installedItemCopy,completed,completedSuccessfully,installedItemFlag,outputFlag,activityID,
 #completedStatus,installTime,beginProductionTime,endProductionTime,pauseProductionTime"
 
+# end of class Job
+
 
 class Starbase(object):
     def __init__(self, itemID, typeID, typeStr, locationID, moonID, state, stateTimestamp, onlineTimestamp,
@@ -101,6 +105,8 @@ class Starbase(object):
         self.fuel = fuel
         self.standingOwnerID = standingOwnerID
 
+# end of class Starbase
+
 
 class Materials(object):
     def __init__(self, item, quantity, category, damage, waste):
@@ -110,8 +116,12 @@ class Materials(object):
         self.damage = damage
         self.waste = waste
 
+# end of class Materials
+
 
 class MlAnalysis(object):
     def __init__(self, item, perfect):
         self.item = item
         self.perfect = perfect
+
+# end of class MlAnalysis
