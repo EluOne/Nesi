@@ -23,12 +23,21 @@ import datetime
 import time
 import os.path
 import pickle
+
+import traceback
+import requests
+
 import urllib2
 import httplib
-import traceback
+#import traceback
+
 import sqlite3 as lite
 
+import xml.etree.ElementTree as etree
+
 from xml.dom.minidom import parseString
+
+import config
 
 
 def onError(error):
@@ -39,30 +48,31 @@ def onError(error):
 
 def skillCheck(keyID, vCode, characterID):  # TODO: Pull in implants from api.
     skills = {}
-    skillUrl = 'https://api.eveonline.com/char/CharacterSheet.xml.aspx?keyID=%s&vCode=%s&characterID=%s' % (keyID, vCode, characterID)
+    baseUrl = 'https://api.eveonline.com/char/CharacterSheet.xml.aspx?keyID=%s&vCode=%s&characterID=%s'
+    apiURL = baseUrl % (keyID, vCode, characterID)
 
     try:  # Try to connect to the API server
+        downloadedData = requests.get(apiURL, headers=config.headers)
 
-        target = urllib2.urlopen(skillUrl)  # download the file
-        skillData = target.read()  # convert to string
-        target.close()  # close file because we don't need it anymore:
+        tree = etree.fromstring(downloadedData.text)
+        skillDataNodes = tree.findall('.//rowset')
 
-        XMLSkillData = parseString(skillData)
-        skillDataNodes = XMLSkillData.getElementsByTagName('row')
-
-        for skillRow in skillDataNodes:  # At present this will be the full list of pilot skills.
-            if (skillRow.getAttribute('typeID') != '') or (skillRow.getAttribute('level') != ''):  # Check for blanks.
-                skills[int(skillRow.getAttribute('typeID'))] = int(skillRow.getAttribute('level'))
+        for skillRow in skillDataNodes:
+            if skillRow.attrib['name'] == 'skills':
+                rows = skillRow.findall('row')
+                for row in rows:
+                    if (row.attrib['typeID'] != '') or (row.attrib['level'] != ''):  # Check for blanks.
+                        skills[int(row.attrib['typeID'])] = int(row.attrib['level'])
 
         # print(skills)  # Console debug
 
-    except urllib2.HTTPError as err:
+    except requests.exceptions.HTTPError as err:  # An HTTP error occurred.
         error = ('HTTP Error: %s %s\nThis key does not have access to pilot skills.' % (str(err.code), str(err.reason)))  # Error String
         onError(error)
-    except urllib2.URLError as err:
+    except requests.exceptions.ConnectionError as err:  # A Connection error occurred.
         error = ('Error Connecting to Tranquility: ' + str(err.reason))  # Error String
         onError(error)
-    except httplib.HTTPException as err:
+    except requests.exceptions.RequestException as err:  # There was an ambiguous exception that occurred while handling your request.
         error = ('HTTP Exception')  # Error String
         onError(error)
     except Exception:
@@ -75,11 +85,12 @@ def skillCheck(keyID, vCode, characterID):  # TODO: Pull in implants from api.
 def apiCheck(keyID, vCode):
     pilots = []
     skills = {}
-    baseUrl = 'https://api.eveonline.com/account/APIKeyInfo.xml.aspx?keyID=%s&vCode=%s' % (keyID, vCode)
+    baseUrl = 'https://api.eveonline.com/account/APIKeyInfo.xml.aspx?keyID=%s&vCode=%s'
+    apiURL = baseUrl % (keyID, vCode)
     # print(baseUrl)  # Console debug
 
     try:  # Try to connect to the API server
-        target = urllib2.urlopen(baseUrl)  # download the file
+        target = urllib2.urlopen(apiURL)  # download the file
         downloadedData = target.read()  # convert to string
         target.close()  # close file because we don't need it anymore:
 

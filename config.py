@@ -20,6 +20,9 @@
 
 import datetime
 
+version = '1.2.1'
+headers = {'User-Agent': ('Nesi/%s +https://github.com/EluOne/Nesi' % version)}
+
 # Establish some current time data for calculations later.
 # Server Time is UTC so we will use that for now generated locally.
 serverTime = datetime.datetime.utcnow().replace(microsecond=0)
