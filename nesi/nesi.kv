@@ -1,0 +1,49 @@
+<RootWidget>:
+	cols: 1
+
+	BoxLayout:
+		orientation: 'horizontal'
+		size_hint_y: None
+		height: 64
+		Image:
+			size_hint_x: None
+			width: 64
+			source: 'images/nesi.png'
+	    Label:
+	        text: 'Nova Echo Science & Industry'
+
+    TabbedPanel:
+        do_default_tab: False
+        
+        TabbedPanelItem:
+            text: 'Jobs'
+            GridLayout:
+            	cols: 1
+            	Button:
+            		id: 'jobBtn'
+					size_hint_y: None
+					size_hint_x: None
+            		height: 32
+            		width: 100
+            		text: 'Get Jobs'
+  
+        TabbedPanelItem:
+            text: 'Starbases'
+            GridLayout:
+            	cols: 1
+            	Button:
+            		id: 'posBtn'
+					size_hint_y: None
+					size_hint_x: None
+            		height: 32
+            		width: 100
+            		text: 'Refresh'
+        
+        TabbedPanelItem:
+            text: 'Manufacturing'
+            BoxLayout:
+            
+	Label:
+		size_hint_y: None
+		height: 32
+		text: 'Welcome to Nesi - Idle'
