@@ -17,13 +17,20 @@
 #
 # Author: Tim Cumming aka Elusive One
 # Created: 11/01/15
+# Modified: 13/01/15
 
 import kivy
-
 kivy.require('1.8.0')
 from kivy.app import App
+from kivy.lang import Builder
 from kivy.uix.gridlayout import GridLayout
-# from kivy.uix.anchorlayout import AnchorLayout
+
+import config
+
+from nesi.api import getServerStatus
+
+
+Builder.load_file('nesi/statusbar.kv')
 
 
 class RootWidget(GridLayout):
@@ -31,7 +38,11 @@ class RootWidget(GridLayout):
        By default it is inherited from BoxLayout,
        you can use any other layout/widget depending on your usage.
     '''
-    pass
+    def fetch_jobs(self):
+        print('fetch_jobs call')
+
+        # self.status_text = ('Welcome to Nesi - ' + 'Connecting to Tranquility...')
+        getServerStatus(config.serverStatus, config.serverTime, self.status_bar)
 
 
 class NesiApp(App):

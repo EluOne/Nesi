@@ -1,5 +1,6 @@
 <RootWidget>:
 	cols: 1
+	status_bar: _status_bar
 
 	BoxLayout:
 		orientation: 'horizontal'
@@ -17,22 +18,22 @@
         
         TabbedPanelItem:
             text: 'Jobs'
-            GridLayout:
-            	cols: 1
+            StackLayout:
+            	orientation: 'rl-tb'
             	Button:
-            		id: 'jobBtn'
-					size_hint_y: None
-					size_hint_x: None
+					size_hint: None, None
             		height: 32
             		width: 100
             		text: 'Get Jobs'
+            		on_press: root.fetch_jobs()
+            	ScrollView:
+            		id: jobScroll
   
         TabbedPanelItem:
             text: 'Starbases'
             GridLayout:
             	cols: 1
             	Button:
-            		id: 'posBtn'
 					size_hint_y: None
 					size_hint_x: None
             		height: 32
@@ -42,8 +43,7 @@
         TabbedPanelItem:
             text: 'Manufacturing'
             BoxLayout:
-            
-	Label:
+
+	StatusBar:
+		id: _status_bar
 		size_hint_y: None
-		height: 32
-		text: 'Welcome to Nesi - Idle'

@@ -1,0 +1,26 @@
+#:kivy 1.8.0
+#:import statusbar nesi.statusbar
+<StatusBar>:
+	orientation: 'horizontal'
+	size_hint_y: None
+	Label:
+		size_hint_y: None
+		size_hint_x: .2
+		height: 32
+		text: str(root.server)
+	Label:
+		size_hint_y: None
+		size_hint_x: .2
+		height: 32
+		text: str(root.players) + ' Players Online'
+	Label:
+		size_hint_y: None
+		size_hint_x: .3
+		height: 32
+		text: 'EvE Time: ' + str(root.serverTime)
+	Label:
+		size_hint_y: None
+		size_hint_x: .3
+		height: 32
+		text: 'Cache Expires: ' + str(root.jobsCachedUntil)
+		

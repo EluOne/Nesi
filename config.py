@@ -17,19 +17,36 @@
 #
 # Author: Tim Cumming aka Elusive One
 # Created: 29/12/13
+# Modified: 13/01/15
 
 import datetime
 
-version = '1.2.1'
+
+version = '1.2.1-kivy'
 headers = {'User-Agent': ('Nesi/%s +https://github.com/EluOne/Nesi' % version)}
+
+# Singularity Test Server
+serverConn = 'Singularity'
+rootUrl = 'https://api.testeveonline.com/'
+
+# Tranquility Main Server
+# serverConn = 'Tranquility'
+# rootUrl = 'https://api.eveonline.com/'
+
 
 # Establish some current time data for calculations later.
 # Server Time is UTC so we will use that for now generated locally.
 serverTime = datetime.datetime.utcnow().replace(microsecond=0)
+
 # Client Time reported locally.
 localTime = datetime.datetime.now().replace(microsecond=0)
-# A global variables to store the cacheUtil time and table rows.
+
+# Defaults that will be replaced by the API returned data.
+serverStatus = ['', '0', serverTime]
+
+# Global variables to store the cacheUtil time and table rows.
 jobsCachedUntil = serverTime
+starbaseCachedUntil = serverTime
 
 # This is where we are storing our API keys for now.
 pilotRows = []

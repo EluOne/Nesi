@@ -16,10 +16,15 @@
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #
 # Author: Tim Cumming aka Elusive One
-# Created: 11/01/15
-# Modified: 11/01/15
+# Created: 16/01/15
+# Modified: 16/01/15
+
+from kivy.uix.boxlayout import BoxLayout
+from kivy.properties import StringProperty
 
 
-if __name__ == '__main__':
-    from nesi.app import NesiApp
-    NesiApp().run()
+class StatusBar(BoxLayout):
+    server = StringProperty('Idle')
+    players = StringProperty('0')
+    serverTime = StringProperty('No Data')
+    jobsCachedUntil = StringProperty('No Data')
