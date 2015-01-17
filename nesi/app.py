@@ -17,7 +17,7 @@
 #
 # Author: Tim Cumming aka Elusive One
 # Created: 11/01/15
-# Modified: 13/01/15
+# Modified: 17/01/15
 
 import kivy
 kivy.require('1.8.0')
