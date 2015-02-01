@@ -1,6 +1,6 @@
 #!/usr/bin/python
 """Nova Echo Science & Industry"""
-# Copyright (C) 2015  Tim Cumming
+# Copyright (C) 2013  Tim Cumming
 #
 # This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -16,16 +16,15 @@
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #
 # Author: Tim Cumming aka Elusive One
-# Created: 16/01/15
-# Modified: 16/01/15
+# Created: 31/01/15
+# Modified: 31/01/15
 
-from kivy.uix.boxlayout import BoxLayout
-from kivy.properties import StringProperty
+from kivy.uix.popup import Popup
+from kivy.uix.label import Label
 
 
-class StatusBar(BoxLayout):
-    server = StringProperty('Idle')
-    players = StringProperty('0')
-    serverTime = StringProperty('No Data')
-    jobsCachedUntil = StringProperty('No Data')
-    state = StringProperty('Idle')
+def onError(error):
+    popup = Popup(title='Error', content=Label(text=str(error)))
+    popup.open()
+
+    print(error)

@@ -15,12 +15,17 @@
 		text: str(root.players) + ' Players Online'
 	Label:
 		size_hint_y: None
-		size_hint_x: .3
+		size_hint_x: .25
 		height: 32
 		text: 'EvE Time: ' + str(root.serverTime)
 	Label:
 		size_hint_y: None
-		size_hint_x: .3
+		size_hint_x: .25
 		height: 32
 		text: 'Cache Expires: ' + str(root.jobsCachedUntil)
+	Label:
+		size_hint_y: None
+		size_hint_x: .1
+		height: 32
+		text: str(root.state)
 		

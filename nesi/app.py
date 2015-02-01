@@ -25,6 +25,8 @@ from kivy.app import App
 from kivy.lang import Builder
 from kivy.uix.gridlayout import GridLayout
 
+import datetime
+
 import config
 
 from nesi.api import getServerStatus
@@ -41,7 +43,9 @@ class RootWidget(GridLayout):
     def fetch_jobs(self):
         print('fetch_jobs call')
 
-        # self.status_text = ('Welcome to Nesi - ' + 'Connecting to Tranquility...')
+        timingMsg = 'Using Local Cache'
+        config.serverTime = datetime.datetime.utcnow().replace(microsecond=0)  # Update Server Time.
+
         getServerStatus(config.serverStatus, config.serverTime, self.status_bar)
 
 

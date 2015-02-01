@@ -19,3 +19,5 @@ POS (Player Owned Structures) status details from API (Requires a corporate key 
 Manufacturing calculator added using data from static data dump as per request from corporation member.
 
 The application generates a set of local cache files within its directory to reduce network data, and saves the user details in nesi.ini file.
+
+Modules required: kivy, sqlite3, xml.dom, datetime, time
