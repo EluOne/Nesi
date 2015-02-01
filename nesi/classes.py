@@ -48,12 +48,11 @@ class Character(object):
 
 
 class Server(object):
-    def __init__(self, serverName, serverAddress, serverStatus, serverPlayers, serverTime, cacheExpire):
+    def __init__(self, serverName, serverAddress, serverStatus, serverPlayers, cacheExpire):
         self.svrName = serverName
         self.svrAddress = serverAddress
         self.svrStatus = serverStatus
         self.svrPlayers = serverPlayers
-        self.svrTime = serverTime
         self.svrCacheExpire = cacheExpire
 
 # end of class Server

@@ -25,12 +25,12 @@ from kivy.app import App
 from kivy.lang import Builder
 from kivy.uix.gridlayout import GridLayout
 
-import datetime
+# import datetime
 
 import config
 
 from nesi.api import getServerStatus
-
+from nesi.functions import updateCurrentTime
 
 Builder.load_file('nesi/statusbar.kv')
 
@@ -41,12 +41,14 @@ class RootWidget(GridLayout):
        you can use any other layout/widget depending on your usage.
     '''
     def fetch_jobs(self):
-        print('fetch_jobs call')
+        print('fetch_jobs called')
 
-        timingMsg = 'Using Local Cache'
-        config.serverTime = datetime.datetime.utcnow().replace(microsecond=0)  # Update Server Time.
+        # timingMsg = 'Using Local Cache'
+        # Update the config.serverTime to now.
+        updateCurrentTime()
 
-        getServerStatus(config.serverStatus, config.serverTime, self.status_bar)
+        # getServerStatus(config.serverStatus, config.serverTime, self.status_bar)
+        getServerStatus(config.serverConn.svrCacheExpire, config.serverTime, self.status_bar)
 
 
 class NesiApp(App):

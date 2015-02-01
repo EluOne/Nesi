@@ -20,6 +20,7 @@
 # Modified: 17/01/15
 
 import datetime
+
 import time
 import sqlite3 as lite
 
@@ -29,15 +30,18 @@ from xml.dom.minidom import parseString
 
 from nesi.error import onError
 from nesi.classes import Job
+from nesi.functions import is32, checkClockDrift
 
 import config
 
 
-def getServerStatus(args, serverTime, target):
+# Fetch server status from api server and update values in config.serverConn
+# Send results to nesi.statusbar.StatusBar in kivy gui.
+def getServerStatus(cacheExpire, serverTime, target):
     print(target)
     # Only query the server if the cache time has expired.
-    if serverTime >= args[2]:
-        # Download the Account Industry Data from API server
+    if serverTime >= cacheExpire:
+        # Download the Server Status Data from API server
         apiURL = config.serverConn.svrAddress + 'server/ServerStatus.xml.aspx/'
         print(apiURL)
 
@@ -45,40 +49,43 @@ def getServerStatus(args, serverTime, target):
         t = time.clock()
 
         def server_status(self, result):
-
-            status = []
             XMLData = parseString(result)
 
+            currentTime = XMLData.getElementsByTagName('currentTime')
             result = XMLData.getElementsByTagName('result')
-            serveropen = result[0].getElementsByTagName('serverOpen')
-            onlineplayers = result[0].getElementsByTagName('onlinePlayers')
-            cacheuntil = XMLData.getElementsByTagName('cachedUntil')
+            serverOpen = result[0].getElementsByTagName('serverOpen')
+            onlinePlayers = result[0].getElementsByTagName('onlinePlayers')
+            cacheUntil = XMLData.getElementsByTagName('cachedUntil')
 
-            if (serveropen[0].firstChild.nodeValue):
+            # The current time as reported by the server at time of query.
+            serCurrentTime = datetime.datetime(*(time.strptime((currentTime[0].firstChild.nodeValue), '%Y-%m-%d %H:%M:%S')[0:6]))
+
+            # Use the server reported UTC time to check the clock of our device.
+            checkClockDrift(serCurrentTime)
+
+            # This is returned as 'True' for open from the api server.
+            if (serverOpen[0].firstChild.nodeValue):
                 config.serverConn.svrStatus = 'Online'
             else:
                 config.serverConn.svrStatus = 'Down'
 
-            status.append(onlineplayers[0].firstChild.nodeValue)
+            config.serverConn.svrPlayers = (onlinePlayers[0].firstChild.nodeValue)
+            config.serverConn.svrCacheExpire = datetime.datetime(*(time.strptime((cacheUntil[0].firstChild.nodeValue), '%Y-%m-%d %H:%M:%S')[0:6]))
 
-            config.serverConn.svrPlayers = (onlineplayers[0].firstChild.nodeValue)
-            cacheExpire = datetime.datetime(*(time.strptime((cacheuntil[0].firstChild.nodeValue), '%Y-%m-%d %H:%M:%S')[0:6]))
-            status.append(cacheExpire)
-
-            config.serverStatus = status
+            # Stop the clock for this update.
             timingMsg = 'Updated in: %0.2f ms' % (((time.clock() - t) * 1000))
 
+            # Send the data to the gui elements of status_bar
             target.server = str('%s %s' % (config.serverConn.svrName, config.serverConn.svrStatus))
             target.players = str(config.serverConn.svrPlayers)
             target.serverTime = str(config.serverTime)
-            target.jobsCachedUntil = str(cacheExpire)
+            target.jobsCachedUntil = str(config.serverConn.svrCacheExpire)
             target.state = str(timingMsg)
 
-            print(status)
+            print(timingMsg)
 
         def server_error(request, error):
-            status = [('Error Connecting to ' + config.serverConn.svrName + str(error)), '0', serverTime]
-            # config.serverStatus = status
+            status = 'Error Connecting to %s:\n%s\nAt: %s' % (config.serverConn.svrName, str(error), serverTime)
             onError(status)
 
             print(status)
@@ -88,7 +95,8 @@ def getServerStatus(args, serverTime, target):
         UrlRequest(apiURL, on_success=server_status, on_error=server_error, req_headers=config.headers)
 
 
-def id2name(idType, ids):  # Takes a list of IDs to query the local db or api server.
+# Takes a list of IDs to query the local db or api server.
+def id2name(idType, ids):
     typeNames = {}
     if idType == 'item':
         # We'll use the local static DB for items as they don't change.
@@ -201,44 +209,12 @@ def id2name(idType, ids):  # Takes a list of IDs to query the local db or api se
                     for y in numItems:
                         typeNames.update({int(ids[y]): str(ids[y])})
                     onError(error)
-                except urllib2.URLError as err:
-                    error = ('Error Connecting to Tranquility: ' + str(err.reason))  # Error String
-                    ids = idList[x].split(',')
-                    numItems = range(len(ids))
-                    for y in numItems:
-                        typeNames.update({int(ids[y]): str(ids[y])})
-                    onError(error)
-                except httplib.HTTPException as err:
-                    error = ('HTTP Exception')  # Error String
-                    ids = idList[x].split(',')
-                    numItems = range(len(ids))
-                    for y in numItems:
-                        typeNames.update({int(ids[y]): str(ids[y])})
-                    onError(error)
-                except Exception:
-                    error = ('Generic Exception: ' + traceback.format_exc())  # Error String
-                    ids = idList[x].split(',')
-                    numItems = range(len(ids))
-                    for y in numItems:
-                        typeNames.update({int(ids[y]): str(ids[y])})
-                    onError(error)
 
     return typeNames
 
 
-def is32(n):  # Used in id2location to check for 32bit numbers
-    try:
-        bitstring = bin(n)
-    except (TypeError, ValueError):
-        return False
-
-    if len(bin(n)[2:]) <= 32:
-        return True
-    else:
-        return False
-
-
-def id2location(pilotRowID, ids, pilotRows):  # Take location IDs from API and use against local copy of the static data dump
+# Take location IDs from API and use against local copy of the static data dump
+def id2location(pilotRowID, ids, pilotRows):
     locationNames = {0: 'Unanchored'}
     locationIDs = []
     privateLocationIDs = []

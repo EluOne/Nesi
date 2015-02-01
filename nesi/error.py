@@ -21,10 +21,27 @@
 
 from kivy.uix.popup import Popup
 from kivy.uix.label import Label
+from kivy.uix.button import Button
+from kivy.uix.boxlayout import BoxLayout
 
 
 def onError(error):
-    popup = Popup(title='Error', content=Label(text=str(error)))
+
+    content = BoxLayout(orientation="vertical")
+
+    content.add_widget(Label(text=str(error), font_size=18))
+
+    acknowledge = Button(text="Got It!", size_hint=(1, .20), font_size=18)
+    content.add_widget(acknowledge)
+
+    popup = Popup(content=content,
+                  title='Something went wrong!',
+                  auto_dismiss=False,
+                  size_hint=(.7, .5),
+                  font_size = 18)
+
+    acknowledge.bind(on_press=popup.dismiss)
+
     popup.open()
 
     print(error)

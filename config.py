@@ -23,8 +23,15 @@ import datetime
 from nesi.classes import Server
 
 
+# These are the headers sent with our http requests to be nice to CCP if they need to contact us.
 version = '1.2.1-kivy'
 headers = {'User-Agent': ('Nesi/%s +https://github.com/EluOne/Nesi' % version)}
+
+
+# Account for device clock drift in our time calculations.
+# nesi.functions.checkClockDrift will compare the server time vs the device reported UTC time.
+offset = '-'
+clockDrift = datetime.timedelta(0)
 
 # Establish some current time data for calculations later.
 # Server Time is UTC so we will use that for now generated locally.
@@ -34,18 +41,19 @@ serverTime = datetime.datetime.utcnow().replace(microsecond=0)
 localTime = datetime.datetime.now().replace(microsecond=0)
 
 
-# Server connection objects:
-# Server(serverName, serverAddress, serverStatus, serverPlayers, serverTime, cacheExpire)
+# Server connection objects can be reused for each connection point
+# to the api as each one may have a different cache timer.
+# Server(serverName, serverAddress, serverStatus, serverPlayers, cacheExpire)
 
 # Singularity Test Server
-serverConn = Server('Singularity', 'https://api.testeveonline.com/', 'Unknown', 0, serverTime, serverTime)
+serverConn = Server('Singularity', 'https://api.testeveonline.com/', 'Unknown', 0, serverTime)
 
 # Tranquility Main Server
-# serverConn = Server('Tranquility', 'https://api.eveonline.com/', 'Unknown', 0, serverTime, serverTime)
+# serverConn = Server('Tranquility', 'https://api.eveonline.com/', 'Unknown', 0, serverTime)
 
 
 # Defaults that will be replaced by the API returned data.
-# ['Server Online', Players, Server Time]
+# ['Server Online', Players, Cache Expire]
 # serverStatus = ['', '0', serverTime]
 
 # Global variables to store the cacheUtil time and table rows.
