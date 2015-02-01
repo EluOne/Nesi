@@ -20,19 +20,11 @@
 # Modified: 17/01/15
 
 import datetime
+from nesi.classes import Server
 
 
 version = '1.2.1-kivy'
 headers = {'User-Agent': ('Nesi/%s +https://github.com/EluOne/Nesi' % version)}
-
-# Singularity Test Server
-serverConn = 'Singularity'
-rootUrl = 'https://api.testeveonline.com/'
-
-# Tranquility Main Server
-# serverConn = 'Tranquility'
-# rootUrl = 'https://api.eveonline.com/'
-
 
 # Establish some current time data for calculations later.
 # Server Time is UTC so we will use that for now generated locally.
@@ -41,8 +33,20 @@ serverTime = datetime.datetime.utcnow().replace(microsecond=0)
 # Client Time reported locally.
 localTime = datetime.datetime.now().replace(microsecond=0)
 
+
+# Server connection objects:
+# Server(serverName, serverAddress, serverStatus, serverPlayers, serverTime, cacheExpire)
+
+# Singularity Test Server
+serverConn = Server('Singularity', 'https://api.testeveonline.com/', 'Unknown', 0, serverTime, serverTime)
+
+# Tranquility Main Server
+# serverConn = Server('Tranquility', 'https://api.eveonline.com/', 'Unknown', 0, serverTime, serverTime)
+
+
 # Defaults that will be replaced by the API returned data.
-serverStatus = ['', '0', serverTime]
+# ['Server Online', Players, Server Time]
+# serverStatus = ['', '0', serverTime]
 
 # Global variables to store the cacheUtil time and table rows.
 jobsCachedUntil = serverTime
