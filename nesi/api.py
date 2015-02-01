@@ -20,8 +20,11 @@
 # Modified: 17/01/15
 
 import datetime
-
 import time
+
+import os.path
+import pickle
+
 import sqlite3 as lite
 
 from kivy.network.urlrequest import UrlRequest
@@ -85,7 +88,7 @@ def getServerStatus(cacheExpire, serverTime, target):
             print(timingMsg)
 
         def server_error(request, error):
-            status = 'Error Connecting to %s:\n%s\nAt: %s' % (config.serverConn.svrName, str(error), serverTime)
+            status = 'Error Connecting to %s:\n%s\nAt: %s' % (config.serverConn.svrName, str(error), config.serverTime)
             onError(status)
 
             print(status)
@@ -103,7 +106,7 @@ def id2name(idType, ids):
         if ids != []:  # We have some ids we don't know.
             try:
                 idList = ("', '".join(map(str, ids[:])))
-                con = lite.connect('static.db')
+                con = lite.connect(config.staticDB)
 
                 with con:
                     cur = con.cursor()
@@ -137,11 +140,12 @@ def id2name(idType, ids):
 
     elif idType == 'character':
         # We'll have to talk to the API server for Pilot names as this can't be in the static dump.
-        cacheFile = 'character.cache'
-        baseUrl = 'https://api.eveonline.com/eve/CharacterName.xml.aspx?ids=%s'
+        cacheFile = config.characterCache
+        baseUrl = config.serverConn.svrAddress + 'eve/CharacterName.xml.aspx?ids=%s'
         key = 'characterID'
         value = 'name'
 
+        # TODO: Change to JSON
         if (os.path.isfile(cacheFile)):
             typeFile = open(cacheFile, 'r')
             typeNames = pickle.load(typeFile)
@@ -187,28 +191,30 @@ def id2name(idType, ids):
                 apiURL = baseUrl % (idList[x])
                 # print(apiURL)  # Console debug
 
-                try:  # Try to connect to the API server
-                    target = urllib2.urlopen(apiURL)  # download the file
-                    downloadedData = target.read()  # convert to string
-                    target.close()  # close file because we don't need it anymore
-
-                    XMLData = parseString(downloadedData)
+                def typeNames_process(self, result):
+                    XMLData = parseString(result)
                     dataNodes = XMLData.getElementsByTagName('row')
 
                     for row in dataNodes:
                         typeNames.update({int(row.getAttribute(key)): str(row.getAttribute(value))})
 
                     # Save the data we have so we don't have to fetch it
+                    # TODO: Chane to JSON
                     typeFile = open(cacheFile, 'w')
                     pickle.dump(typeNames, typeFile)
                     typeFile.close()
-                except urllib2.HTTPError as err:
-                    error = ('HTTP Error: %s %s' % (str(err.code), str(err.reason)))  # Error String
+
+                def typeNames_error(request, error):
+                    status = 'Error Connecting to %s:\n%s\nAt: %s' % (config.serverConn.svrName, str(error), config.serverTime)
                     ids = idList[x].split(',')
                     numItems = range(len(ids))
                     for y in numItems:
                         typeNames.update({int(ids[y]): str(ids[y])})
-                    onError(error)
+                    onError(status)
+
+                    print(status)
+
+                UrlRequest(apiURL, on_success=typeNames_process, on_error=typeNames_error, req_headers=config.headers)
 
     return typeNames
 
@@ -259,7 +265,7 @@ def id2location(pilotRowID, ids, pilotRows):
     if locationIDs != []:  # We still have some ids we don't know
         try:
             idList = ("', '".join(map(str, locationIDs[:])))
-            con = lite.connect('static.db')
+            con = lite.connect(config.staticDB)
 
             with con:
                 cur = con.cursor()
@@ -286,9 +292,9 @@ def id2location(pilotRowID, ids, pilotRows):
 
     if privateLocationIDs != []:  # We have some Pilot or Corp locations we don't know
         if pilotRows[pilotRowID].keyType == 'Corporation':
-            baseUrl = 'https://api.eveonline.com/corp/locations.xml.aspx?keyID=%s&vCode=%s&characterID=%s&IDs=%s'
+            baseUrl = config.serverConn.svrAddress + 'corp/locations.xml.aspx?keyID=%s&vCode=%s&characterID=%s&IDs=%s'
         else:  # Should be an account key
-            baseUrl = 'https://api.eveonline.com/char/locations.xml.aspx?keyID=%s&vCode=%s&characterID=%s&IDs=%s'
+            baseUrl = config.serverConn.svrAddress + 'char/locations.xml.aspx?keyID=%s&vCode=%s&characterID=%s&IDs=%s'
 
         # Calculate the number of ids we have left. Server has hard maximum of 250 IDs per query.
         # So we'll need to split this into multiple queries.
@@ -316,91 +322,49 @@ def id2location(pilotRowID, ids, pilotRows):
             apiURL = baseUrl % (pilotRows[pilotRowID].keyID, pilotRows[pilotRowID].vCode, pilotRows[pilotRowID].characterID, idList[x])
             # print(apiURL)  # Console debug
 
-            try:  # Try to connect to the API server
-                target = urllib2.urlopen(apiURL)  # download the file
-                downloadedData = target.read()  # convert to string
-                target.close()  # close file because we don't need it anymore
-
-                XMLData = parseString(downloadedData)
+            def typeNames_process(self, result):
+                XMLData = parseString(result)
                 dataNodes = XMLData.getElementsByTagName('row')
 
                 for row in dataNodes:
                     locationNames.update({int(row.getAttribute('itemID')): str(row.getAttribute('itemName'))})
 
-            except urllib2.HTTPError as err:
-                error = ('HTTP Error: %s %s' % (str(err.code), str(err.reason)))  # Error String
+            def typeNames_error(request, error):
+                status = 'Error Connecting to %s:\n%s\nAt: %s' % (config.serverConn.svrName, str(error), config.serverTime)
                 ids = idList[x].split(',')
                 numItems = range(len(ids))
                 for y in numItems:
                     locationNames.update({int(ids[y]): str(ids[y])})
-                onError(error)
-            except urllib2.URLError as err:
-                error = ('Error Connecting to Tranquility: ' + str(err.reason))  # Error String
-                ids = idList[x].split(',')
-                numItems = range(len(ids))
-                for y in numItems:
-                    locationNames.update({int(ids[y]): str(ids[y])})
-                onError(error)
-            except httplib.HTTPException as err:
-                error = ('HTTP Exception')  # Error String
-                ids = idList[x].split(',')
-                numItems = range(len(ids))
-                for y in numItems:
-                    locationNames.update({int(ids[y]): str(ids[y])})
-                onError(error)
-            except Exception:
-                error = ('Generic Exception: ' + traceback.format_exc())  # Error String
-                ids = idList[x].split(',')
-                numItems = range(len(ids))
-                for y in numItems:
-                    locationNames.update({int(ids[y]): str(ids[y])})
-                onError(error)
+                onError(status)
+
+                print(status)
+
+            UrlRequest(apiURL, on_success=typeNames_process, on_error=typeNames_error, req_headers=config.headers)
 
     if conquerableIDs != []:  # We have some conquerableIDs we don't know
         idList = []
 
-        apiURL = 'https://api.eveonline.com/eve/ConquerableStationList.xml.aspx'
+        apiURL = config.serverConn.svrAddress + 'eve/ConquerableStationList.xml.aspx'
 
-        try:  # Try to connect to the API server
-            target = urllib2.urlopen(apiURL)  # download the file
-            downloadedData = target.read()  # convert to string
-            target.close()  # close file because we don't need it anymore
-
-            XMLData = parseString(downloadedData)
+        def typeNames_process(self, result):
+            XMLData = parseString(result)
             dataNodes = XMLData.getElementsByTagName('row')
 
             for row in dataNodes:
                 if int(row.getAttribute('stationID')) in idList:
                     locationNames.update({int(row.getAttribute('stationID')): str(row.getAttribute('stationName'))})
 
-        except urllib2.HTTPError as err:
-            error = ('HTTP Error: %s %s' % (str(err.code), str(err.reason)))  # Error String
+        def typeNames_error(request, error):
+            status = 'Error Connecting to %s:\n%s\nAt: %s' % (config.serverConn.svrName, str(error), config.serverTime)
             ids = idList[x].split(',')
             numItems = range(len(ids))
             for y in numItems:
                 locationNames.update({int(ids[y]): str(ids[y])})
-            onError(error)
-        except urllib2.URLError as err:
-            error = ('Error Connecting to Tranquility: ' + str(err.reason))  # Error String
-            ids = idList[x].split(',')
-            numItems = range(len(ids))
-            for y in numItems:
-                locationNames.update({int(ids[y]): str(ids[y])})
-            onError(error)
-        except httplib.HTTPException as err:
-            error = ('HTTP Exception')  # Error String
-            ids = idList[x].split(',')
-            numItems = range(len(ids))
-            for y in numItems:
-                locationNames.update({int(ids[y]): str(ids[y])})
-            onError(error)
-        except Exception:
-            error = ('Generic Exception: ' + traceback.format_exc())  # Error String
-            ids = idList[x].split(',')
-            numItems = range(len(ids))
-            for y in numItems:
-                locationNames.update({int(ids[y]): str(ids[y])})
-            onError(error)
+            onError(status)
+
+            print(status)
+
+        UrlRequest(apiURL, on_success=typeNames_process, on_error=typeNames_error, req_headers=config.headers)
 
     return locationNames
 

@@ -27,6 +27,12 @@ from nesi.classes import Server
 version = '1.2.1-kivy'
 headers = {'User-Agent': ('Nesi/%s +https://github.com/EluOne/Nesi' % version)}
 
+# Static sqlLite data dump
+staticDB = '../static.db'
+
+# Cache Files
+# TODO: change to JSON files
+characterCache = '../character.cache'
 
 # Account for device clock drift in our time calculations.
 # nesi.functions.checkClockDrift will compare the server time vs the device reported UTC time.

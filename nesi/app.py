@@ -31,8 +31,20 @@ import config
 
 from nesi.api import getServerStatus
 from nesi.functions import updateCurrentTime
+from nesi.classes import Character
 
 Builder.load_file('nesi/statusbar.kv')
+
+
+# TODO: Change to JSON and use kivy.storage.jsonstore
+import os.path
+import pickle
+# Lets try to load up our API keys from the ini file.
+# This requires the Pilot class to work.
+if (os.path.isfile('../nesi.ini')):
+    iniFile = open('../nesi.ini', 'r')
+    config.pilotRows = pickle.load(iniFile)
+    iniFile.close()
 
 
 class RootWidget(GridLayout):
@@ -43,7 +55,6 @@ class RootWidget(GridLayout):
     def fetch_jobs(self):
         print('fetch_jobs called')
 
-        # timingMsg = 'Using Local Cache'
         # Update the config.serverTime to now.
         updateCurrentTime()
 
