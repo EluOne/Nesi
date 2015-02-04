@@ -29,7 +29,7 @@ from kivy.uix.gridlayout import GridLayout
 
 import config
 
-from nesi.api import getServerStatus
+from nesi.api import getServerStatus, getJobs, apiCheck
 from nesi.functions import updateCurrentTime
 from nesi.classes import Character
 
@@ -37,14 +37,20 @@ Builder.load_file('nesi/statusbar.kv')
 
 
 # TODO: Change to JSON and use kivy.storage.jsonstore
-import os.path
-import pickle
+# import os.path
+# import pickle
 # Lets try to load up our API keys from the ini file.
 # This requires the Pilot class to work.
-if (os.path.isfile('../nesi.ini')):
-    iniFile = open('../nesi.ini', 'r')
-    config.pilotRows = pickle.load(iniFile)
-    iniFile.close()
+# if (os.path.isfile('nesi.ini')):
+#    iniFile = open('nesi.ini', 'r')
+#    config.pilotRows = pickle.load(iniFile)
+#    iniFile.close()
+
+# keyID, vCode, characterID, characterName, corporationID, corporationName, keyType, keyExpires, skills, isActive
+keyID = '368187'
+vCode = 'lbT36nQrx1up6gvYqdGtdHrR6IfTvFncubFFBD9U6ZszIIqNMtXSV2l13Xxv6jXL'
+if (keyID != '') and (vCode != ''):
+    pilots = apiCheck(keyID, vCode)
 
 
 class RootWidget(GridLayout):
@@ -59,7 +65,9 @@ class RootWidget(GridLayout):
         updateCurrentTime()
 
         # getServerStatus(config.serverStatus, config.serverTime, self.status_bar)
-        getServerStatus(config.serverConn.svrCacheExpire, config.serverTime, self.status_bar)
+        # getServerStatus(config.serverConn.svrCacheExpire, config.serverTime, self.status_bar)
+
+        getJobs(self.status_bar)
 
 
 class NesiApp(App):

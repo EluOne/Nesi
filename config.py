@@ -20,7 +20,10 @@
 # Modified: 17/01/15
 
 import datetime
-from nesi.classes import Server
+
+from kivy.storage.jsonstore import JsonStore
+
+from nesi.classes import Server, Character
 
 
 # These are the headers sent with our http requests to be nice to CCP if they need to contact us.
@@ -31,8 +34,7 @@ headers = {'User-Agent': ('Nesi/%s +https://github.com/EluOne/Nesi' % version)}
 staticDB = '../static.db'
 
 # Cache Files
-# TODO: change to JSON files
-characterCache = '../character.cache'
+characterCache = JsonStore('character.json')
 
 # Account for device clock drift in our time calculations.
 # nesi.functions.checkClockDrift will compare the server time vs the device reported UTC time.
@@ -52,10 +54,27 @@ localTime = datetime.datetime.now().replace(microsecond=0)
 # Server(serverName, serverAddress, serverStatus, serverPlayers, cacheExpire)
 
 # Singularity Test Server
-serverConn = Server('Singularity', 'https://api.testeveonline.com/', 'Unknown', 0, serverTime)
+# serverConn = Server('Singularity', 'https://api.testeveonline.com/', 'Unknown', 0, serverTime)
 
 # Tranquility Main Server
-# serverConn = Server('Tranquility', 'https://api.eveonline.com/', 'Unknown', 0, serverTime)
+serverConn = Server('Tranquility', 'https://api.eveonline.com/', 'Unknown', 0, serverTime)
+
+
+# API End Points
+# Returns a list of all outpost and POS industrial facilities your corporation owns. (cache: 1 hour)
+corpFacilities = '/corp/Facilities.xml.aspx'
+
+# Returns a list of running and completed jobs for your corporation, up to 90 days or 10000 rows. (cache: 6 hours)
+corpIndustryHistory = '/corp/IndustryJobsHistory.xml.aspx'
+
+# Returns a list of running and completed jobs for your character, up to 90 days or 10000 rows. (cache: 6 hours)
+charIndustryHistory = '/char/IndustryJobsHistory.xml.aspx'
+
+# Returns a list of running jobs for your corporation, up to 90 days or 10000 rows. (cache: 15 minutes)
+corpIndustry = '/corp/IndustryJobs.xml.aspx'
+
+# Returns a list of running jobs for your character, up to 90 days or 10000 rows. (cache: 15 minutes)
+charIndustry = '/char/IndustryJobs.xml.aspx'
 
 
 # Defaults that will be replaced by the API returned data.
@@ -68,3 +87,4 @@ starbaseCachedUntil = serverTime
 
 # This is where we are storing our API keys for now.
 pilotRows = []
+jobRows = []
