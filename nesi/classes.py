@@ -17,7 +17,7 @@
 #
 # Author: Tim Cumming aka Elusive One
 # Created: 29/12/13
-# Modified: 23/01/15
+# Modified: 21/02/15
 
 import datetime
 import time
@@ -60,14 +60,14 @@ class Server(object):
 
 class Job(object):
     def __init__(self, jobID, completedStatus, activityID, installedItemTypeID,
-                 installedItemProductivityLevel, installedItemMaterialLevel, outputLocationID,
+                 outputLocationID,
                  installedInSolarSystemID, installerID, runs, outputTypeID, installTime, endProductionTime):
         self.jobID = jobID
         self.completedStatus = completedStatus
         self.activityID = activityID
         self.installedItemTypeID = installedItemTypeID
-        self.installedItemProductivityLevel = installedItemProductivityLevel
-        self.installedItemMaterialLevel = installedItemMaterialLevel
+        # self.installedItemProductivityLevel = installedItemProductivityLevel
+        # self.installedItemMaterialLevel = installedItemMaterialLevel
         self.outputLocationID = outputLocationID
         self.installedInSolarSystemID = installedInSolarSystemID
         self.installerID = installerID
@@ -81,6 +81,12 @@ class Job(object):
         else:
             self.timeRemaining = self.endProductionTime - config.serverTime
             self.state = 'Ready'
+
+    # New API Output
+    # columns="jobID,installerID,installerName,facilityID,solarSystemID,solarSystemName,
+    # stationID,activityID,blueprintID,blueprintTypeID,blueprintTypeName,blueprintLocationID,
+    # outputLocationID,runs,cost,teamID,licensedRuns,probability,productTypeID,productTypeName,
+    # status,timeInSeconds,startDate,endDate,pauseDate,completedDate,completedCharacterID,successfulRuns"
 
 # Old S&I window shows: state, activity, type, location, jumps, installer, owner, install date, end date
 # This is what the API returns:

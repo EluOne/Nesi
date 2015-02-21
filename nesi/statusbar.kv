@@ -4,28 +4,33 @@
 	orientation: 'horizontal'
 	size_hint_y: None
 	Label:
+		font_size: 12
 		size_hint_y: None
-		size_hint_x: .2
+		size_hint_x: .15
 		height: 32
 		text: str(root.server)
 	Label:
+		font_size: 12
 		size_hint_y: None
-		size_hint_x: .2
+		size_hint_x: .15
 		height: 32
 		text: str(root.players) + ' Players Online'
 	Label:
+		font_size: 12
 		size_hint_y: None
 		size_hint_x: .25
 		height: 32
 		text: 'EvE Time: ' + str(root.serverTime)
 	Label:
+		font_size: 12
 		size_hint_y: None
 		size_hint_x: .25
 		height: 32
 		text: 'Cache Expires: ' + str(root.jobsCachedUntil)
 	Label:
+		font_size: 12
 		size_hint_y: None
-		size_hint_x: .1
+		size_hint_x: .2
 		height: 32
 		text: str(root.state)
 		

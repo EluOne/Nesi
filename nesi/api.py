@@ -17,7 +17,7 @@
 #
 # Author: Tim Cumming aka Elusive One
 # Created: 13/01/13
-# Modified: 17/01/15
+# Modified: 21/02/15
 
 import datetime
 import time
@@ -77,7 +77,7 @@ def getServerStatus(cacheExpire, serverTime, target):
             config.serverConn.svrCacheExpire = datetime.datetime(*(time.strptime((cacheUntil[0].firstChild.nodeValue), '%Y-%m-%d %H:%M:%S')[0:6]))
 
             # Stop the clock for this update.
-            timingMsg = 'Updated in: %0.2f ms' % (((time.clock() - t) * 1000))
+            timingMsg = 'Updated in: %0.2f ms (Server Status)' % (((time.clock() - t) * 1000))
 
             # Send the data to the gui elements of status_bar
             target.server = str('%s %s' % (config.serverConn.svrName, config.serverConn.svrStatus))
@@ -465,7 +465,7 @@ def getJobs(target):
     # Inform the user what we are doing.
     target.state = ('Connecting to ' + config.serverConn.svrName)
 
-    getServerStatus(config.serverConn.svrCacheExpire, config.serverTime, target)  # Try the API server for current server status.
+    # getServerStatus(config.serverConn.svrCacheExpire, config.serverTime, target)  # Try the API server for current server status.
 
     if config.serverConn.svrStatus == 'Online':  # Status has returned a value other than online, so why continue?
         if config.serverTime >= config.jobsCachedUntil:
@@ -487,9 +487,9 @@ def getJobs(target):
 
                     if keyOK == 1:
                         if config.pilotRows[x].keyType == 'Corporation':
-                            baseUrl = '/corp/IndustryJobsHistory.xml.aspx?keyID=%s&vCode=%s&characterID=%s'
+                            baseUrl = 'corp/IndustryJobsHistory.xml.aspx?keyID=%s&vCode=%s&characterID=%s'
                         else:  # Should be an account key
-                            baseUrl = '/char/IndustryJobsHistory.xml.aspx?keyID=%s&vCode=%s&characterID=%s'
+                            baseUrl = 'char/IndustryJobsHistory.xml.aspx?keyID=%s&vCode=%s&characterID=%s'
 
                         apiURL = config.serverConn.svrAddress + baseUrl % (config.pilotRows[x].keyID, config.pilotRows[x].vCode, config.pilotRows[x].characterID)
                         print(apiURL)  # Console debug
@@ -507,45 +507,58 @@ def getJobs(target):
                             installerIDs = []
                             locationIDs = []
                             for row in dataNodes:
-                                if row.getAttribute('completed') == '0':  # Ignore Delivered Jobs
-                                    if int(row.getAttribute('installedItemTypeID')) not in itemIDs:
-                                        itemIDs.append(int(row.getAttribute('installedItemTypeID')))
-                                    if int(row.getAttribute('outputTypeID')) not in itemIDs:
-                                        itemIDs.append(int(row.getAttribute('outputTypeID')))
-                                    if int(row.getAttribute('installerID')) not in installerIDs:
-                                        installerIDs.append(int(row.getAttribute('installerID')))
+                                if row.getAttribute('status') == '101':  # Ignore Delivered Jobs
+                                    # if int(row.getAttribute('installedItemTypeID')) not in itemIDs:
+                                    #    itemIDs.append(int(row.getAttribute('installedItemTypeID')))
+                                    # if int(row.getAttribute('outputTypeID')) not in itemIDs:
+                                    #     itemIDs.append(int(row.getAttribute('outputTypeID')))
+                                    # if int(row.getAttribute('installerID')) not in installerIDs:
+                                    #     installerIDs.append(int(row.getAttribute('installerID')))
                                     if int(row.getAttribute('outputLocationID')) not in locationIDs:
                                         locationIDs.append(int(row.getAttribute('outputLocationID')))
-                                    if int(row.getAttribute('installedInSolarSystemID')) not in locationIDs:
-                                        locationIDs.append(int(row.getAttribute('installedInSolarSystemID')))
+                                    # if int(row.getAttribute('installedInSolarSystemID')) not in locationIDs:
+                                    #     locationIDs.append(int(row.getAttribute('installedInSolarSystemID')))
 
-                            itemNames = id2name('item', itemIDs)
-                            pilotNames = id2name('character', installerIDs)
-                            locationNames = id2location(x, locationIDs, config.pilotRows)
+                            # itemNames = id2name('item', itemIDs)
+                            # pilotNames = id2name('character', installerIDs)
+                            # locationNames = id2location(x, locationIDs, config.pilotRows)
 
                             for row in dataNodes:
-                                if row.getAttribute('completed') == '0':  # Ignore Delivered Jobs
+                                if row.getAttribute('status') == '101':  # Ignore Delivered Jobs
                                     tempJobRows.append(Job(row.getAttribute('jobID'),
-                                                           row.getAttribute('completedStatus'),
+                                                           row.getAttribute('status'),
                                                            int(row.getAttribute('activityID')),  # Leave as int for clauses
-                                                           itemNames[int(row.getAttribute('installedItemTypeID'))],
-                                                           int(row.getAttribute('installedItemProductivityLevel')),
-                                                           int(row.getAttribute('installedItemMaterialLevel')),
-                                                           locationNames[int(row.getAttribute('outputLocationID'))],
-                                                           locationNames[int(row.getAttribute('installedInSolarSystemID'))],
-                                                           pilotNames[int(row.getAttribute('installerID'))],
+                                                           # itemNames[int(row.getAttribute('installedItemTypeID'))],
+                                                           row.getAttribute('blueprintTypeName'),
+                                                           # int(row.getAttribute('installedItemProductivityLevel')),
+                                                           # int(row.getAttribute('installedItemMaterialLevel')),
+                                                           # locationNames[int(row.getAttribute('outputLocationID'))],
+                                                           int(row.getAttribute('outputLocationID')),
+                                                           # locationNames[int(row.getAttribute('installedInSolarSystemID'))],
+                                                           row.getAttribute('solarSystemName'),
+                                                           # pilotNames[int(row.getAttribute('installerID'))],
+                                                           row.getAttribute('installerName'),
                                                            int(row.getAttribute('runs')),
-                                                           row.getAttribute('outputTypeID'),
-                                                           row.getAttribute('installTime'),
-                                                           row.getAttribute('endProductionTime')))
+                                                           # row.getAttribute('outputTypeID'),
+                                                           row.getAttribute('productTypeName'),
+                                                           # row.getAttribute('installTime'),
+                                                           row.getAttribute('startDate'),
+                                                           # row.getAttribute('endProductionTime'),
+                                                           row.getAttribute('endDate')))
 
-                                # This is what is left from the API:
+                                # Old API:
                                 # columns="assemblyLineID,containerID,installedItemLocationID,installedItemQuantity,
                                 # installedItemLicensedProductionRunsRemaining,outputLocationID,licensedProductionRuns,
                                 # installedInSolarSystemID,containerLocationID,materialMultiplier,charMaterialMultiplier,
                                 # timeMultiplier,charTimeMultiplier,containerTypeID,installedItemCopy,completed,
                                 # completedSuccessfully,installedItemFlag,outputFlag,completedStatus,beginProductionTime,
                                 # pauseProductionTime"
+
+                                # New API Output
+                                # columns="jobID,installerID,installerName,facilityID,solarSystemID,solarSystemName,
+                                # stationID,activityID,blueprintID,blueprintTypeID,blueprintTypeName,blueprintLocationID,
+                                # outputLocationID,runs,cost,teamID,licensedRuns,probability,productTypeID,productTypeName,
+                                # status,timeInSeconds,startDate,endDate,pauseDate,completedDate,completedCharacterID,successfulRuns"
 
                             print(tempJobRows)
 
@@ -562,7 +575,7 @@ def getJobs(target):
                 if tempJobRows != []:
                     config.jobRows = tempJobRows[:]
 #                self.jobList.SetObjects(config.jobRows)
-                timingMsg = 'Updated in: %0.2f ms' % (((time.clock() - t) * 1000))
+                timingMsg = 'Updated in: %0.2f ms (Fetch Jobs)' % (((time.clock() - t) * 1000))
                 target.state = str(timingMsg)
             else:
                 onError('Please open Config to enter a valid API key')

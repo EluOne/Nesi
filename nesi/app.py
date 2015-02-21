@@ -17,7 +17,7 @@
 #
 # Author: Tim Cumming aka Elusive One
 # Created: 11/01/15
-# Modified: 17/01/15
+# Modified: 21/02/15
 
 import kivy
 kivy.require('1.8.0')
@@ -65,7 +65,7 @@ class RootWidget(GridLayout):
         updateCurrentTime()
 
         # getServerStatus(config.serverStatus, config.serverTime, self.status_bar)
-        # getServerStatus(config.serverConn.svrCacheExpire, config.serverTime, self.status_bar)
+        getServerStatus(config.serverConn.svrCacheExpire, config.serverTime, self.status_bar)
 
         getJobs(self.status_bar)
 

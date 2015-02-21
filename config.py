@@ -17,7 +17,7 @@
 #
 # Author: Tim Cumming aka Elusive One
 # Created: 29/12/13
-# Modified: 17/01/15
+# Modified: 21/02/15
 
 import datetime
 
@@ -59,22 +59,26 @@ localTime = datetime.datetime.now().replace(microsecond=0)
 # Tranquility Main Server
 serverConn = Server('Tranquility', 'https://api.eveonline.com/', 'Unknown', 0, serverTime)
 
+activities = {1: 'Manufacturing', 2: 'Technological research', 3: 'Time Efficiency Research', 4: 'Material Research',
+              5: 'Copy', 6: 'Duplicating', 7: 'Reverse Engineering', 8: 'Invention'}  # POS activities list.
+
+states = {0: 'Unanchored', 1: 'Anchored / Offline', 2: 'Onlining', 3: 'Reinforced', 4: 'Online'}  # POS state list.
 
 # API End Points
 # Returns a list of all outpost and POS industrial facilities your corporation owns. (cache: 1 hour)
-corpFacilities = '/corp/Facilities.xml.aspx'
+corpFacilities = 'corp/Facilities.xml.aspx'
 
 # Returns a list of running and completed jobs for your corporation, up to 90 days or 10000 rows. (cache: 6 hours)
-corpIndustryHistory = '/corp/IndustryJobsHistory.xml.aspx'
+corpIndustryHistory = 'corp/IndustryJobsHistory.xml.aspx'
 
 # Returns a list of running and completed jobs for your character, up to 90 days or 10000 rows. (cache: 6 hours)
-charIndustryHistory = '/char/IndustryJobsHistory.xml.aspx'
+charIndustryHistory = 'char/IndustryJobsHistory.xml.aspx'
 
 # Returns a list of running jobs for your corporation, up to 90 days or 10000 rows. (cache: 15 minutes)
-corpIndustry = '/corp/IndustryJobs.xml.aspx'
+corpIndustry = 'corp/IndustryJobs.xml.aspx'
 
 # Returns a list of running jobs for your character, up to 90 days or 10000 rows. (cache: 15 minutes)
-charIndustry = '/char/IndustryJobs.xml.aspx'
+charIndustry = 'char/IndustryJobs.xml.aspx'
 
 
 # Defaults that will be replaced by the API returned data.
