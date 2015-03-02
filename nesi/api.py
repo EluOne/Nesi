@@ -17,7 +17,7 @@
 #
 # Author: Tim Cumming aka Elusive One
 # Created: 13/01/13
-# Modified: 21/02/15
+# Modified: 02/03/15
 
 import datetime
 import time
@@ -503,8 +503,8 @@ def getJobs(target):
                             cacheExpire = datetime.datetime(*(time.strptime((cacheuntil[0].firstChild.nodeValue), "%Y-%m-%d %H:%M:%S")[0:6]))
                             config.jobsCachedUntil = cacheExpire
 
-                            itemIDs = []
-                            installerIDs = []
+                            # itemIDs = [] # obsolete
+                            # installerIDs = [] # obsolete
                             locationIDs = []
                             for row in dataNodes:
                                 if row.getAttribute('status') == '101':  # Ignore Delivered Jobs
@@ -580,6 +580,8 @@ def getJobs(target):
             else:
                 onError('Please open Config to enter a valid API key')
         else:
+            # Don't Contact server as cache timer hasn't expired
+            # Iterate over the jobs and change their status if they should be ready.
             numItems = list(range(len(config.jobRows)))
             for r in numItems:
                 if config.jobRows[r].endProductionTime > config.serverTime:
@@ -589,13 +591,10 @@ def getJobs(target):
                     config.jobRows[r].timeRemaining = config.jobRows[r].endProductionTime - config.serverTime
                     config.jobRows[r].state = 'Ready'
 #            self.jobList.RefreshObjects(config.jobRows)
-            # print('Not Contacting Server, Cache Not Expired')
 
-#        self.statusbar.SetStatusText(serverStatus[0] + ' - ' + serverStatus[1]
-#                                     + ' Players Online - EvE Time: ' + str(config.serverTime)
-#                                     + ' - API Cached Until: ' + str(config.jobsCachedUntil)
-#                                     + ' - ' + timingMsg)
+            print('Not Contacting Server, Cache Not Expired')
+            target.state = timingMsg
     else:
-        # Skip everything send 'Using local cache' to status bar.
-        # self.statusbar.SetStatusText('Welcome to Nesi - ' + serverStatus[0])
+        # Server status is 'Offline' so skip everything send 'Using local cache' to status bar.
+        target.state = timingMsg
         return()

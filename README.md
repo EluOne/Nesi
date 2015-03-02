@@ -2,8 +2,11 @@ NESI - Nova Echo Science & Industry
 =====
 
 
-This branch is a work in progress to convertion of the application to use the Kivy framework for the gui enabling it to be used on mobile devices.
+This branch is a work in progress to convertion of the application to use the [Kivy](http://kivy.org) framework for the gui enabling it to be used on mobile devices.
 
+Current work also includes updating to the new Eve Online APIs, some of this may be back ported to the wxWidgets application.
+
+=====
 
 A single window application to display the status of science and industrial jobs in the game 'Eve Online' by CCP Games.
 Users provide API key credentials to use with the CCP servers to download data from the the corporate and character industry jobs API.
