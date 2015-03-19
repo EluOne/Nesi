@@ -17,13 +17,16 @@
 #
 # Author: Tim Cumming aka Elusive One
 # Created: 29/12/13
-# Modified: 21/02/15
+# Modified: 19/03/15
 
 import datetime
+import time
 
 from kivy.storage.jsonstore import JsonStore
 
 from nesi.classes import Server, Character
+
+from nesi.api import apiCheck
 
 
 # These are the headers sent with our http requests to be nice to CCP if they need to contact us.
@@ -33,8 +36,6 @@ headers = {'User-Agent': ('Nesi/%s +https://github.com/EluOne/Nesi' % version)}
 # Static sqlLite data dump
 staticDB = '../static.db'
 
-# Cache Files
-characterCache = JsonStore('character.json')
 
 # Account for device clock drift in our time calculations.
 # nesi.functions.checkClockDrift will compare the server time vs the device reported UTC time.
@@ -49,20 +50,43 @@ serverTime = datetime.datetime.utcnow().replace(microsecond=0)
 localTime = datetime.datetime.now().replace(microsecond=0)
 
 
+# Cache Files
+jobCache = JsonStore('jobs.json')
+pilotCache = JsonStore('pilots.json')
+statusCache = JsonStore('server.json')
+
+
 # Server connection objects can be reused for each connection point
 # to the api as each one may have a different cache timer.
-# Server(serverName, serverAddress, serverStatus, serverPlayers, cacheExpire)
+# Server(serverName, serverAddress, serverStatus, serverPlayers, datetime.datetime(cacheExpire), serverPing)
+if statusCache.exists('server'):
+    print('Server Status Already Exists:', statusCache.get('server'))
 
-# Singularity Test Server
-# serverConn = Server('Singularity', 'https://api.testeveonline.com/', 'Unknown', 0, serverTime)
+    # This possibly needs moving/redesign
+    if (statusCache.get('server')['name']) == 'Tranquility':
+        apiURL = 'https://api.eveonline.com/'
+    elif (statusCache.get('server')['name']) == 'Singularity':
+        apiURL = 'https://api.testeveonline.com/'
+    else:
+        apiURL = ''
 
-# Tranquility Main Server
-serverConn = Server('Tranquility', 'https://api.eveonline.com/', 'Unknown', 0, serverTime)
+    serverConn = Server(statusCache.get('server')['name'], apiURL, statusCache.get('server')['status'], statusCache.get('server')['players'],
+                        datetime.datetime(*(time.strptime((statusCache.get('server')['cacheExpires']), '%Y-%m-%d %H:%M:%S')[0:6])),
+                        statusCache.get('server')['ping'])
+else:
+    # Provide a default here.
+    # Singularity Test Server:
+    # serverConn = Server('Singularity', 'https://api.testeveonline.com/', 'Unknown', 0, serverTime, 0)
+    # Tranquility Main Server:
+    serverConn = Server('Tranquility', 'https://api.eveonline.com/', 'Unknown', 0, serverTime, 0)
 
+
+# Dictionaries for POS status conversions.
 activities = {1: 'Manufacturing', 2: 'Technological research', 3: 'Time Efficiency Research', 4: 'Material Research',
               5: 'Copy', 6: 'Duplicating', 7: 'Reverse Engineering', 8: 'Invention'}  # POS activities list.
 
 states = {0: 'Unanchored', 1: 'Anchored / Offline', 2: 'Onlining', 3: 'Reinforced', 4: 'Online'}  # POS state list.
+
 
 # API End Points
 # Returns a list of all outpost and POS industrial facilities your corporation owns. (cache: 1 hour)
@@ -89,6 +113,29 @@ charIndustry = 'char/IndustryJobs.xml.aspx'
 jobsCachedUntil = serverTime
 starbaseCachedUntil = serverTime
 
-# This is where we are storing our API keys for now.
+
+# This is where we are storing our API keys.
 pilotRows = []
+
+if pilotCache.count() > 0:
+    print('Character Data Already Exists:', pilotCache.get("0"))
+    for key in pilotCache:
+        print(key)
+        print(pilotCache.get(key)['characterName'])
+        pilotRows.append(Character(pilotCache.get(key)['keyID'], pilotCache.get(key)['vCode'],
+                                   pilotCache.get(key)['characterID'], pilotCache.get(key)['characterName'],
+                                   pilotCache.get(key)['corporationID'], pilotCache.get(key)['corporationName'],
+                                   pilotCache.get(key)['keyType'], pilotCache.get(key)['keyExpires'],
+                                   pilotCache.get(key)['skills'], pilotCache.get(key)['isActive']))
+else:
+    print('Key to be removed when we have a preference dialog working. Return empty array')
+    # keyID, vCode, characterID, characterName, corporationID, corporationName, keyType, keyExpires, skills, isActive
+    keyID = '368187'
+    vCode = 'lbT36nQrx1up6gvYqdGtdHrR6IfTvFncubFFBD9U6ZszIIqNMtXSV2l13Xxv6jXL'
+    if (keyID != '') and (vCode != ''):
+        pilots = apiCheck(keyID, vCode)
+    # pilotRows = []
+
+
+# Job data storage.
 jobRows = []

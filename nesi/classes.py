@@ -17,7 +17,7 @@
 #
 # Author: Tim Cumming aka Elusive One
 # Created: 29/12/13
-# Modified: 21/02/15
+# Modified: 19/03/15
 
 import datetime
 import time
@@ -48,12 +48,13 @@ class Character(object):
 
 
 class Server(object):
-    def __init__(self, serverName, serverAddress, serverStatus, serverPlayers, cacheExpire):
+    def __init__(self, serverName, serverAddress, serverStatus, serverPlayers, cacheExpire, serverPing):
         self.svrName = serverName
         self.svrAddress = serverAddress
         self.svrStatus = serverStatus
         self.svrPlayers = serverPlayers
         self.svrCacheExpire = cacheExpire
+        self.svrPing = serverPing
 
 # end of class Server
 

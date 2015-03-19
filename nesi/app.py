@@ -17,7 +17,7 @@
 #
 # Author: Tim Cumming aka Elusive One
 # Created: 11/01/15
-# Modified: 21/02/15
+# Modified: 19/03/15
 
 import kivy
 kivy.require('1.8.0')
@@ -29,28 +29,10 @@ from kivy.uix.gridlayout import GridLayout
 
 import config
 
-from nesi.api import getServerStatus, getJobs, apiCheck
+from nesi.api import getServerStatus, getJobs
 from nesi.functions import updateCurrentTime
-from nesi.classes import Character
 
 Builder.load_file('nesi/statusbar.kv')
-
-
-# TODO: Change to JSON and use kivy.storage.jsonstore
-# import os.path
-# import pickle
-# Lets try to load up our API keys from the ini file.
-# This requires the Pilot class to work.
-# if (os.path.isfile('nesi.ini')):
-#    iniFile = open('nesi.ini', 'r')
-#    config.pilotRows = pickle.load(iniFile)
-#    iniFile.close()
-
-# keyID, vCode, characterID, characterName, corporationID, corporationName, keyType, keyExpires, skills, isActive
-keyID = '368187'
-vCode = 'lbT36nQrx1up6gvYqdGtdHrR6IfTvFncubFFBD9U6ZszIIqNMtXSV2l13Xxv6jXL'
-if (keyID != '') and (vCode != ''):
-    pilots = apiCheck(keyID, vCode)
 
 
 class RootWidget(GridLayout):

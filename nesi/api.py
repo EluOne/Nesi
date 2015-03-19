@@ -17,7 +17,7 @@
 #
 # Author: Tim Cumming aka Elusive One
 # Created: 13/01/13
-# Modified: 02/03/15
+# Modified: 19/03/15
 
 import datetime
 import time
@@ -77,16 +77,20 @@ def getServerStatus(cacheExpire, serverTime, target):
             config.serverConn.svrCacheExpire = datetime.datetime(*(time.strptime((cacheUntil[0].firstChild.nodeValue), '%Y-%m-%d %H:%M:%S')[0:6]))
 
             # Stop the clock for this update.
-            timingMsg = 'Updated in: %0.2f ms (Server Status)' % (((time.clock() - t) * 1000))
+            config.serverConn.svrPing = '%0.2f ms' % (((time.clock() - t) * 1000))
 
             # Send the data to the gui elements of status_bar
             target.server = str('%s %s' % (config.serverConn.svrName, config.serverConn.svrStatus))
             target.players = str(config.serverConn.svrPlayers)
             target.serverTime = str(config.serverTime)
             target.jobsCachedUntil = str(config.serverConn.svrCacheExpire)
-            target.state = str(timingMsg)
+            target.state = str(config.serverConn.svrPing)
 
-            print(timingMsg)
+            config.statusCache.put('server', name=config.serverConn.svrName, status=config.serverConn.svrStatus,
+                                   players=config.serverConn.svrPlayers, cacheExpires=(cacheUntil[0].firstChild.nodeValue),
+                                   ping=config.serverConn.svrPing)
+
+            print(config.serverConn.svrPing + '(Server Status)')
 
         def server_error(self, error):
             status = 'Error Connecting to %s:\n%s\nAt: %s' % (config.serverConn.svrName, str(error), config.serverTime)
@@ -159,9 +163,14 @@ def apiCheck(keyID, vCode):
         print('Pilots at end of api_process: ' + str(pilots))
 
         if pilots != []:
+            key = 0
             for row in pilots:
                 # keyID, vCode, characterID, characterName, corporationID, corporationName, keyType, keyExpires, skills, isActive
                 config.pilotRows.append(Character(row[0], row[1], row[2], row[3], row[4], row[5], row[6], row[7], row[8], 0))
+                config.pilotCache.put(key, keyID=row[0], vCode=row[1], characterID=row[2], characterName=row[3],
+                                      corporationID=row[4], corporationName=row[5], keyType=row[6], keyExpires=row[7],
+                                      skills=row[8], isActive=0)
+                key = key + 1
 
         return pilots
 
@@ -223,7 +232,7 @@ def id2name(idType, ids):
                 if con:
                     con.close()
 
-    elif idType == 'character':
+    elif idType == 'character':  # TODO: Check if Depreciated.
         # We'll have to talk to the API server for Pilot names as this can't be in the static dump.
         # cacheFile = config.characterCache
         cacheFile = '../character.cache'
@@ -284,7 +293,7 @@ def id2name(idType, ids):
 
                     for row in dataNodes:
                         typeNames.update({int(row.getAttribute(key)): str(row.getAttribute(value))})
-                        config.characterCache.put(int(row.getAttribute(key)), name=str(row.getAttribute(value)))
+                        # config.characterCache.put(int(row.getAttribute(key)), name=str(row.getAttribute(value)))
 
                     # Save the data we have so we don't have to fetch it
                     typeFile = open(cacheFile, 'w')
@@ -575,8 +584,12 @@ def getJobs(target):
                 if tempJobRows != []:
                     config.jobRows = tempJobRows[:]
 #                self.jobList.SetObjects(config.jobRows)
-                timingMsg = 'Updated in: %0.2f ms (Fetch Jobs)' % (((time.clock() - t) * 1000))
+
+                timingMsg = '%0.2f ms' % (((time.clock() - t) * 1000))
                 target.state = str(timingMsg)
+
+                print(timingMsg + '(Fetch Jobs)')
+
             else:
                 onError('Please open Config to enter a valid API key')
         else:

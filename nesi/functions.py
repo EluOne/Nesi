@@ -17,7 +17,7 @@
 #
 # Author: Tim Cumming aka Elusive One
 # Created: 01/02/15
-# Modified: 01/02/15
+# Modified: 02/03/15
 
 import datetime
 
@@ -37,6 +37,7 @@ def updateCurrentTime():
     print('Offset: %s%s Adjusted Time: %s' % (config.offset, config.clockDrift, config.serverTime))
 
 
+# Make sure the time on our device is correct and warn if incorrect.
 def checkClockDrift(serCurrentTime):
     # As the serverTime in config may have been adjusted to compensate for the previous offset calc
     # we will get the current time reported from the device in UTC to recalculate.
