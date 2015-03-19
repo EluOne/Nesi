@@ -163,15 +163,12 @@ def apiCheck(keyID, vCode):
         print('Pilots at end of api_process: ' + str(pilots))
 
         if pilots != []:
-            key = 0
             for row in pilots:
                 # keyID, vCode, characterID, characterName, corporationID, corporationName, keyType, keyExpires, skills, isActive
                 config.pilotRows.append(Character(row[0], row[1], row[2], row[3], row[4], row[5], row[6], row[7], row[8], 0))
-                config.pilotCache.put(key, keyID=row[0], vCode=row[1], characterID=row[2], characterName=row[3],
+                config.pilotCache.put(row[2], keyID=row[0], vCode=row[1], characterID=row[2], characterName=row[3],
                                       corporationID=row[4], corporationName=row[5], keyType=row[6], keyExpires=row[7],
                                       skills=row[8], isActive=0)
-                key = key + 1
-
         return pilots
 
     def api_fail(self, result):
@@ -528,8 +525,8 @@ def getJobs(target):
                                     # if int(row.getAttribute('installedInSolarSystemID')) not in locationIDs:
                                     #     locationIDs.append(int(row.getAttribute('installedInSolarSystemID')))
 
-                            # itemNames = id2name('item', itemIDs)
-                            # pilotNames = id2name('character', installerIDs)
+                            # itemNames = id2name('item', itemIDs)  # Depreciated
+                            # pilotNames = id2name('character', installerIDs)  # Depreciated
                             # locationNames = id2location(x, locationIDs, config.pilotRows)
 
                             for row in dataNodes:
@@ -554,6 +551,18 @@ def getJobs(target):
                                                            row.getAttribute('startDate'),
                                                            # row.getAttribute('endProductionTime'),
                                                            row.getAttribute('endDate')))
+                                    config.jobCache.put(row.getAttribute('jobID'), jobID=row.getAttribute('jobID'),
+                                                        status=row.getAttribute('status'),
+                                                        activityID=int(row.getAttribute('activityID')),  # Leave as int for clauses
+                                                        blueprintTypeName=row.getAttribute('blueprintTypeName'),
+                                                        outputLocationID=int(row.getAttribute('outputLocationID')),
+                                                        solarSystemName=row.getAttribute('solarSystemName'),
+                                                        installerName=row.getAttribute('installerName'),
+                                                        runs=int(row.getAttribute('runs')),
+                                                        productTypeName=row.getAttribute('productTypeName'),
+                                                        startDate=row.getAttribute('startDate'),
+                                                        endDate=row.getAttribute('endDate'))
+                                    config.statusCache.put('jobs', cacheExpires=cacheuntil[0].firstChild.nodeValue)
 
                                 # Old API:
                                 # columns="assemblyLineID,containerID,installedItemLocationID,installedItemQuantity,

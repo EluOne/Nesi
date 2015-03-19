@@ -24,7 +24,7 @@ import time
 
 from kivy.storage.jsonstore import JsonStore
 
-from nesi.classes import Server, Character
+from nesi.classes import Server, Character, Job
 
 from nesi.api import apiCheck
 
@@ -118,17 +118,18 @@ starbaseCachedUntil = serverTime
 pilotRows = []
 
 if pilotCache.count() > 0:
-    print('Character Data Already Exists:', pilotCache.get("0"))
+    print('Character Data Already Exists:')
     for key in pilotCache:
-        print(key)
+        print(key)  # Using characterID as key
         print(pilotCache.get(key)['characterName'])
+        # keyID, vCode, characterID, characterName, corporationID, corporationName, keyType, keyExpires, skills, isActive
         pilotRows.append(Character(pilotCache.get(key)['keyID'], pilotCache.get(key)['vCode'],
                                    pilotCache.get(key)['characterID'], pilotCache.get(key)['characterName'],
                                    pilotCache.get(key)['corporationID'], pilotCache.get(key)['corporationName'],
                                    pilotCache.get(key)['keyType'], pilotCache.get(key)['keyExpires'],
                                    pilotCache.get(key)['skills'], pilotCache.get(key)['isActive']))
 else:
-    print('Key to be removed when we have a preference dialog working. Return empty array')
+    print('Key to be removed when we have a preference dialog working. Leave array empty')
     # keyID, vCode, characterID, characterName, corporationID, corporationName, keyType, keyExpires, skills, isActive
     keyID = '368187'
     vCode = 'lbT36nQrx1up6gvYqdGtdHrR6IfTvFncubFFBD9U6ZszIIqNMtXSV2l13Xxv6jXL'
@@ -139,3 +140,21 @@ else:
 
 # Job data storage.
 jobRows = []
+
+if jobCache.count() > 0:
+    print('Job Data Already Exists:')
+    for key in jobCache:
+        print(key)  # Using characterID as key
+        print(jobCache.get(key)['characterName'])
+        # jobID, completedStatus, activityID, installedItemTypeID, outputLocationID,
+        # installedInSolarSystemID, installerID, runs, outputTypeID, installTime, endProductionTime
+        jobRows.append(Job(jobCache.get(key)['jobID'], jobCache.get(key)['status'],
+                           jobCache.get(key)['activityID'], jobCache.get(key)['blueprintTypeName'],
+                           jobCache.get(key)['outputLocationID'], jobCache.get(key)['solarSystemName'],
+                           jobCache.get(key)['installerName'], jobCache.get(key)['runs'],
+                           jobCache.get(key)['productTypeName'], jobCache.get(key)['startDate'],
+                           jobCache.get(key)['endDate']))
+    jobsCachedUntil = datetime.datetime(*(time.strptime((statusCache.get('jobs')['cacheExpires']), '%Y-%m-%d %H:%M:%S')[0:6]))
+else:
+    print('No Job data set cache to Expired.')
+    jobsCachedUntil = serverTime
