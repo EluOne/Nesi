@@ -17,7 +17,7 @@
 #
 # Author: Tim Cumming aka Elusive One
 # Created: 29/12/13
-# Modified: 19/03/15
+# Modified: 08/04/15
 
 import datetime
 import time
@@ -62,7 +62,7 @@ statusCache = JsonStore('server.json')
 if statusCache.exists('server'):
     print('Server Status Already Exists:', statusCache.get('server'))
 
-    # This possibly needs moving/redesign
+    # This possibly needs moving/redesign (Into preferences dialog)
     if (statusCache.get('server')['name']) == 'Tranquility':
         apiURL = 'https://api.eveonline.com/'
     elif (statusCache.get('server')['name']) == 'Singularity':
@@ -93,16 +93,16 @@ states = {0: 'Unanchored', 1: 'Anchored / Offline', 2: 'Onlining', 3: 'Reinforce
 corpFacilities = 'corp/Facilities.xml.aspx'
 
 # Returns a list of running and completed jobs for your corporation, up to 90 days or 10000 rows. (cache: 6 hours)
-corpIndustryHistory = 'corp/IndustryJobsHistory.xml.aspx'
+corpIndustryHistory = 'corp/IndustryJobsHistory.xml.aspx?keyID=%s&vCode=%s&characterID=%s'
 
 # Returns a list of running and completed jobs for your character, up to 90 days or 10000 rows. (cache: 6 hours)
-charIndustryHistory = 'char/IndustryJobsHistory.xml.aspx'
+charIndustryHistory = 'char/IndustryJobsHistory.xml.aspx?keyID=%s&vCode=%s&characterID=%s'
 
 # Returns a list of running jobs for your corporation, up to 90 days or 10000 rows. (cache: 15 minutes)
-corpIndustry = 'corp/IndustryJobs.xml.aspx'
+corpIndustry = 'corp/IndustryJobs.xml.aspx?keyID=%s&vCode=%s&characterID=%s'
 
 # Returns a list of running jobs for your character, up to 90 days or 10000 rows. (cache: 15 minutes)
-charIndustry = 'char/IndustryJobs.xml.aspx'
+charIndustry = 'char/IndustryJobs.xml.aspx?keyID=%s&vCode=%s&characterID=%s'
 
 
 # Defaults that will be replaced by the API returned data.
@@ -144,8 +144,8 @@ jobRows = []
 if jobCache.count() > 0:
     print('Job Data Already Exists:')
     for key in jobCache:
-        print(key)  # Using characterID as key
-        print(jobCache.get(key)['characterName'])
+        print(key)  # Using jobID as key
+        print(jobCache.get(key)['productTypeName'])
         # jobID, completedStatus, activityID, installedItemTypeID, outputLocationID,
         # installedInSolarSystemID, installerID, runs, outputTypeID, installTime, endProductionTime
         jobRows.append(Job(jobCache.get(key)['jobID'], jobCache.get(key)['status'],

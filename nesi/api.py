@@ -17,7 +17,7 @@
 #
 # Author: Tim Cumming aka Elusive One
 # Created: 13/01/13
-# Modified: 19/03/15
+# Modified: 08/04/15
 
 import datetime
 import time
@@ -28,7 +28,6 @@ import pickle
 import sqlite3 as lite
 
 from kivy.network.urlrequest import UrlRequest
-# from kivy.storage.jsonstore import JsonStore
 
 from xml.dom.minidom import parseString
 
@@ -86,6 +85,7 @@ def getServerStatus(cacheExpire, serverTime, target):
             target.jobsCachedUntil = str(config.serverConn.svrCacheExpire)
             target.state = str(config.serverConn.svrPing)
 
+            # Update the statusCache JSON file.
             config.statusCache.put('server', name=config.serverConn.svrName, status=config.serverConn.svrStatus,
                                    players=config.serverConn.svrPlayers, cacheExpires=(cacheUntil[0].firstChild.nodeValue),
                                    ping=config.serverConn.svrPing)
@@ -234,7 +234,7 @@ def id2name(idType, ids):
         # cacheFile = config.characterCache
         cacheFile = '../character.cache'
 
-        # TODO: Change to JSON
+        # TODO: Change to JSON if not depreciated. (See above TODO)
         if (os.path.isfile('cacheFile')):
             typeFile = open(cacheFile, 'r')
             typeNames = pickle.load(typeFile)
@@ -493,11 +493,13 @@ def getJobs(target):
 
                     if keyOK == 1:
                         if config.pilotRows[x].keyType == 'Corporation':
-                            baseUrl = 'corp/IndustryJobsHistory.xml.aspx?keyID=%s&vCode=%s&characterID=%s'
+                            # baseUrl = 'corp/IndustryJobs.xml.aspx?keyID=%s&vCode=%s&characterID=%s'
+                            apiURL = config.serverConn.svrAddress + config.corpIndustry % (config.pilotRows[x].keyID, config.pilotRows[x].vCode, config.pilotRows[x].characterID)
                         else:  # Should be an account key
-                            baseUrl = 'char/IndustryJobsHistory.xml.aspx?keyID=%s&vCode=%s&characterID=%s'
+                            # baseUrl = 'char/IndustryJobs.xml.aspx?keyID=%s&vCode=%s&characterID=%s'
+                            apiURL = config.serverConn.svrAddress + config.charIndustry % (config.pilotRows[x].keyID, config.pilotRows[x].vCode, config.pilotRows[x].characterID)
 
-                        apiURL = config.serverConn.svrAddress + baseUrl % (config.pilotRows[x].keyID, config.pilotRows[x].vCode, config.pilotRows[x].characterID)
+                        # apiURL = config.serverConn.svrAddress + baseUrl % (config.pilotRows[x].keyID, config.pilotRows[x].vCode, config.pilotRows[x].characterID)
                         print(apiURL)  # Console debug
 
                         def jobs_process(self, result):
@@ -513,7 +515,7 @@ def getJobs(target):
                             # installerIDs = [] # obsolete
                             locationIDs = []
                             for row in dataNodes:
-                                if row.getAttribute('status') == '101':  # Ignore Delivered Jobs
+                                if row.getAttribute('status') != '101':  # Ignore Delivered Jobs
                                     # if int(row.getAttribute('installedItemTypeID')) not in itemIDs:
                                     #    itemIDs.append(int(row.getAttribute('installedItemTypeID')))
                                     # if int(row.getAttribute('outputTypeID')) not in itemIDs:
@@ -530,7 +532,7 @@ def getJobs(target):
                             # locationNames = id2location(x, locationIDs, config.pilotRows)
 
                             for row in dataNodes:
-                                if row.getAttribute('status') == '101':  # Ignore Delivered Jobs
+                                if row.getAttribute('status') != '101':  # Ignore Delivered Jobs
                                     tempJobRows.append(Job(row.getAttribute('jobID'),
                                                            row.getAttribute('status'),
                                                            int(row.getAttribute('activityID')),  # Leave as int for clauses
@@ -551,6 +553,8 @@ def getJobs(target):
                                                            row.getAttribute('startDate'),
                                                            # row.getAttribute('endProductionTime'),
                                                            row.getAttribute('endDate')))
+
+                                    # Add job data to local cache.
                                     config.jobCache.put(row.getAttribute('jobID'), jobID=row.getAttribute('jobID'),
                                                         status=row.getAttribute('status'),
                                                         activityID=int(row.getAttribute('activityID')),  # Leave as int for clauses
