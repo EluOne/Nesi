@@ -1,0 +1,16 @@
+#:kivy 1.8.0
+#:import jobstab nesi.jobstab
+<JobsTab>
+	font_size: 12
+    text: 'Jobs'
+    StackLayout:
+    	orientation: 'rl-tb'
+    	Button:
+    	    font_size: 12
+			size_hint: None, None
+    		height: 32
+    		width: 100
+    		text: 'Get Jobs'
+    		on_press: root.fetch_jobs()
+    	ScrollView:
+    		id: jobsScroll

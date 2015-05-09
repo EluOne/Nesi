@@ -16,39 +16,24 @@
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #
 # Author: Tim Cumming aka Elusive One
-# Created: 11/01/15
+# Created: 09/05/15
 # Modified: 09/05/15
 
-import kivy
-from kivy.app import App
-from kivy.lang import Builder
-from kivy.uix.screenmanager import ScreenManager
+from kivy.uix.tabbedpanel import TabbedPanelItem
 
-kivy.require('1.8.0')
-
-Builder.load_file('nesi/statusbar.kv')
-Builder.load_file('nesi/jobstab.kv')
-Builder.load_file('nesi/nesi.kv')
-Builder.load_file('nesi/nesiscreenmanager.kv')
+import config
+from nesi.api import getServerStatus, getJobs
+from nesi.functions import updateCurrentTime
 
 
-class NesiScreenManager(ScreenManager):
-    pass
+class JobsTab(TabbedPanelItem):
+    def fetch_jobs(self):
+        print('fetch_jobs called')
 
+        # Update the config.serverTime to now.
+        updateCurrentTime()
 
-# class NesiApp(App):
-class NesiScreenManagerApp(App):
-    title = 'Nesi'
+        # getServerStatus(config.serverStatus, config.serverTime, self.status_bar)
+        getServerStatus(config.serverConn.svrCacheExpire, config.serverTime, self.status_bar)
 
-    def build(self):
-        # return RootWidget()
-        return NesiScreenManager()
-
-    def on_pause(self):
-        '''This is necessary to allow your app to be paused on mobile os.
-           refer http://kivy.org/docs/api-kivy.app.html#pause-mode .
-        '''
-        return True
-
-if __name__ == "__main__":
-    NesiScreenManagerApp().run()
+        getJobs(self.status_bar)
