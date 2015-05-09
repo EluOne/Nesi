@@ -142,7 +142,7 @@ else:
 jobRows = []
 
 if jobCache.count() > 0:
-    print('Job Data Already Exists:')
+    print('Job Data Already Exists: %s Entries' % (len(jobCache)))
     for key in jobCache:
         print(key)  # Using jobID as key
         print(jobCache.get(key)['productTypeName'])

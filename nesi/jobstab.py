@@ -37,3 +37,5 @@ class JobsTab(TabbedPanelItem):
         getServerStatus(config.serverConn.svrCacheExpire, config.serverTime, self.status_bar)
 
         getJobs(self.status_bar)
+
+        self.job_grid.update_rows()

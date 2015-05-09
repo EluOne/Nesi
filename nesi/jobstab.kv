@@ -1,6 +1,7 @@
 #:kivy 1.8.0
 #:import jobstab nesi.jobstab
 <JobsTab>
+	job_grid: _job_grid
 	font_size: 12
     text: 'Jobs'
     StackLayout:
@@ -14,3 +15,8 @@
     		on_press: root.fetch_jobs()
     	ScrollView:
     		id: jobsScroll
+    		do_scroll_y: True
+    		do_scroll_x: False
+    		
+    		JobGrid:
+    			id: _job_grid

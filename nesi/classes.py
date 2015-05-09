@@ -17,7 +17,7 @@
 #
 # Author: Tim Cumming aka Elusive One
 # Created: 29/12/13
-# Modified: 19/03/15
+# Modified: 09/05/15
 
 import datetime
 import time
@@ -29,7 +29,8 @@ import config
 
 
 class Character(object):
-    def __init__(self, keyID, vCode, characterID, characterName, corporationID, corporationName, keyType, keyExpires, skills, isActive):
+    def __init__(self, keyID, vCode, characterID, characterName, corporationID,
+                 corporationName, keyType, keyExpires, skills, isActive):
         self.keyID = keyID
         self.vCode = vCode
         self.characterID = characterID
@@ -61,8 +62,8 @@ class Server(object):
 
 class Job(object):
     def __init__(self, jobID, completedStatus, activityID, installedItemTypeID,
-                 outputLocationID,
-                 installedInSolarSystemID, installerID, runs, outputTypeID, installTime, endProductionTime):
+                 outputLocationID, installedInSolarSystemID, installerID, runs,
+                 outputTypeID, installTime, endProductionTime):
         self.jobID = jobID
         self.completedStatus = completedStatus
         self.activityID = activityID

@@ -28,6 +28,7 @@ kivy.require('1.8.0')
 
 Builder.load_file('nesi/statusbar.kv')
 Builder.load_file('nesi/jobstab.kv')
+Builder.load_file('nesi/jobgrid.kv')
 Builder.load_file('nesi/nesi.kv')
 Builder.load_file('nesi/nesiscreenmanager.kv')
 
