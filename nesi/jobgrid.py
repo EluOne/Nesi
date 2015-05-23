@@ -17,7 +17,7 @@
 #
 # Author: Tim Cumming aka Elusive One
 # Created: 09/05/15
-# Modified: 09/05/15
+# Modified: 22/05/15
 
 from kivy.uix.gridlayout import GridLayout
 from kivy.uix.label import Label
@@ -28,13 +28,7 @@ import config
 class JobGrid(GridLayout):
     def __init__(self, **kwargs):
         super(JobGrid, self).__init__(**kwargs)
-        self.add_widget(Label(font_size=12, text='State'))
-        self.add_widget(Label(font_size=12, text='Activity'))
-        self.add_widget(Label(font_size=12, text='Type'))
-        self.add_widget(Label(font_size=12, text='Location'))
-        self.add_widget(Label(font_size=12, text='Installer'))
-        self.add_widget(Label(font_size=12, text='Install Date'))
-        self.add_widget(Label(font_size=12, text='End Date'))
+        self.bind(minimum_height=self.setter('height'))
         if config.jobRows:
             numItems = list(range(len(config.jobRows)))
             for r in numItems:
@@ -60,14 +54,6 @@ class JobGrid(GridLayout):
     def update_rows(self):
         # At present clear the grid and start fresh.
         self.clear_widgets()
-        self.add_widget(Label(font_size=12, text='State'))
-        self.add_widget(Label(font_size=12, text='Activity'))
-        self.add_widget(Label(font_size=12, text='Type'))
-        self.add_widget(Label(font_size=12, text='Location'))
-        self.add_widget(Label(font_size=12, text='Installer'))
-        self.add_widget(Label(font_size=12, text='Install Date'))
-        self.add_widget(Label(font_size=12, text='End Date'))
-
         if config.jobRows:
             numItems = list(range(len(config.jobRows)))
             for r in numItems:

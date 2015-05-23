@@ -17,7 +17,7 @@
 #
 # Author: Tim Cumming aka Elusive One
 # Created: 11/01/15
-# Modified: 09/05/15
+# Modified: 22/05/15
 
 import kivy
 from kivy.app import App
@@ -29,6 +29,7 @@ kivy.require('1.8.0')
 Builder.load_file('nesi/statusbar.kv')
 Builder.load_file('nesi/jobstab.kv')
 Builder.load_file('nesi/jobgrid.kv')
+Builder.load_file('nesi/starbasestab.kv')
 Builder.load_file('nesi/nesi.kv')
 Builder.load_file('nesi/nesiscreenmanager.kv')
 

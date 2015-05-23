@@ -156,5 +156,6 @@ if jobCache.count() > 0:
                            jobCache.get(key)['endDate']))
     jobsCachedUntil = datetime.datetime(*(time.strptime((statusCache.get('jobs')['cacheExpires']), '%Y-%m-%d %H:%M:%S')[0:6]))
 else:
+    # No Job data set cache to Expired.
     print('No Job data set cache to Expired.')
     jobsCachedUntil = serverTime

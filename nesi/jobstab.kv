@@ -13,8 +13,35 @@
     		width: 100
     		text: 'Get Jobs'
     		on_press: root.fetch_jobs()
+    	GridLayout:
+    		cols: 7
+			size_hint_y: None
+			height: 20
+    		Label:
+    			font_size: 12
+    			text: 'State'
+    		Label:
+    			font_size: 12
+    			text: 'Activity'
+    		Label:
+    			font_size: 12
+    			text: 'Type'
+    		Label:
+    			font_size: 12
+    			text: 'Location'
+    		Label:
+    			font_size: 12
+    			text: 'Installer'
+    		Label:
+    			font_size: 12
+    			text: 'Install Date'
+    		Label:
+    			font_size: 12
+    			text: 'End Date'
     	ScrollView:
     		id: jobsScroll
+    		# size_hint: None, None
+			size_hint_y: None
     		do_scroll_y: True
     		do_scroll_x: False
     		
