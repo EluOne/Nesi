@@ -17,7 +17,7 @@
 #
 # Author: Tim Cumming aka Elusive One
 # Created: 13/01/13
-# Modified: 08/04/15
+# Modified: 26/05/15
 
 import datetime
 import time
@@ -32,7 +32,7 @@ from kivy.network.urlrequest import UrlRequest
 from xml.dom.minidom import parseString
 
 from nesi.error import onError
-from nesi.classes import Job, Character
+from nesi.classes import Job, Character, Starbase
 from nesi.functions import is32, checkClockDrift
 
 import config
@@ -471,8 +471,6 @@ def getJobs(target):
     # Inform the user what we are doing.
     target.state = ('Connecting to ' + config.serverConn.svrName)
 
-    # getServerStatus(config.serverConn.svrCacheExpire, config.serverTime, target)  # Try the API server for current server status.
-
     if config.serverConn.svrStatus == 'Online':  # Status has returned a value other than online, so why continue?
         if config.serverTime >= config.jobsCachedUntil:
             # Start the clock.
@@ -618,6 +616,123 @@ def getJobs(target):
                     config.jobRows[r].state = 'Ready'
 #            self.jobList.RefreshObjects(config.jobRows)
 
+            print('Not Contacting Server, Cache Not Expired')
+            target.state = timingMsg
+    else:
+        # Server status is 'Offline' so skip everything send 'Using local cache' to status bar.
+        target.state = timingMsg
+        return()
+
+
+def onGetStarbases(target):
+    """Event handler to fetch starbase data from server"""
+    timingMsg = 'Using Local Cache'
+    # Inform the user what we are doing.
+    target.state = ('Connecting to ' + config.serverConn.svrName)
+
+    if config.serverConn.svrStatus == 'Online':  # Status has returned a value other than online, so why continue?
+        if config.serverTime >= config.starbaseCachedUntil:
+            # Start the clock.
+            t = time.clock()
+            tempStarbaseRows = []
+            if config.pilotRows != []:  # Make sure we have keys in the config
+                # keyID, vCode, characterID, characterName, corporationID, corporationName, keyType, keyExpires, skills, isActive
+                numPilotRows = list(range(len(config.pilotRows)))
+                for x in numPilotRows:  # Iterate over all of the keys and character ids in config
+                    # Download the Account Starbase Data
+                    keyOK = 1  # Set key check to OK test below changes if expired
+                    if config.pilotRows[x].keyExpires != 'Never':
+                        if config.pilotRows[x].keyExpires < config.serverTime:
+                            keyOK = 0
+                            error = ('KeyID ' + config.pilotRows[x].keyID + ' has Expired')
+                            onError(error)
+
+                    if keyOK == 1 and config.pilotRows[x].keyType == 'Corporation':
+                        baseUrl = 'https://api.eveonline.com/corp/StarbaseList.xml.aspx?keyID=%s&vCode=%s'
+                        apiURL = baseUrl % (config.pilotRows[x].keyID, config.pilotRows[x].vCode)
+                        # print(apiURL)  # Console debug
+
+                        def starbases_process(self, result):
+
+                            XMLData = parseString(result)
+                            starbaseNodes = XMLData.getElementsByTagName("row")
+
+                            cacheuntil = XMLData.getElementsByTagName('cachedUntil')
+                            cacheExpire = datetime.datetime(*(time.strptime((cacheuntil[0].firstChild.nodeValue), "%Y-%m-%d %H:%M:%S")[0:6]))
+                            config.starbaseCachedUntil = cacheExpire
+
+                            for row in starbaseNodes:
+                                itemIDs = []
+                                locationIDs = []
+
+                                if int(row.getAttribute('typeID')) not in itemIDs:
+                                    itemIDs.append(int(row.getAttribute('typeID')))
+
+                                baseUrl = 'https://api.eveonline.com/corp/StarbaseDetail.xml.aspx?keyID=%s&vCode=%s&itemID=%s'
+                                apiURL = baseUrl % (config.pilotRows[x].keyID, config.pilotRows[x].vCode, row.getAttribute('itemID'))
+                                # print(apiURL)  # Console debug
+
+                                def starbase_detail(self, result):  # Try to connect to the API server
+
+                                    XMLData = parseString(result)
+                                    starbaseDetailNodes = XMLData.getElementsByTagName("row")
+
+                                    fuel = []
+                                    for entry in starbaseDetailNodes:
+                                        if int(entry.getAttribute('typeID')) not in itemIDs:
+                                            itemIDs.append(int(entry.getAttribute('typeID')))
+                                        fuel.append(int(entry.getAttribute('typeID')))
+                                        fuel.append(int(entry.getAttribute('quantity')))
+
+                                    if int(row.getAttribute('locationID')) not in locationIDs:
+                                        locationIDs.append(int(row.getAttribute('locationID')))
+                                    if int(row.getAttribute('moonID')) not in locationIDs:
+                                        locationIDs.append(int(row.getAttribute('moonID')))
+
+                                    itemNames = id2name('item', itemIDs)
+                                    locationNames = id2location(x, locationIDs, config.pilotRows)
+
+                                    tempStarbaseRows.append(Starbase(row.getAttribute('itemID'),
+                                                                     int(row.getAttribute('typeID')),
+                                                                     itemNames[int(row.getAttribute('typeID'))],
+                                                                     locationNames[int(row.getAttribute('locationID'))],
+                                                                     locationNames[int(row.getAttribute('moonID'))],
+                                                                     int(row.getAttribute('state')),
+                                                                     row.getAttribute('stateTimestamp'),
+                                                                     row.getAttribute('onlineTimestamp'),
+                                                                     fuel,
+                                                                     row.getAttribute('standingOwnerID')))
+
+                                # itemID,typeID,locationID,moonID,state,stateTimestamp,onlineTimestamp,standingOwnerID
+
+                                def server_error(self, error):
+                                    status = 'Error Connecting to %s:\n%s\nAt: %s' % (config.serverConn.svrName, str(error), config.serverTime)
+                                    onError(status)
+
+                                    print(status)
+
+                                target.state = ('Connecting to ' + config.serverConn.svrName)
+
+                                UrlRequest(apiURL, on_success=starbase_detail, on_error=server_error, req_headers=config.headers)
+
+                            target.state = ('Connecting to ' + config.serverConn.svrName)
+
+                            UrlRequest(apiURL, on_success=starbases_process, on_error=server_error, req_headers=config.headers)
+
+                if tempStarbaseRows != []:
+                    config.starbaseRows = tempStarbaseRows[:]
+                # self.starbaseList.SetObjects(starbaseRows)
+
+                timingMsg = 'Updated in: %0.2f ms' % (((time.clock() - t) * 1000))
+                target.state = str(timingMsg)
+
+                print(timingMsg + '(Fetch Starbases)')
+
+            else:
+                onError('Please open Config to enter a valid API key')
+        else:
+            # Don't Contact server as cache timer hasn't expired
+            # Fuel is used hourly so it shouldn't change within the cache expiry time.
             print('Not Contacting Server, Cache Not Expired')
             target.state = timingMsg
     else:

@@ -27,6 +27,7 @@ import config
 
 class JobGrid(GridLayout):
     def __init__(self, **kwargs):
+        # Display the current data on first load from the config json files.
         super(JobGrid, self).__init__(**kwargs)
         self.bind(minimum_height=self.setter('height'))
         if config.jobRows:
@@ -42,6 +43,7 @@ class JobGrid(GridLayout):
 
     def add_row(self, completedStatus, activityID, installedItemTypeID, installedInSolarSystemID,
                 installerID, installTime, endProductionTime):
+        # Add a row to the existing parent without clearing the current widgets.
         print('Adding Rows')
         self.add_widget(Label(font_size=12, text=str(completedStatus)))
         self.add_widget(Label(font_size=12, text=str(config.activities[activityID])))
