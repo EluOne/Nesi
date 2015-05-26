@@ -25,7 +25,20 @@
 				size: 100, 32
 				on_press: root.manager.current = 'nesi_screen'
 		ScrollView:
-			
+			GridLayout:
+				cols: 5
+				spacing: 20
+				size_hint_y: None
+				Label:
+					text: 'Character Name'
+				Label:
+					text: 'Corporation'
+				Label:
+					text: 'API Key'
+				Label:
+					text: 'Key Type'
+				Label:
+					text: 'Expires'
 		GridLayout:
 			cols: 4
 			size_hint: None, None

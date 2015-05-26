@@ -33,25 +33,25 @@ class JobGrid(GridLayout):
         if config.jobRows:
             numItems = list(range(len(config.jobRows)))
             for r in numItems:
-                self.add_widget(Label(font_size=12, id=str(config.jobRows[r].jobID), text=str(config.jobRows[r].completedStatus)))
-                self.add_widget(Label(font_size=12, id=str(config.jobRows[r].jobID), text=str(config.activities[config.jobRows[r].activityID])))
-                self.add_widget(Label(font_size=12, text=str(config.jobRows[r].installedItemTypeID)))
-                self.add_widget(Label(font_size=12, text=str(config.jobRows[r].installedInSolarSystemID)))
-                self.add_widget(Label(font_size=12, text=str(config.jobRows[r].installerID)))
-                self.add_widget(Label(font_size=12, text=str(config.jobRows[r].installTime)))
-                self.add_widget(Label(font_size=12, text=str(config.jobRows[r].endProductionTime)))
+                self.add_widget(Label(font_size='12sp', id=str(config.jobRows[r].jobID), text=str(config.jobRows[r].completedStatus)))
+                self.add_widget(Label(font_size='12sp', id=str(config.jobRows[r].jobID), text=str(config.activities[config.jobRows[r].activityID])))
+                self.add_widget(Label(font_size='12sp', text=str(config.jobRows[r].installedItemTypeID)))
+                self.add_widget(Label(font_size='12sp', text=str(config.jobRows[r].installedInSolarSystemID)))
+                self.add_widget(Label(font_size='12sp', text=str(config.jobRows[r].installerID)))
+                self.add_widget(Label(font_size='12sp', text=str(config.jobRows[r].installTime)))
+                self.add_widget(Label(font_size='12sp', text=str(config.jobRows[r].endProductionTime)))
 
     def add_row(self, completedStatus, activityID, installedItemTypeID, installedInSolarSystemID,
                 installerID, installTime, endProductionTime):
         # Add a row to the existing parent without clearing the current widgets.
         print('Adding Rows')
-        self.add_widget(Label(font_size=12, text=str(completedStatus)))
-        self.add_widget(Label(font_size=12, text=str(config.activities[activityID])))
-        self.add_widget(Label(font_size=12, text=str(installedItemTypeID)))
-        self.add_widget(Label(font_size=12, text=str(installedInSolarSystemID)))
-        self.add_widget(Label(font_size=12, text=str(installerID)))
-        self.add_widget(Label(font_size=12, text=str(installTime)))
-        self.add_widget(Label(font_size=12, text=str(endProductionTime)))
+        self.add_widget(Label(font_size='12sp', text=str(completedStatus)))
+        self.add_widget(Label(font_size='12sp', text=str(config.activities[activityID])))
+        self.add_widget(Label(font_size='12sp', text=str(installedItemTypeID)))
+        self.add_widget(Label(font_size='12sp', text=str(installedInSolarSystemID)))
+        self.add_widget(Label(font_size='12sp', text=str(installerID)))
+        self.add_widget(Label(font_size='12sp', text=str(installTime)))
+        self.add_widget(Label(font_size='12sp', text=str(endProductionTime)))
 
     def update_rows(self):
         # At present clear the grid and start fresh.
@@ -59,10 +59,10 @@ class JobGrid(GridLayout):
         if config.jobRows:
             numItems = list(range(len(config.jobRows)))
             for r in numItems:
-                self.add_widget(Label(font_size=12, id=str(config.jobRows[r].jobID), text=str(config.jobRows[r].completedStatus)))
-                self.add_widget(Label(font_size=12, id=str(config.jobRows[r].jobID), text=str(config.activities[config.jobRows[r].activityID])))
-                self.add_widget(Label(font_size=12, text=str(config.jobRows[r].installedItemTypeID)))
-                self.add_widget(Label(font_size=12, text=str(config.jobRows[r].installedInSolarSystemID)))
-                self.add_widget(Label(font_size=12, text=str(config.jobRows[r].installerID)))
-                self.add_widget(Label(font_size=12, text=str(config.jobRows[r].installTime)))
-                self.add_widget(Label(font_size=12, text=str(config.jobRows[r].endProductionTime)))
+                self.add_widget(Label(font_size='12sp', id=str(config.jobRows[r].jobID), text=str(config.jobRows[r].completedStatus)))
+                self.add_widget(Label(font_size='12sp', id=str(config.jobRows[r].jobID), text=str(config.activities[config.jobRows[r].activityID])))
+                self.add_widget(Label(font_size='12sp', text=str(config.jobRows[r].installedItemTypeID)))
+                self.add_widget(Label(font_size='12sp', text=str(config.jobRows[r].installedInSolarSystemID)))
+                self.add_widget(Label(font_size='12sp', text=str(config.jobRows[r].installerID)))
+                self.add_widget(Label(font_size='12sp', text=str(config.jobRows[r].installTime)))
+                self.add_widget(Label(font_size='12sp', text=str(config.jobRows[r].endProductionTime)))
