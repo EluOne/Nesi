@@ -14,34 +14,31 @@
     		text: 'Refresh'
     		on_press: root.fetch_starbases()
     	GridLayout:
-    		cols: 7
+    		cols: 6
 			size_hint_y: None
 			height: 20
     		Label:
     			font_size: 12
-    			text: 'State'
+    			text: 'System'
     		Label:
     			font_size: 12
-    			text: 'Activity'
+    			text: 'Moon'
     		Label:
     			font_size: 12
     			text: 'Type'
     		Label:
     			font_size: 12
-    			text: 'Location'
+    			text: 'State'
     		Label:
     			font_size: 12
-    			text: 'Installer'
+    			text: 'State From'
     		Label:
     			font_size: 12
-    			text: 'Install Date'
-    		Label:
-    			font_size: 12
-    			text: 'End Date'
+    			text: 'Online Since / At'
     	ScrollView:
     		id: starbasesScroll
     		do_scroll_y: True
     		do_scroll_x: False
     		
-    		# JobGrid:
+    		# StarbaseGrid:
     		# 	id: _starbase_grid

@@ -2,15 +2,5 @@
 #:import FadeTransition kivy.uix.screenmanager.FadeTransition
 <NesiScreenManager>:
 	transition: FadeTransition()
-	color_picker: _color_picker
 	Nesi:
-	Screen:
-		name: 'colorscreen'
-		ColorPicker:
-			id: _color_picker
-			Button:
-				text: "Select"
-				pos_hint: {'center_x': .75, 'y': .05}
-				size_hint: None, None
-				size: 150, 50
-				on_press: root.current = 'nesiscreen'
+	Config:

@@ -17,7 +17,7 @@
 #
 # Author: Tim Cumming aka Elusive One
 # Created: 29/12/13
-# Modified: 08/04/15
+# Modified: 26/05/15
 
 import datetime
 import time
@@ -82,7 +82,7 @@ else:
 
 
 # Dictionaries for POS status conversions.
-activities = {1: 'Manufacturing', 2: 'Technological research', 3: 'Time Efficiency Research', 4: 'Material Research',
+activities = {1: 'Manufacturing', 2: 'Technological Research', 3: 'Time Efficiency Research', 4: 'Material Research',
               5: 'Copy', 6: 'Duplicating', 7: 'Reverse Engineering', 8: 'Invention'}  # POS activities list.
 
 states = {0: 'Unanchored', 1: 'Anchored / Offline', 2: 'Onlining', 3: 'Reinforced', 4: 'Online'}  # POS state list.

@@ -1,6 +1,6 @@
 #:kivy 1.8.0
 <Nesi@Screen>:
-	name: 'nesiscreen'
+	name: 'nesi_screen'
 	GridLayout:
 		cols: 1	
 		BoxLayout:
@@ -14,6 +14,13 @@
 		    Label:
 		    	font_size: 20
 		        text: 'Nova Echo Science & Industry'
+		    Button:
+	    	    font_size: 12
+				size_hint: None, None
+	    		height: 32
+	    		width: 64
+	    		text: 'Config'
+	    		on_press: root.manager.current = 'config_screen'
 	
 	    TabbedPanel:
 	        do_default_tab: False
