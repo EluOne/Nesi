@@ -17,7 +17,7 @@
 #
 # Author: Tim Cumming aka Elusive One
 # Created: 31/01/15
-# Modified: 31/01/15
+# Modified: 29/05/15
 
 from kivy.uix.popup import Popup
 from kivy.uix.label import Label
@@ -38,7 +38,7 @@ def onError(error):
                   title='Something went wrong!',
                   auto_dismiss=False,
                   size_hint=(.7, .5),
-                  font_size = 18)
+                  font_size='18sp')
 
     acknowledge.bind(on_press=popup.dismiss)
 

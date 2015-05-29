@@ -26,11 +26,9 @@ from kivy.storage.jsonstore import JsonStore
 
 from nesi.classes import Server, Character, Job
 
-# from nesi.api import apiCheck
-
 
 # These are the headers sent with our http requests to be nice to CCP if they need to contact us.
-version = '1.2.1-kivy'
+version = '1.2.3-kivy'
 headers = {'User-Agent': ('Nesi/%s +https://github.com/EluOne/Nesi' % version)}
 
 # Static sqlLite data dump
@@ -89,6 +87,7 @@ states = {0: 'Unanchored', 1: 'Anchored / Offline', 2: 'Onlining', 3: 'Reinforce
 
 
 # API End Points
+
 # Returns a list of all outpost and POS industrial facilities your corporation owns. (cache: 1 hour)
 corpFacilities = 'corp/Facilities.xml.aspx'
 
@@ -118,7 +117,7 @@ starbaseCachedUntil = serverTime
 pilotRows = []
 
 if pilotCache.count() > 0:
-    print('Character Data Already Exists:')
+    print('Character Data Already Exists: %s Entries' % (len(pilotCache)))
     for key in pilotCache:
         print(key)  # Using characterID as key
         print(pilotCache.get(key)['characterName'])
