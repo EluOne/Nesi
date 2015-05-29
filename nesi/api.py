@@ -17,7 +17,7 @@
 #
 # Author: Tim Cumming aka Elusive One
 # Created: 13/01/13
-# Modified: 26/05/15
+# Modified: 29/05/15
 
 import datetime
 import time
@@ -32,7 +32,7 @@ from kivy.network.urlrequest import UrlRequest
 from xml.dom.minidom import parseString
 
 from nesi.error import onError
-from nesi.classes import Job, Character, Starbase
+from nesi.classes import Job, Starbase
 from nesi.functions import is32, checkClockDrift
 
 import config
@@ -159,16 +159,8 @@ def apiCheck(keyID, vCode):
                            keyInfo['type'], keyInfo['expires'],
                            skills])
 
-        # TODO: work out how to use this as async
         print('Pilots at end of api_process: ' + str(pilots))
 
-        if pilots != []:
-            for row in pilots:
-                # keyID, vCode, characterID, characterName, corporationID, corporationName, keyType, keyExpires, skills, isActive
-                config.pilotRows.append(Character(row[0], row[1], row[2], row[3], row[4], row[5], row[6], row[7], row[8], 0))
-                config.pilotCache.put(row[2], keyID=row[0], vCode=row[1], characterID=row[2], characterName=row[3],
-                                      corporationID=row[4], corporationName=row[5], keyType=row[6], keyExpires=row[7],
-                                      skills=row[8], isActive=0)
         return pilots
 
     def api_fail(self, result):
@@ -184,7 +176,8 @@ def apiCheck(keyID, vCode):
         status = 'Error Connecting to %s:\n%s\nAt: %s' % (config.serverConn.svrName, str(error), config.serverTime)
         onError(status)
 
-    UrlRequest(apiURL, on_success=api_process, on_error=api_error, on_failure=api_fail, req_headers=config.headers)
+    req = UrlRequest(apiURL, on_success=api_process, on_error=api_error, on_failure=api_fail, req_headers=config.headers)
+    req.wait()
 
     return pilots
 

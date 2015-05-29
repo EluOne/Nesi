@@ -1,6 +1,9 @@
 #:kivy 1.8.0
-<Config@Screen>:
-	name: 'config_screen'
+#:import pilots nesi.pilots
+<Pilots>:
+	name: 'pilots_screen'
+	keyID: _keyID
+	vCode: _vCode
 	GridLayout:
 		cols: 1
 		GridLayout:
@@ -12,18 +15,20 @@
 				Label:
 					text: 'Key ID:'
 				TextInput:
+					id: _keyID
 					text: ''
 					multiline: False
 				Label:
 					text: 'vCode:'
 				TextInput:
+					id: _vCode
 					text: ''
 					multiline: False
 			Button:
 				text: "Add"
 				size_hint: None, None
 				size: 100, 32
-				on_press: root.manager.current = 'nesi_screen'
+				on_press: root.onAdd()
 		ScrollView:
 			GridLayout:
 				cols: 5
@@ -52,15 +57,15 @@
 				text: "Delete"
 				size_hint: None, None
 				size: 100, 32
-				on_press: root.manager.current = 'nesi_screen'
+				on_press: root.onDelete()
 			Button:
 				text: "Refresh"
 				size_hint: None, None
 				size: 100, 32
-				on_press: root.manager.current = 'nesi_screen'
+				on_press: root.onRefresh()
 			Button:
 				text: "Save"
 				size_hint: None, None
 				size: 100, 32
-				on_press: root.manager.current = 'nesi_screen'
+				on_press: root.onSave()
 				

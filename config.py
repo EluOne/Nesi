@@ -17,7 +17,7 @@
 #
 # Author: Tim Cumming aka Elusive One
 # Created: 29/12/13
-# Modified: 26/05/15
+# Modified: 29/05/15
 
 import datetime
 import time
@@ -26,7 +26,7 @@ from kivy.storage.jsonstore import JsonStore
 
 from nesi.classes import Server, Character, Job
 
-from nesi.api import apiCheck
+# from nesi.api import apiCheck
 
 
 # These are the headers sent with our http requests to be nice to CCP if they need to contact us.
@@ -129,13 +129,8 @@ if pilotCache.count() > 0:
                                    pilotCache.get(key)['keyType'], pilotCache.get(key)['keyExpires'],
                                    pilotCache.get(key)['skills'], pilotCache.get(key)['isActive']))
 else:
-    print('Key to be removed when we have a preference dialog working. Leave array empty')
-    # keyID, vCode, characterID, characterName, corporationID, corporationName, keyType, keyExpires, skills, isActive
-    keyID = '368187'
-    vCode = 'lbT36nQrx1up6gvYqdGtdHrR6IfTvFncubFFBD9U6ZszIIqNMtXSV2l13Xxv6jXL'
-    if (keyID != '') and (vCode != ''):
-        pilots = apiCheck(keyID, vCode)
-    # pilotRows = []
+    # No Pilot data.
+    print('No Pilot data.')
 
 
 # Job data storage.
@@ -156,6 +151,5 @@ if jobCache.count() > 0:
                            jobCache.get(key)['endDate']))
     jobsCachedUntil = datetime.datetime(*(time.strptime((statusCache.get('jobs')['cacheExpires']), '%Y-%m-%d %H:%M:%S')[0:6]))
 else:
-    # No Job data set cache to Expired.
-    print('No Job data set cache to Expired.')
-    jobsCachedUntil = serverTime
+    # No Job data.
+    print('No Job data.')
