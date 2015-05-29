@@ -36,6 +36,6 @@ class StarbasesTab(TabbedPanelItem):
         # getServerStatus(config.serverStatus, config.serverTime, self.status_bar)
         getServerStatus(config.serverConn.svrCacheExpire, config.serverTime, self.status_bar)
 
-        # getJobs(self.status_bar)
+        # getStarbases(self.status_bar)
 
-        # self.job_grid.update_rows()
+        # self.starbase_grid.update_rows()

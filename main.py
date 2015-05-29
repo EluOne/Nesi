@@ -32,6 +32,7 @@ Builder.load_file('nesi/jobgrid.kv')
 Builder.load_file('nesi/starbasestab.kv')
 Builder.load_file('nesi/nesi.kv')
 Builder.load_file('nesi/pilots.kv')
+Builder.load_file('nesi/pilotgrid.kv')
 Builder.load_file('nesi/nesiscreenmanager.kv')
 
 

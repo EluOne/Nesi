@@ -617,7 +617,7 @@ def getJobs(target):
         return()
 
 
-def onGetStarbases(target):
+def getStarbases(target):
     """Event handler to fetch starbase data from server"""
     timingMsg = 'Using Local Cache'
     # Inform the user what we are doing.

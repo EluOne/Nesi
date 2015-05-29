@@ -4,6 +4,7 @@
 	name: 'pilots_screen'
 	keyID: _keyID
 	vCode: _vCode
+	pilot_grid: _pilot_grid
 	GridLayout:
 		cols: 1
 		GridLayout:
@@ -29,21 +30,30 @@
 				size_hint: None, None
 				size: 100, 32
 				on_press: root.onAdd()
+		GridLayout:
+			cols: 5
+			spacing: 20
+			size_hint_y: None
+			Label:
+				text: 'Character Name'
+			Label:
+				text: 'Corporation'
+			Label:
+				text: 'API Key'
+			Label:
+				text: 'Key Type'
+			Label:
+				text: 'Expires'
 		ScrollView:
-			GridLayout:
-				cols: 5
-				spacing: 20
-				size_hint_y: None
-				Label:
-					text: 'Character Name'
-				Label:
-					text: 'Corporation'
-				Label:
-					text: 'API Key'
-				Label:
-					text: 'Key Type'
-				Label:
-					text: 'Expires'
+    		id: pilotsScroll
+    		# size_hint: None, None
+			size_hint_y: None
+    		do_scroll_y: True
+    		do_scroll_x: False
+
+    		PilotGrid:
+    			id: _pilot_grid
+
 		GridLayout:
 			cols: 4
 			size_hint: None, None

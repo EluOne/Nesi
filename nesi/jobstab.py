@@ -22,6 +22,7 @@
 from kivy.uix.tabbedpanel import TabbedPanelItem
 
 import config
+
 from nesi.api import getServerStatus, getJobs
 from nesi.functions import updateCurrentTime
 
@@ -33,7 +34,6 @@ class JobsTab(TabbedPanelItem):
         # Update the config.serverTime to now.
         updateCurrentTime()
 
-        # getServerStatus(config.serverStatus, config.serverTime, self.status_bar)
         getServerStatus(config.serverConn.svrCacheExpire, config.serverTime, self.status_bar)
 
         getJobs(self.status_bar)
