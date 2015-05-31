@@ -1,36 +1,19 @@
 #:kivy 1.8.0
 #:import statusbar nesi.statusbar
 <StatusBar>:
-	orientation: 'horizontal'
-	size_hint_y: None
-	height: 30
+	cols: 3
 	Label:
 		font_size: '12sp'
-		size_hint_y: None
-		size_hint_x: .15
-		height: 32
 		text: str(root.server)
 	Label:
 		font_size: '12sp'
-		size_hint_y: None
-		size_hint_x: .15
-		height: 32
 		text: str(root.players) + ' Players Online'
 	Label:
 		font_size: '12sp'
-		size_hint_y: None
-		size_hint_x: .25
-		height: 32
+		text: str(root.state)
+	Label:
+		font_size: '12sp'
 		text: 'EvE Time: ' + str(root.serverTime)
 	Label:
 		font_size: '12sp'
-		size_hint_y: None
-		size_hint_x: .25
-		height: 32
 		text: 'Cache Expires: ' + str(root.jobsCachedUntil)
-	Label:
-		font_size: '12sp'
-		size_hint_y: None
-		size_hint_x: .2
-		height: 32
-		text: str(root.state)

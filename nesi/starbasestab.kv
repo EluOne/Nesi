@@ -4,19 +4,19 @@
 	# job_grid: _starbase_grid
 	font_size: '12sp'
     text: 'Starbases'
-    StackLayout:
-    	orientation: 'rl-tb'
+    BoxLayout:
+    	orientation: 'vertical'
     	Button:
     	    font_size: '12sp'
 			size_hint: None, None
-    		height: 32
-    		width: 100
+    		height: '32dp'
+    		width: '100dp'
     		text: 'Refresh'
     		on_press: root.fetch_starbases()
     	GridLayout:
     		cols: 6
 			size_hint_y: None
-			height: 20
+			height: '20dp'
     		Label:
     			font_size: '12sp'
     			text: 'System'
@@ -37,8 +37,5 @@
     			text: 'Online Since / At'
     	ScrollView:
     		id: starbasesScroll
-    		do_scroll_y: True
-    		do_scroll_x: False
-    		
     		# StarbaseGrid:
     		# 	id: _starbase_grid

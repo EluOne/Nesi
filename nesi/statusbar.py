@@ -17,14 +17,14 @@
 #
 # Author: Tim Cumming aka Elusive One
 # Created: 16/01/15
-# Modified: 16/01/15
+# Modified: 31/05/15
 
-from kivy.uix.boxlayout import BoxLayout
 from kivy.properties import StringProperty
+from kivy.uix.gridlayout import GridLayout
 
 
-class StatusBar(BoxLayout):
-    server = StringProperty('Idle')
+class StatusBar(GridLayout):
+    server = StringProperty('Not Connected')
     players = StringProperty('0')
     serverTime = StringProperty('No Data')
     jobsCachedUntil = StringProperty('No Data')

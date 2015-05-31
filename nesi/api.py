@@ -17,7 +17,7 @@
 #
 # Author: Tim Cumming aka Elusive One
 # Created: 13/01/13
-# Modified: 29/05/15
+# Modified: 31/05/15
 
 import datetime
 import time
@@ -151,6 +151,7 @@ def apiCheck(keyID, vCode):
             # TODO: Need to find out a way to not call this if the key has no access to this data.
             skills = skillCheck(keyID, vCode, row.getAttribute('characterID'))
 
+            # Returned columns: characterID,characterName,corporationID,corporationName,allianceID,allianceName,factionID,factionName
             pilots.append([keyID, vCode,
                            row.getAttribute('characterID'),
                            row.getAttribute('characterName'),

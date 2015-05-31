@@ -7,10 +7,10 @@
 	pilot_grid: _pilot_grid
 	GridLayout:
 		cols: 1
-		GridLayout:
-			cols: 2
+		BoxLayout:
+			oreintation: 'horizontal'
 			size_hint: None, None
-			height: 100
+			height: '64dp'
 			GridLayout:
 				cols: 2
 				Label:
@@ -27,55 +27,47 @@
 					multiline: False
 			Button:
 				text: "Add"
-				size_hint: None, None
-				size: 100, 32
+				#size_hint: None, None
+				size: '64dp', '32dp'
 				on_press: root.onAdd()
-		GridLayout:
-			cols: 5
-			spacing: 20
-			size_hint_y: None
-			Label:
-				text: 'Character Name'
-			Label:
-				text: 'Corporation'
-			Label:
-				text: 'API Key'
-			Label:
-				text: 'Key Type'
-			Label:
-				text: 'Expires'
-		ScrollView:
-    		id: pilotsScroll
-    		# size_hint: None, None
-			size_hint_y: None
-    		do_scroll_y: True
-    		do_scroll_x: False
-
-    		PilotGrid:
-    			id: _pilot_grid
-
-		GridLayout:
-			cols: 4
+		BoxLayout:
+			orientation: 'vertical'
+			GridLayout:
+				cols: 5
+				size_hint_y: None
+				height: '20dp'
+	    		Label:
+	    			font_size: '12sp'
+					text: 'Character Name'
+				Label:
+	    			font_size: '12sp'
+					text: 'Corporation'
+				Label:
+	    			font_size: '12sp'
+					text: 'API Key'
+				Label:
+	    			font_size: '12sp'
+					text: 'Key Type'
+				Label:
+	    			font_size: '12sp'
+					text: 'Expires'
+			ScrollView:
+	    		id: pilotsScroll
+	    		PilotGrid:
+	    			id: _pilot_grid
+		BoxLayout:
 			size_hint: None, None
-			height: 32
+			height: '32dp'
 			Button:
 				text: "Cancel"
-				size_hint: None, None
-				size: 100, 32
 				on_press: root.manager.current = 'nesi_screen'
 			Button:
 				text: "Delete"
-				size_hint: None, None
-				size: 100, 32
 				on_press: root.onDelete()
 			Button:
 				text: "Refresh"
-				size_hint: None, None
-				size: 100, 32
 				on_press: root.onRefresh()
 			Button:
 				text: "Save"
-				size_hint: None, None
-				size: 100, 32
 				on_press: root.onSave()
 				
