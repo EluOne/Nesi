@@ -104,7 +104,7 @@ def getServerStatus(cacheExpire, serverTime, target):
 
 
 # Pull in the character skills and levels from the api server if we have access.
-def skillCheck(keyID, vCode, characterID):  # TODO: Pull in implants from api.
+def skillCheck(keyID, vCode, characterID):
     skills = {}
     baseUrl = config.serverConn.svrAddress + 'char/CharacterSheet.xml.aspx?keyID=%s&vCode=%s&characterID=%s'
     apiURL = baseUrl % (keyID, vCode, characterID)
@@ -148,7 +148,7 @@ def apiCheck(keyID, vCode):
         dataNodes = XMLData.getElementsByTagName('row')
 
         for row in dataNodes:
-            # TODO: Need to find out a way to not call this if the key has no access to this data.
+            # TODO: Need to find out a way to not call this if the key has no access to this data. AccessMask?
             skills = skillCheck(keyID, vCode, row.getAttribute('characterID'))
 
             # Returned columns: characterID,characterName,corporationID,corporationName,allianceID,allianceName,factionID,factionName
