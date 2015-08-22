@@ -1,0 +1,19 @@
+#:kivy 1.8.0
+#:import statusbar nesi.statusbar
+<StatusBar>:
+	cols: 3
+	Label:
+		font_size: '12sp'
+		text: str(root.server)
+	Label:
+		font_size: '12sp'
+		text: str(root.players) + ' Players Online'
+	Label:
+		font_size: '12sp'
+		text: str(root.state)
+	Label:
+		font_size: '12sp'
+		text: 'EvE Time: ' + str(root.serverTime)
+	Label:
+		font_size: '12sp'
+		text: 'Cache Expires: ' + str(root.jobsCachedUntil)

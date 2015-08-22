@@ -1,0 +1,73 @@
+#:kivy 1.8.0
+#:import pilots nesi.pilots
+<Pilots>:
+	name: 'pilots_screen'
+	keyID: _keyID
+	vCode: _vCode
+	pilot_grid: _pilot_grid
+	GridLayout:
+		cols: 1
+		BoxLayout:
+			oreintation: 'horizontal'
+			size_hint: None, None
+			height: '64dp'
+			GridLayout:
+				cols: 2
+				Label:
+					text: 'Key ID:'
+				TextInput:
+					id: _keyID
+					text: ''
+					multiline: False
+				Label:
+					text: 'vCode:'
+				TextInput:
+					id: _vCode
+					text: ''
+					multiline: False
+			Button:
+				text: "Add"
+				#size_hint: None, None
+				size: '64dp', '32dp'
+				on_press: root.onAdd()
+		BoxLayout:
+			orientation: 'vertical'
+			GridLayout:
+				cols: 5
+				size_hint_y: None
+				height: '20dp'
+	    		Label:
+	    			font_size: '12sp'
+					text: 'Character Name'
+				Label:
+	    			font_size: '12sp'
+					text: 'Corporation'
+				Label:
+	    			font_size: '12sp'
+					text: 'API Key'
+				Label:
+	    			font_size: '12sp'
+					text: 'Key Type'
+				Label:
+	    			font_size: '12sp'
+					text: 'Expires'
+			ScrollView:
+	    		id: pilotsScroll
+	    		PilotGrid:
+	    			id: _pilot_grid
+		BoxLayout:
+			size_hint: None, None
+			height: '32dp'
+			Button:
+				text: "Cancel"
+				on_press: root.manager.current = 'nesi_screen'
+			Button:
+				text: "Delete"
+				on_press: root.onDelete()
+			Button:
+				text: "Refresh"
+				on_press: root.onRefresh()
+			Button:
+				text: "Save"
+				on_press: root.onSave()
+				

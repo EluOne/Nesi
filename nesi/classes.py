@@ -17,6 +17,7 @@
 #
 # Author: Tim Cumming aka Elusive One
 # Created: 29/12/13
+# Modified: 09/05/15
 
 import datetime
 import time
@@ -24,11 +25,12 @@ import time
 import config
 
 
-# ObjectListView uses objects for referencing the data within each row and column.
+# Use objects for referencing the data within each row and column.
 
 
 class Character(object):
-    def __init__(self, keyID, vCode, characterID, characterName, corporationID, corporationName, keyType, keyExpires, skills, isActive):
+    def __init__(self, keyID, vCode, characterID, characterName, corporationID,
+                 corporationName, keyType, keyExpires, skills, isActive):
         self.keyID = keyID
         self.vCode = vCode
         self.characterID = characterID
@@ -46,16 +48,28 @@ class Character(object):
 # end of class Character
 
 
+class Server(object):
+    def __init__(self, serverName, serverAddress, serverStatus, serverPlayers, cacheExpire, serverPing):
+        self.svrName = serverName
+        self.svrAddress = serverAddress
+        self.svrStatus = serverStatus
+        self.svrPlayers = serverPlayers
+        self.svrCacheExpire = cacheExpire
+        self.svrPing = serverPing
+
+# end of class Server
+
+
 class Job(object):
     def __init__(self, jobID, completedStatus, activityID, installedItemTypeID,
-                 installedItemProductivityLevel, installedItemMaterialLevel, outputLocationID,
-                 installedInSolarSystemID, installerID, runs, outputTypeID, installTime, endProductionTime):
+                 outputLocationID, installedInSolarSystemID, installerID, runs,
+                 outputTypeID, installTime, endProductionTime):
         self.jobID = jobID
         self.completedStatus = completedStatus
         self.activityID = activityID
         self.installedItemTypeID = installedItemTypeID
-        self.installedItemProductivityLevel = installedItemProductivityLevel
-        self.installedItemMaterialLevel = installedItemMaterialLevel
+        # self.installedItemProductivityLevel = installedItemProductivityLevel
+        # self.installedItemMaterialLevel = installedItemMaterialLevel
         self.outputLocationID = outputLocationID
         self.installedInSolarSystemID = installedInSolarSystemID
         self.installerID = installerID
@@ -70,21 +84,27 @@ class Job(object):
             self.timeRemaining = self.endProductionTime - config.serverTime
             self.state = 'Ready'
 
-# S&I window shows: state, activity, type, location, jumps, installer, owner, install date, end date
+    # New API Output
+    # columns="jobID,installerID,installerName,facilityID,solarSystemID,solarSystemName,
+    # stationID,activityID,blueprintID,blueprintTypeID,blueprintTypeName,blueprintLocationID,
+    # outputLocationID,runs,cost,teamID,licensedRuns,probability,productTypeID,productTypeName,
+    # status,timeInSeconds,startDate,endDate,pauseDate,completedDate,completedCharacterID,successfulRuns"
+
+# Old S&I window shows: state, activity, type, location, jumps, installer, owner, install date, end date
 # This is what the API returns:
-#columns="jobID,assemblyLineID,containerID,installedItemID,installedItemLocationID,installedItemQuantity
-#installedItemProductivityLevel,installedItemMaterialLevel,installedItemLicensedProductionRunsRemaining,
-#outputLocationID,installerID,runs,licensedProductionRuns,installedInSolarSystemID,containerLocationID,
-#materialMultiplier,charMaterialMultiplier,timeMultiplier,charTimeMultiplier,installedItemTypeID,outputTypeID,
-#containerTypeID,installedItemCopy,completed,completedSuccessfully,installedItemFlag,outputFlag,activityID,
-#completedStatus,installTime,beginProductionTime,endProductionTime,pauseProductionTime"
+# columns="jobID,assemblyLineID,containerID,installedItemID,installedItemLocationID,installedItemQuantity
+# installedItemProductivityLevel,installedItemMaterialLevel,installedItemLicensedProductionRunsRemaining,
+# outputLocationID,installerID,runs,licensedProductionRuns,installedInSolarSystemID,containerLocationID,
+# materialMultiplier,charMaterialMultiplier,timeMultiplier,charTimeMultiplier,installedItemTypeID,outputTypeID,
+# containerTypeID,installedItemCopy,completed,completedSuccessfully,installedItemFlag,outputFlag,activityID,
+# completedStatus,installTime,beginProductionTime,endProductionTime,pauseProductionTime"
 
 # end of class Job
 
 
 class Starbase(object):
     def __init__(self, itemID, typeID, typeStr, locationID, moonID, state, stateTimestamp, onlineTimestamp,
-                 #fuelBlocks, blockQty, charters, charterQty, stront, strontQty, standingOwnerID):
+                 # fuelBlocks, blockQty, charters, charterQty, stront, strontQty, standingOwnerID):
                  fuel, standingOwnerID):
         self.itemID = itemID
         self.typeID = typeID

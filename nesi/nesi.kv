@@ -1,0 +1,46 @@
+#:kivy 1.8.0
+<Nesi@Screen>:
+	name: 'nesi_screen'
+	GridLayout:
+		cols: 1
+		BoxLayout:
+			id: _header_bar
+			orientation: 'horizontal'
+			size_hint_y: None
+			height: '64dp'
+			Image:
+				size_hint_x: None
+				width: '64dp'
+				source: 'images/nesi.png'
+		    Label:
+		    	font_size: '20sp'
+		        text: 'Nova Echo Science & Industry'
+		    Button:
+	    	    font_size: '12sp'
+				size_hint: None, None
+	    		height: '32dp'
+	    		width: '64dp'
+	    		text: 'Config'
+	    		on_press: root.manager.current = 'pilots_screen'
+	
+	    TabbedPanel:
+	        do_default_tab: False
+	        height: root.height - _status_bar.height - _header_bar.height
+	        
+			JobsTab:
+				id: _jobs_tab
+				status_bar: _status_bar
+
+			StarbasesTab:
+				id: _starbases_tab
+				status_bar: _status_bar
+	        
+	        TabbedPanelItem:
+	        	font_size: '12sp'
+	            text: 'Manufacturing'
+	            BoxLayout:
+	
+		StatusBar:
+			id: _status_bar
+			height: '32dp'
+			size_hint_y: None
